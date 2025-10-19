@@ -1,0 +1,99 @@
+A Dart VM Service on Chrome is available at: http://127.0.0.1:53878/Lck6ZpSPcOQ=
+Starting application from main method in: org-dartlang-app:/web_entrypoint.dart.
+ Initialisation Firebase...
+The Flutter DevTools debugger and profiler on Chrome is available at: http://127.0.0.1:9101?uri=http://127.0.0.1:53878/Lck6ZpSPcOQ=
+✅ Firebase initialisé en 14611ms
+� Project ID: social-business-pro
+⚡ Firestore configuré (persistenceEnabled: false)
+� Test connexion Firestore (non-bloquant)...
+⏱️ Firestore timeout (10s) - mode offline activé
+! Firestore en mode offline (normal sur localhost)
+   � Pour une connexion complète, déployez sur Firebase Hosting
+[2025-10-18T23:34:14.078Z]  @firebase/firestore:
+[2025-10-18T23:34:15.075Z]  @firebase/firestore:
+[2025-10-18T23:34:15.078Z]  @firebase/firestore:
+[2025-10-18T23:34:20.520Z]  @firebase/firestore:
+[2025-10-18T23:34:23.964Z]  @firebase/firestore:
+[2025-10-18T23:34:30.843Z]  @firebase/firestore:
+[2025-10-18T23:34:37.885Z]  @firebase/firestore:
+[2025-10-18T23:34:44.820Z]  @firebase/firestore:
+[2025-10-18T23:35:00.463Z]  @firebase/firestore:
+[2025-10-18T23:35:24.804Z]  @firebase/firestore:
+[2025-10-18T23:35:57.086Z]  @firebase/firestore:
+[2025-10-18T23:36:26.422Z]  @firebase/firestore:
+[2025-10-18T23:37:37.216Z]  @firebase/firestore:
+[2025-10-18T23:39:00.750Z]  @firebase/firestore:
+[2025-10-18T23:39:56.842Z]  @firebase/firestore:
+[2025-10-18T23:41:25.914Z]  @firebase/firestore:
+[2025-10-18T23:42:41.649Z]  @firebase/firestore:
+� Tentative de connexion: livreurtest@test.ci
+� === CONNEXION WEB === : livreurtest@test.ci
+✅ Web: Connexion Firestore assumée active
+✅ Auth réussie - UID: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Lecture Firestore avec stratégie serveur → cache...
+   � Lecture Firestore automatique (serveur → cache)...
+[2025-10-18T23:42:49.658Z]  @firebase/firestore:
+[2025-10-18T23:42:50.482Z]  @firebase/firestore:
+[2025-10-18T23:42:54.696Z]  @firebase/firestore:
+[2025-10-18T23:42:58.192Z]  @firebase/firestore:
+❌ Erreur récupération document: [cloud_firestore/unavailable] Failed to get document because the client is offline.
+! Document utilisateur non trouvé pour UID: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+! Cela peut être dû à un timeout Firestore
+! Utilisateur temporairement non chargé
+   ❌ Échec lecture: [cloud_firestore/unavailable] Failed to get document because the client is offline.
+! Document utilisateur introuvable (serveur + cache)
+! Utilisation configuration locale basée sur email
+   � Email: livreurtest@test.ci
+   � DisplayName: Livreur test
+   � UserType détecté: livreur
+� === CONNEXION TERMINÉE === UserType: livreur
+
+✅ Connexion réussie
+� Chargement de l'utilisateur depuis Firestore...
+� Chargement utilisateur depuis Firestore: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+   � Lecture Firestore automatique (serveur → cache)...
+   ❌ Échec lecture: [cloud_firestore/unavailable] Failed to get document because the client is offline.
+! Document Firestore non trouvé pour uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+! Utilisation configuration locale basée sur email
+   � Email: livreurtest@test.ci
+   � UserType détecté: livreur
+✅ Utilisateur créé localement: Livreur test (livreur)
+✅ Utilisateur chargé: Livreur test (livreur)
+� === DeliveryDashboard initState ===
+� Chargement dashboard livreur
+✅ User validé: Livreur test (livreur)
+[2025-10-18T23:43:22.033Z]  @firebase/firestore:
+[2025-10-18T23:43:22.058Z]  @firebase/firestore:
+[2025-10-18T23:43:22.263Z]  @firebase/firestore:
+✅ Dashboard livreur chargé
+[2025-10-18T23:43:23.465Z]  @firebase/firestore:
+[2025-10-18T23:43:25.376Z]  @firebase/firestore:
+[2025-10-18T23:43:26.626Z]  @firebase/firestore:
+[2025-10-18T23:43:28.454Z]  @firebase/firestore:
+! Timeout chargement livraisons
+[2025-10-18T23:43:34.519Z]  @firebase/firestore:
+� Chargement abonnement livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Récupération abonnement livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+[2025-10-18T23:43:37.935Z]  @firebase/firestore:
+[2025-10-18T23:43:43.639Z]  @firebase/firestore:
+⏱️ Timeout récupération abonnement, création STARTER
+❌ Erreur récupération abonnement livreur: TimeoutException: Timeout récupération abonnement livreur
+� Création abonnement STARTER par défaut (mode offline)
+� Création abonnement STARTER pour livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+[2025-10-18T23:43:56.205Z]  @firebase/firestore:
+[2025-10-18T23:44:14.998Z]  @firebase/firestore:
+[2025-10-18T23:44:30.999Z]  @firebase/firestore:
+[2025-10-18T23:45:10.893Z]  @firebase/firestore:
+[2025-10-18T23:46:22.634Z]  @firebase/firestore:
+[2025-10-18T23:47:44.629Z]  @firebase/firestore:
+[2025-10-18T23:48:45.734Z]  @firebase/firestore:
+� Chargement abonnement livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Récupération abonnement livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+[2025-10-18T23:48:48.038Z]  @firebase/firestore:
+[2025-10-18T23:48:48.276Z]  @firebase/firestore:
+⏱️ Timeout récupération abonnement, création STARTER
+❌ Erreur récupération abonnement livreur: TimeoutException: Timeout récupération abonnement livreur
+� Création abonnement STARTER par défaut (mode offline)
+� Création abonnement STARTER pour livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+[2025-10-18T23:50:08.246Z]  @firebase/firestore:
+[2025-10-18T23:51:21.297Z]  @firebase/firestore:

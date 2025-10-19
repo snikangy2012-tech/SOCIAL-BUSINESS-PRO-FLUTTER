@@ -1,0 +1,405 @@
+A Dart VM Service on Chrome is available at: http://127.0.0.1:53662/O069nxjy5pg=
+Starting application from main method in: org-dartlang-app:/web_entrypoint.dart.
+ Initialisation Firebase...
+The Flutter DevTools debugger and profiler on Chrome is available at: http://127.0.0.1:9101?uri=http://127.0.0.1:53662/O069nxjy5pg=
+✅ Firebase initialisé en 6100ms
+� Project ID: social-business-pro
+⚡ Firestore configuré (persistenceEnabled: false)
+� Test connexion Firestore (non-bloquant)...
+⏱️ Firestore timeout (10s) - mode offline activé
+! Firestore en mode offline (normal sur localhost)
+   � Pour une connexion complète, déployez sur Firebase Hosting
+[2025-10-19T00:10:45.069Z]  @firebase/firestore:
+[2025-10-19T00:10:45.906Z]  @firebase/firestore:
+[2025-10-19T00:10:45.945Z]  @firebase/firestore:
+[2025-10-19T00:10:47.397Z]  @firebase/firestore:
+[2025-10-19T00:10:48.364Z]  @firebase/firestore:
+[2025-10-19T00:10:53.903Z]  @firebase/firestore:
+[2025-10-19T00:10:57.460Z]  @firebase/firestore:
+[2025-10-19T00:11:03.281Z]  @firebase/firestore:
+[2025-10-19T00:11:17.971Z]  @firebase/firestore:
+� Tentative de connexion: livreurtest@test.ci
+� === CONNEXION WEB === : livreurtest@test.ci
+✅ Web: Connexion Firestore assumée active
+✅ Auth réussie - UID: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Lecture Firestore avec stratégie serveur → cache...
+   � Lecture Firestore automatique (serveur → cache)...
+[2025-10-19T00:11:38.644Z]  @firebase/firestore:
+[2025-10-19T00:11:41.395Z]  @firebase/firestore:
+[2025-10-19T00:11:44.310Z]  @firebase/firestore:
+[2025-10-19T00:11:50.025Z]  @firebase/firestore:
+[2025-10-19T00:11:59.655Z]  @firebase/firestore:
+❌ Erreur récupération document: TimeoutException after 0:00:30.000000: Future not completed
+! Document utilisateur non trouvé pour UID: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+! Cela peut être dû à un timeout Firestore
+! Utilisateur temporairement non chargé
+   ❌ Échec lecture: TimeoutException: Timeout lecture
+! Document utilisateur introuvable (serveur + cache)
+! Utilisation configuration locale basée sur email
+   � Email: livreurtest@test.ci
+   � DisplayName: Livreur test
+   � UserType détecté: livreur
+� === CONNEXION TERMINÉE === UserType: livreur
+
+✅ Connexion réussie
+� Chargement de l'utilisateur depuis Firestore...
+� Chargement utilisateur depuis Firestore: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+   � Lecture Firestore automatique (serveur → cache)...
+   ❌ Échec lecture: [cloud_firestore/unavailable] Failed to get document because the client is offline.
+! Document Firestore non trouvé pour uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+! Utilisation configuration locale basée sur email
+   � Email: livreurtest@test.ci
+   � UserType détecté: livreur
+✅ Utilisateur créé localement: Livreur test (livreur)
+✅ Utilisateur chargé: Livreur test (livreur)
+� === DeliveryDashboard initState ===
+� Chargement dashboard livreur
+✅ User validé: Livreur test (livreur)
+[2025-10-19T00:12:11.205Z]  @firebase/firestore:
+✅ Dashboard livreur chargé
+[2025-10-19T00:12:11.640Z]  @firebase/firestore:
+[2025-10-19T00:12:11.976Z]  @firebase/firestore:
+[2025-10-19T00:12:16.001Z]  @firebase/firestore:
+[2025-10-19T00:12:19.265Z]  @firebase/firestore:
+[2025-10-19T00:12:19.883Z]  @firebase/firestore:
+! Timeout chargement livraisons
+[2025-10-19T00:12:26.972Z]  @firebase/firestore:
+[2025-10-19T00:12:35.680Z]  @firebase/firestore:
+� Chargement abonnement livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Récupération abonnement livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+[2025-10-19T00:12:43.615Z]  @firebase/firestore:
+⏱️ Timeout récupération abonnement, création STARTER
+❌ Erreur récupération abonnement livreur: TimeoutException: Timeout récupération abonnement livreur
+� Création abonnement STARTER par défaut (mode offline)
+� Création abonnement STARTER pour livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Création abonnement STARTER local (mode dev/offline)
+✅ Abonnement STARTER créé: local_uEaxmUVYnbVlJJxk2pLEZ03ANzy1_starter
+✅ Abonnement livreur chargé: STARTER
+[2025-10-19T00:12:53.764Z]  @firebase/firestore:
+� Chargement abonnement livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Récupération abonnement livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+! Aucun abonnement trouvé, création STARTER par défaut
+� Création abonnement STARTER pour livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Création abonnement STARTER local (mode dev/offline)
+✅ Abonnement STARTER créé: local_uEaxmUVYnbVlJJxk2pLEZ03ANzy1_starter
+✅ Abonnement livreur chargé: STARTER
+Could not find a set of Noto fonts to display all missing characters. Please add a font asset for the missing characters. See:
+https://flutter.dev/docs/cookbook/design/fonts
+[2025-10-19T00:13:08.794Z]  @firebase/firestore:
+[2025-10-19T00:13:25.120Z]  @firebase/firestore:
+[2025-10-19T00:13:44.719Z]  @firebase/firestore:
+� Paiement Mobile Money: Wave, +2250749705404, 10000 FCFA
+⬆️ Upgrade livreur vers pro...
+⬆️ Upgrade livreur vers pro pour: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+❌ Erreur upgrade abonnement livreur: Exception: Critères non atteints: 50 livraisons et 4★ requis
+❌ Erreur upgrade livreur: Exception: Critères non atteints: 50 livraisons et 4★ requis
+❌ Erreur paiement: Exception: Échec de l'activation de l'abonnement.
+� Chargement abonnement livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Récupération abonnement livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+[2025-10-19T00:14:17.745Z]  @firebase/firestore:
+⏱️ Timeout récupération abonnement, création STARTER
+❌ Erreur récupération abonnement livreur: TimeoutException: Timeout récupération abonnement livreur
+� Création abonnement STARTER par défaut (mode offline)
+� Création abonnement STARTER pour livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Création abonnement STARTER local (mode dev/offline)
+✅ Abonnement STARTER créé: local_uEaxmUVYnbVlJJxk2pLEZ03ANzy1_starter
+✅ Abonnement livreur chargé: STARTER
+� Chargement abonnement livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Récupération abonnement livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+[2025-10-19T00:14:43.373Z]  @firebase/firestore:
+⏱️ Timeout récupération abonnement, création STARTER
+❌ Erreur récupération abonnement livreur: TimeoutException: Timeout récupération abonnement livreur
+� Création abonnement STARTER par défaut (mode offline)
+� Création abonnement STARTER pour livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Création abonnement STARTER local (mode dev/offline)
+✅ Abonnement STARTER créé: local_uEaxmUVYnbVlJJxk2pLEZ03ANzy1_starter
+✅ Abonnement livreur chargé: STARTER
+[2025-10-19T00:15:10.814Z]  @firebase/firestore:
+[2025-10-19T00:16:04.303Z]  @firebase/firestore:
+[2025-10-19T00:17:34.576Z]  @firebase/firestore:
+[2025-10-19T00:18:05.329Z]  @firebase/firestore:
+[2025-10-19T00:18:45.227Z]  @firebase/firestore:
+[2025-10-19T00:20:11.124Z]  @firebase/firestore:
+
+Performing hot reload...                                           16,6s
+Reloaded application in 16 601ms.
+[2025-10-19T00:20:31.234Z]  @firebase/firestore:
+[2025-10-19T00:20:31.489Z]  @firebase/firestore:
+[2025-10-19T00:21:09.292Z]  @firebase/firestore:
+� === DeliveryDashboard initState ===
+� Chargement dashboard livreur
+✅ User validé: Livreur test (livreur)
+✅ Dashboard livreur chargé
+[2025-10-19T00:21:30.765Z]  @firebase/firestore:
+! Timeout chargement livraisons
+[2025-10-19T00:22:39.082Z]  @firebase/firestore:
+✅ Web: Connexion Firestore assumée active
+❌ Erreur mise à jour document: TimeoutException after 0:00:30.000000: Future not completed
+[2025-10-19T00:24:00.692Z]  @firebase/firestore:
+[2025-10-19T00:25:14.693Z]  @firebase/firestore:
+� Chargement abonnement livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Récupération abonnement livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+[2025-10-19T00:25:43.290Z]  @firebase/firestore:
+[2025-10-19T00:25:43.610Z]  @firebase/firestore:
+⏱️ Timeout récupération abonnement, création STARTER
+❌ Erreur récupération abonnement livreur: TimeoutException: Timeout récupération abonnement livreur
+� Création abonnement STARTER par défaut (mode offline)
+� Création abonnement STARTER pour livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Création abonnement STARTER local (mode dev/offline)
+✅ Abonnement STARTER créé: local_uEaxmUVYnbVlJJxk2pLEZ03ANzy1_starter
+✅ Abonnement livreur chargé: STARTER
+[2025-10-19T00:26:21.538Z]  @firebase/firestore:
+⬇️ Downgrade vers BASIQUE...
+⬇️ Downgrade abonnement pour: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Récupération abonnement vendeur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+[2025-10-19T00:26:38.722Z]  @firebase/firestore:
+! Aucun abonnement trouvé, création BASIQUE par défaut
+� Création abonnement BASIQUE pour: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+[2025-10-19T00:26:56.745Z]  @firebase/firestore:
+[2025-10-19T00:27:56.041Z]  @firebase/firestore:
+[2025-10-19T00:28:48.443Z]  @firebase/firestore:
+[2025-10-19T00:30:08.454Z]  @firebase/firestore:
+[2025-10-19T00:31:10.116Z]  @firebase/firestore:
+[2025-10-19T00:32:30.136Z]  @firebase/firestore:
+[2025-10-19T00:33:45.654Z]  @firebase/firestore:
+[2025-10-19T00:34:52.600Z]  @firebase/firestore:
+[2025-10-19T00:35:48.381Z]  @firebase/firestore:
+[2025-10-19T00:36:19.352Z]  @firebase/firestore:
+
+Performing hot reload...                                            3,2s
+Reloaded application in 3 177ms.
+[2025-10-19T00:36:42.996Z]  @firebase/firestore:
+� === DeliveryDashboard initState ===
+� Chargement dashboard livreur
+✅ User validé: Livreur test (livreur)
+✅ Dashboard livreur chargé
+[2025-10-19T00:37:18.408Z]  @firebase/firestore:
+� Chargement abonnement livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Récupération abonnement livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+⏱️ Timeout récupération abonnement, création STARTER
+❌ Erreur récupération abonnement livreur: TimeoutException: Timeout récupération abonnement livreur
+� Création abonnement STARTER par défaut (mode offline)
+� Création abonnement STARTER pour livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Création abonnement STARTER local (mode dev/offline)
+✅ Abonnement STARTER créé: local_uEaxmUVYnbVlJJxk2pLEZ03ANzy1_starter
+✅ Abonnement livreur chargé: STARTER
+[2025-10-19T00:37:53.414Z]  @firebase/firestore:
+[2025-10-19T00:38:24.960Z]  @firebase/firestore:
+[2025-10-19T00:39:53.205Z]  @firebase/firestore:
+⬇️ Downgrade vers BASIQUE...
+⬇️ Downgrade abonnement pour: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Récupération abonnement vendeur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+[2025-10-19T00:40:39.637Z]  @firebase/firestore:
+[2025-10-19T00:40:39.868Z]  @firebase/firestore:
+✅ Abonnement trouvé: BASIQUE
+� Chargement abonnement livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Récupération abonnement livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+[2025-10-19T00:41:06.515Z]  @firebase/firestore:
+⏱️ Timeout récupération abonnement, création STARTER
+❌ Erreur récupération abonnement livreur: TimeoutException: Timeout récupération abonnement livreur
+� Création abonnement STARTER par défaut (mode offline)
+� Création abonnement STARTER pour livreur: uEaxmUVYnbVlJJxk2pLEZ03ANzy1
+� Création abonnement STARTER local (mode dev/offline)
+✅ Abonnement STARTER créé: local_uEaxmUVYnbVlJJxk2pLEZ03ANzy1_starter
+✅ Abonnement livreur chargé: STARTER
+� === DeliveryDashboard initState ===
+� Chargement dashboard livreur
+✅ User validé: Livreur test (livreur)
+✅ Dashboard livreur chargé
+! Timeout chargement livraisons
+� Déconnexion...
+✅ Déconnexion réussie
+✅ Déconnexion réussie
+[2025-10-19T00:41:43.001Z]  @firebase/firestore:
+[2025-10-19T00:41:43.082Z]  @firebase/firestore:
+[2025-10-19T00:41:43.587Z]  @firebase/firestore:
+[2025-10-19T00:41:43.934Z]  @firebase/firestore:
+[2025-10-19T00:41:44.594Z]  @firebase/firestore:
+[2025-10-19T00:41:44.705Z]  @firebase/firestore:
+[2025-10-19T00:41:45.783Z]  @firebase/firestore:
+[2025-10-19T00:41:46.268Z]  @firebase/firestore:
+[2025-10-19T00:41:47.546Z]  @firebase/firestore:
+[2025-10-19T00:41:47.937Z]  @firebase/firestore:
+[2025-10-19T00:41:49.916Z]  @firebase/firestore:
+[2025-10-19T00:41:50.714Z]  @firebase/firestore:
+[2025-10-19T00:41:53.300Z]  @firebase/firestore:
+[2025-10-19T00:41:55.968Z]  @firebase/firestore:
+[2025-10-19T00:41:58.290Z]  @firebase/firestore:
+[2025-10-19T00:42:06.793Z]  @firebase/firestore:
+[2025-10-19T00:42:08.360Z]  @firebase/firestore:
+� Tentative de connexion: vendeurtest@test.ci
+� === CONNEXION WEB === : vendeurtest@test.ci
+✅ Web: Connexion Firestore assumée active
+✅ Auth réussie - UID: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+� Lecture Firestore avec stratégie serveur → cache...
+   � Lecture Firestore automatique (serveur → cache)...
+[2025-10-19T00:42:19.996Z]  @firebase/firestore:
+[2025-10-19T00:42:20.340Z]  @firebase/firestore:
+[2025-10-19T00:42:21.193Z]  @firebase/firestore:
+[2025-10-19T00:42:23.240Z]  @firebase/firestore:
+[2025-10-19T00:42:25.776Z]  @firebase/firestore:
+[2025-10-19T00:42:29.312Z]  @firebase/firestore:
+[2025-10-19T00:42:33.771Z]  @firebase/firestore:
+[2025-10-19T00:42:38.222Z]  @firebase/firestore:
+[2025-10-19T00:42:45.368Z]  @firebase/firestore:
+❌ Erreur récupération document: TimeoutException after 0:00:30.000000: Future not completed
+! Document utilisateur non trouvé pour UID: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+! Cela peut être dû à un timeout Firestore
+! Utilisateur temporairement non chargé
+   ❌ Échec lecture: TimeoutException: Timeout lecture
+! Document utilisateur introuvable (serveur + cache)
+! Utilisation configuration locale basée sur email
+   � Email: vendeurtest@test.ci
+   � DisplayName: Test Vendeur
+   � UserType détecté: vendeur
+� === CONNEXION TERMINÉE === UserType: vendeur
+
+✅ Connexion réussie
+� Chargement de l'utilisateur depuis Firestore...
+� Chargement utilisateur depuis Firestore: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+   � Lecture Firestore automatique (serveur → cache)...
+   ❌ Échec lecture: [cloud_firestore/unavailable] Failed to get document because the client is offline.
+! Document Firestore non trouvé pour CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+! Utilisation configuration locale basée sur email
+   � Email: vendeurtest@test.ci
+   � UserType détecté: vendeur
+✅ Utilisateur créé localement: Test Vendeur (vendeur)
+✅ Utilisateur chargé: Test Vendeur (vendeur)
+� === VendeurDashboard initState ===
+� Début chargement produits
+� Chargement commandes vendeur: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+� Chargement profil vendeur
+� PostFrameCallback - Démarrage chargement
+� === DÉBUT CHARGEMENT DASHBOARD ===
+� User: Test Vendeur
+� UserType: vendeur
+✅ Utilisateur validé
+� Chargement données...
+[2025-10-19T00:42:57.984Z]  @firebase/firestore:
+✅ Produits chargés: 4
+� Arrêt loading produits
+✅ Données chargées avec succès
+� Arrêt du loading
+✅ Loading arrêté - _isLoading = false
+� === FIN CHARGEMENT DASHBOARD ===
+
+[2025-10-19T00:42:58.525Z]  @firebase/firestore:
+[2025-10-19T00:42:58.896Z]  @firebase/firestore:
+[2025-10-19T00:43:00.503Z]  @firebase/firestore:
+[2025-10-19T00:43:01.867Z]  @firebase/firestore:
+[2025-10-19T00:43:04.303Z]  @firebase/firestore:
+[2025-10-19T00:43:06.731Z]  @firebase/firestore:
+✅ 0 commandes chargées
+� Calcul statistiques commandes vendeur: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+� Chargement commandes vendeur: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+❌ Erreur chargement profil: [cloud_firestore/unavailable] Failed to get document because the client is offline.
+✅ 0 commandes chargées
+[2025-10-19T00:43:09.788Z]  @firebase/firestore:
+[2025-10-19T00:43:13.709Z]  @firebase/firestore:
+� Chargement abonnement vendeur: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+� Récupération abonnement vendeur: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+� Chargement historique paiements...
+� Récupération historique paiements: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+[2025-10-19T00:43:25.272Z]  @firebase/firestore:
+[2025-10-19T00:43:27.443Z]  @firebase/firestore:
+! Aucun abonnement trouvé, création BASIQUE par défaut
+� Création abonnement BASIQUE pour: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+✅ 0 paiements récupérés
+✅ 0 paiements chargés
+[2025-10-19T00:43:50.366Z]  @firebase/firestore:
+[2025-10-19T00:44:07.472Z]  @firebase/firestore:
+[2025-10-19T00:44:54.708Z]  @firebase/firestore:
+� Chargement abonnement vendeur: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+� Récupération abonnement vendeur: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+� Chargement historique paiements...
+� Récupération historique paiements: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+[2025-10-19T00:45:04.889Z]  @firebase/firestore:
+[2025-10-19T00:45:05.553Z]  @firebase/firestore:
+✅ Abonnement trouvé: BASIQUE
+✅ Abonnement chargé: BASIQUE
+✅ 0 paiements récupérés
+✅ 0 paiements chargés
+� Chargement abonnement vendeur: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+� Récupération abonnement vendeur: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+[2025-10-19T00:45:29.551Z]  @firebase/firestore:
+[2025-10-19T00:46:04.360Z]  @firebase/firestore:
+[2025-10-19T00:46:04.703Z]  @firebase/firestore:
+✅ Abonnement trouvé: BASIQUE
+✅ Abonnement chargé: BASIQUE
+� Chargement abonnement vendeur: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+� Récupération abonnement vendeur: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+� Chargement historique paiements...
+� Récupération historique paiements: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+[2025-10-19T00:47:29.815Z]  @firebase/firestore:
+[2025-10-19T00:47:30.121Z]  @firebase/firestore:
+✅ Abonnement trouvé: BASIQUE
+✅ Abonnement chargé: BASIQUE
+✅ 0 paiements récupérés
+✅ 0 paiements chargés
+� Chargement abonnement vendeur: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+� Récupération abonnement vendeur: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+� Chargement historique paiements...
+� Récupération historique paiements: CeHXa7HnHXghe6Q2PVtKWpt6jhR2
+[2025-10-19T00:48:31.450Z]  @firebase/firestore:
+[2025-10-19T00:48:40.574Z]  @firebase/firestore:
+✅ Abonnement trouvé: BASIQUE
+✅ Abonnement chargé: BASIQUE
+✅ 0 paiements récupérés
+✅ 0 paiements chargés
+✅ Déconnexion réussie
+[2025-10-19T00:49:18.812Z]  @firebase/firestore:
+[2025-10-19T00:49:18.896Z]  @firebase/firestore:
+[2025-10-19T00:49:19.063Z]  @firebase/firestore:
+[2025-10-19T00:49:19.206Z]  @firebase/firestore:
+[2025-10-19T00:49:20.293Z]  @firebase/firestore:
+[2025-10-19T00:49:20.740Z]  @firebase/firestore:
+[2025-10-19T00:49:21.124Z]  @firebase/firestore:
+[2025-10-19T00:49:21.286Z]  @firebase/firestore:
+[2025-10-19T00:49:23.175Z]  @firebase/firestore:
+[2025-10-19T00:49:23.974Z]  @firebase/firestore:
+[2025-10-19T00:49:26.806Z]  @firebase/firestore:
+[2025-10-19T00:49:27.310Z]  @firebase/firestore:
+[2025-10-19T00:49:32.739Z]  @firebase/firestore:
+[2025-10-19T00:49:33.039Z]  @firebase/firestore:
+[2025-10-19T00:49:45.419Z]  @firebase/firestore:
+[2025-10-19T00:50:00.509Z]  @firebase/firestore:
+[2025-10-19T00:50:09.367Z]  @firebase/firestore:
+[2025-10-19T00:50:45.718Z]  @firebase/firestore:
+� Inscription Web: VENDEUR 2 (Type: vendeur)
+✅ Web: Connexion Firestore assumée active
+[2025-10-19T00:51:27.864Z]  @firebase/firestore:
+� Création abonnement BASIQUE par défaut pour vendeur...
+� Création abonnement BASIQUE pour: vHV8Sc8bYMe6QiC5PeB6HUzWbyr1
+[2025-10-19T00:51:28.382Z]  @firebase/firestore:
+[2025-10-19T00:51:28.384Z]  @firebase/firestore:
+[2025-10-19T00:51:28.632Z]  @firebase/firestore:
+[2025-10-19T00:51:28.649Z]  @firebase/firestore:
+[2025-10-19T00:51:29.529Z]  @firebase/firestore:
+[2025-10-19T00:51:30.573Z]  @firebase/firestore:
+[2025-10-19T00:51:31.065Z]  @firebase/firestore:
+[2025-10-19T00:51:32.313Z]  @firebase/firestore:
+[2025-10-19T00:51:34.030Z]  @firebase/firestore:
+[2025-10-19T00:51:34.231Z]  @firebase/firestore:
+[2025-10-19T00:51:38.367Z]  @firebase/firestore:
+[2025-10-19T00:51:41.394Z]  @firebase/firestore:
+[2025-10-19T00:51:45.575Z]  @firebase/firestore:
+[2025-10-19T00:51:47.027Z]  @firebase/firestore:
+[2025-10-19T00:51:49.609Z]  @firebase/firestore:
+[2025-10-19T00:51:53.357Z]  @firebase/firestore:
+❌ Erreur récupération document: TimeoutException after 0:00:30.000000: Future not completed
+! Document utilisateur non trouvé pour UID: vHV8Sc8bYMe6QiC5PeB6HUzWbyr1
+! Cela peut être dû à un timeout Firestore
+! Utilisateur temporairement non chargé
+[2025-10-19T00:52:09.851Z]  @firebase/firestore:
+[2025-10-19T00:52:31.450Z]  @firebase/firestore:
+[2025-10-19T00:53:09.655Z]  @firebase/firestore:
+[2025-10-19T00:54:06.441Z]  @firebase/firestore:
+[2025-10-19T00:54:39.684Z]  @firebase/firestore:
+[2025-10-19T00:55:29.073Z]  @firebase/firestore:
+[2025-10-19T00:56:13.194Z]  @firebase/firestore:
+[2025-10-19T00:57:27.129Z]  @firebase/firestore:
+[2025-10-19T00:58:45.929Z]  @firebase/firestore:
+[2025-10-19T00:59:52.692Z]  @firebase/firestore:
+
+Failed to exit Chromium (pid: 17296) using SIGTERM. Will try sending SIGKILL instead.
+Application finished.

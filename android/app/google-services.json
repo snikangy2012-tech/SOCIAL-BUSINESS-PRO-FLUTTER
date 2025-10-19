@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "162267219364",
+    "project_id": "social-media-business-pro",
+    "storage_bucket": "social-media-business-pro.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:162267219364:android:6d52b4bb8143dafc43ad31",
+        "android_client_info": {
+          "package_name": "ci.socialbusinesspro.social_media_business_pro"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "162267219364-v60udt8p5augn8oeq5tkjmdqgeguc03m.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANfaX2lTV0TgVuaxFzZrE5-B-UV1tPKm4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "162267219364-v60udt8p5augn8oeq5tkjmdqgeguc03m.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

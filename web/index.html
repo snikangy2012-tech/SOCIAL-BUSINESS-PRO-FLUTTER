@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-messaging-compat.js"></script>
+
+  <!-- Google Maps -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD4E1-9kiFXjYwOMOp0csfheJxvqEo9joc"></script>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="SOCIAL BUSINESS Pro - Plateforme e-commerce pour vendeurs informels en Côte d'Ivoire">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="SOCIAL BUSINESS Pro">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <!-- Google Sign-In Configuration -->
+  <meta name="google-signin-client_id" content="162267219364-v60udt8p5augn8oeq5tkjmdqgeguc03m.apps.googleusercontent.com">
+
+  <title>SOCIAL BUSINESS Pro</title>
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Firebase reCAPTCHA pour Auth -->
+  <div id="recaptcha-container"></div>
+
+  <script>
+    // Configuration reCAPTCHA
+    window.recaptchaVerifier = null;
+    window.recaptchaWidgetId = null;
+  </script>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f97316;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: 'Roboto', sans-serif;
+    }
+    
+    .loading-container {
+      text-align: center;
+      color: white;
+    }
+    
+    .loading-logo {
+      width: 100px;
+      height: 100px;
+      margin-bottom: 20px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+    }
+    
+    .loading-text {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    
+    .loading-subtitle {
+      font-size: 16px;
+      opacity: 0.8;
+      margin-bottom: 30px;
+    }
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top: 3px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div class="loading-container" id="loading">
+    <div class="loading-logo">🏪</div>
+    <div class="loading-text">SOCIAL BUSINESS Pro</div>
+    <div class="loading-subtitle">Vendre comme un Pro, Livrer comme un Boss</div>
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- ✅ MODERN FLUTTER.JS BOOTSTRAP (No Warnings) -->
+  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    // Hide loading screen when Flutter app is ready
+    window.addEventListener('flutter-first-frame', function () {
+      setTimeout(() => {
+        const loading = document.getElementById('loading');
+        if (loading) {
+          loading.style.display = 'none';
+        }
+      }, 500);
+    });
+  </script>
+</body>
+</html>
+
+<!-- 
+INSTRUCTIONS POUR GOOGLE SIGN-IN :
+
+1. Allez dans Firebase Console → Authentication → Sign-in method → Google
+2. Activez Google Sign-In
+3. Copiez le "Web client ID" (format: XXXXX.apps.googleusercontent.com)
+4. Remplacez "VOTRE_GOOGLE_CLIENT_ID" ci-dessus par votre vraie valeur
+
+EXEMPLE :
+<meta name="google-signin-client_id" content="123456789-abcdef.apps.googleusercontent.com">
+-->

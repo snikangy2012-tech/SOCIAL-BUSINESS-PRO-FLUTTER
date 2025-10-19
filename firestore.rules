@@ -1,0 +1,160 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== HELPER FUNCTIONS =====
+
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if user is admin
+    function isAdmin() {
+      return isAuthenticated() &&
+             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'admin' ||
+              request.auth.token.email.matches('admin@.*'));
+    }
+
+    // Check if user is the owner
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Check if user is vendeur
+    function isVendeur() {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'vendeur';
+    }
+
+    // Check if user is livreur
+    function isLivreur() {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'livreur';
+    }
+
+    // ===== USERS COLLECTION =====
+    match /users/{userId} {
+      // Anyone authenticated can read their own profile
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+
+      // Users can create their own profile during registration
+      allow create: if isAuthenticated() && isOwner(userId);
+
+      // Users can update their own profile, admins can update any
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin());
+
+      // Only admins can delete users
+      allow delete: if isAdmin();
+    }
+
+    // ===== PRODUCTS COLLECTION =====
+    match /products/{productId} {
+      // Anyone can read products (including unauthenticated for browsing)
+      allow read: if true;
+
+      // Only vendeurs can create products
+      allow create: if isAuthenticated() && isVendeur();
+
+      // Only the product owner (vendeur) or admin can update
+      allow update: if isAuthenticated() &&
+                       (resource.data.vendeurId == request.auth.uid || isAdmin());
+
+      // Only the product owner or admin can delete
+      allow delete: if isAuthenticated() &&
+                       (resource.data.vendeurId == request.auth.uid || isAdmin());
+    }
+
+    // ===== ORDERS COLLECTION =====
+    match /orders/{orderId} {
+      // Users can read their own orders, vendeurs can read orders for their products
+      allow read: if isAuthenticated() &&
+                     (resource.data.buyerId == request.auth.uid ||
+                      resource.data.vendeurId == request.auth.uid ||
+                      resource.data.livreurId == request.auth.uid ||
+                      isAdmin());
+
+      // Acheteurs can create orders
+      allow create: if isAuthenticated();
+
+      // Buyers, sellers, delivery persons, and admins can update orders
+      allow update: if isAuthenticated() &&
+                       (resource.data.buyerId == request.auth.uid ||
+                        resource.data.vendeurId == request.auth.uid ||
+                        resource.data.livreurId == request.auth.uid ||
+                        isAdmin());
+
+      // Only admins can delete orders
+      allow delete: if isAdmin();
+    }
+
+    // ===== DELIVERIES COLLECTION =====
+    match /deliveries/{deliveryId} {
+      // Related parties can read delivery info
+      allow read: if isAuthenticated() &&
+                     (resource.data.buyerId == request.auth.uid ||
+                      resource.data.vendeurId == request.auth.uid ||
+                      resource.data.livreurId == request.auth.uid ||
+                      isAdmin());
+
+      // System or admin creates deliveries
+      allow create: if isAuthenticated() && (isAdmin() || isVendeur());
+
+      // Livreur and admin can update deliveries
+      allow update: if isAuthenticated() &&
+                       (resource.data.livreurId == request.auth.uid || isAdmin());
+
+      // Only admin can delete
+      allow delete: if isAdmin();
+    }
+
+    // ===== NOTIFICATIONS COLLECTION =====
+    match /notifications/{notificationId} {
+      // Users can only read their own notifications
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      // System and admin can create notifications
+      allow create: if isAuthenticated();
+
+      // Users can update their own notifications (mark as read)
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      // Users can delete their own notifications
+      allow delete: if isAuthenticated() &&
+                       (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // ===== REVIEWS COLLECTION =====
+    match /reviews/{reviewId} {
+      // Anyone can read reviews
+      allow read: if true;
+
+      // Authenticated users can create reviews
+      allow create: if isAuthenticated();
+
+      // Users can update their own reviews
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      // Users can delete their own reviews, admins can delete any
+      allow delete: if isAuthenticated() &&
+                       (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // ===== CATEGORIES COLLECTION (read-only for most users) =====
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ===== ANALYTICS/STATS (admin only) =====
+    match /analytics/{document=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // ===== TEST/HEALTH CHECK =====
+    match /_connection_test/{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

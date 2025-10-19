@@ -1,0 +1,41 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Product images - vendeurs can upload, everyone can read
+    match /products/{vendeurId}/{imageId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isOwner(vendeurId);
+      allow delete: if isAuthenticated() && isOwner(vendeurId);
+    }
+
+    // User profile images
+    match /users/{userId}/profile/{imageId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isOwner(userId);
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    // Delivery proof images
+    match /deliveries/{deliveryId}/{imageId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Order-related documents
+    match /orders/{orderId}/{documentId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+  }
+}

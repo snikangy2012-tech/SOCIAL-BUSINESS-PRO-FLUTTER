@@ -1,0 +1,87 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // This rule allows anyone with your Firestore database reference to view, edit,
+    // and delete all data in your Firestore database. It is useful for getting
+    // started, but it is configured to expire after 30 days because it
+    // leaves your app open to attackers. At that time, all client
+    // requests to your Firestore database will be denied.
+    //
+    // Make sure to write security rules for your app before that time, or else
+    // all client requests to your Firestore database will be denied until you Update
+    // your rules
+    // 
+    // Fonction helper pour vérifier l'authentification
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Utilisateurs
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+      
+      // Panier de l'utilisateur
+      match /cart/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Produits
+    match /products/{productId} {
+      allow read: if true; // Public
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && 
+                             request.auth.uid == resource.data.vendeurId;
+    }
+
+    // Commandes
+    match /orders/{orderId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.buyerId ||
+        request.auth.uid == resource.data.vendeurId ||
+        request.auth.uid == resource.data.livreurId
+      );
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        request.auth.uid == resource.data.vendeurId ||
+        request.auth.uid == resource.data.livreurId
+      );
+    }
+
+    // Livraisons
+    match /deliveries/{deliveryId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        request.auth.uid == resource.data.livreurId ||
+        request.auth.uid == resource.data.vendeurId
+      );
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && 
+                   request.auth.uid == resource.data.userId;
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && 
+                             request.auth.uid == resource.data.userId;
+    }
+
+    // Analytics
+    match /analytics/{eventId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+    }
+    
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

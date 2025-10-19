@@ -1,0 +1,76 @@
+name: social_business_pro
+description: "Plateforme e-commerce pour vendeurs informels en Côte d'Ivoire"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  shimmer: ^3.0.0
+
+  # Icônes Material Design
+  cupertino_icons: ^1.0.8
+  
+  # ===== FIREBASE - Configuration complète =====
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.3
+  firebase_storage: ^12.3.2
+  firebase_messaging: ^15.1.3  # ✅ Notifications push
+  
+  # ===== AUTHENTIFICATION =====
+  google_sign_in: ^6.2.1
+  google_sign_in_web: ^0.12.4
+  
+  # ===== NAVIGATION =====
+  go_router: ^14.6.1
+  
+  # ===== GESTION D'ÉTAT =====
+  provider: ^6.1.2
+  
+  # ===== GÉOLOCALISATION & CARTES ===== 
+  geolocator: ^12.0.0              # ✅ Nouveau - Géolocalisation
+  google_maps_flutter: ^2.7.0      # ✅ Nouveau - Cartes Google
+  location: ^7.0.0                  # ✅ Nouveau - Services de localisation
+  
+  # ===== NOTIFICATIONS =====
+  flutter_local_notifications: ^18.0.1  # ✅ Nouveau - Notifications locales
+  
+  # ===== UI & UTILS =====
+  pin_code_fields: ^8.0.1          # OTP
+  country_code_picker: ^3.0.0      # Sélecteur pays
+  image_picker: ^1.0.4             # Sélection d'images
+  fl_chart: ^0.68.0                # Graphiques
+  
+  # ===== UTILITAIRES =====
+  intl: ^0.19.0                    # ✅ Nouveau - Formatage dates/nombres
+  url_launcher: ^6.3.1             # ✅ Nouveau - Ouvrir URLs/téléphone
+  share_plus: ^10.1.2              # ✅ Nouveau - Partage social
+  permission_handler: ^11.3.1      # ✅ Nouveau - Gestion permissions
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  
+  # Assets (images, icons)
+  assets:
+    - assets/icons/
+    - assets/images/
+  
+  # Polices personnalisées (optionnel - pour matcher React Native)
+  # fonts:
+  #   - family: Inter
+  #     fonts:
+  #       - asset: assets/fonts/Inter-Regular.ttf
+  #       - asset: assets/fonts/Inter-Bold.ttf
+  #         weight: 700
