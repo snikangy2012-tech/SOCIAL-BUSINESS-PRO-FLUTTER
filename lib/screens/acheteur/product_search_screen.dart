@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../models/product_model.dart';
 import '../../services/product_service.dart';
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../../config/product_categories.dart';
 
 class ProductSearchScreen extends StatefulWidget {

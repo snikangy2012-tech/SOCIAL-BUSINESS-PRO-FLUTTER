@@ -3,13 +3,36 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import '../config/constants.dart'; // ✅ Import complet - plus de conflit
+import 'package:social_business_pro/config/constants.dart'; // ✅ Import complet - plus de conflit
 import '../models/user_model.dart';
 import '../services/firebase_service.dart';
 import '../config/user_type_config.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 
+// ===== HELPER FUNCTIONS =====
+/// Parse une date depuis Firestore - supporte Timestamp ET String
+DateTime? _parseDateField(dynamic value) {
+  if (value == null) return null;
+
+  // Cas 1: C'est déjà un Timestamp Firestore
+  if (value is Timestamp) {
+    return value.toDate();
+  }
+
+  // Cas 2: C'est une String (format ISO ou autre)
+  if (value is String) {
+    try {
+      return DateTime.parse(value);
+    } catch (e) {
+      // Si le parsing échoue, retourner null
+      return null;
+    }
+  }
+
+  // Cas 3: Type inconnu
+  return null;
+}
 
 // Provider d'authentification Firebase
 class AuthProvider extends ChangeNotifier {
@@ -74,9 +97,9 @@ class AuthProvider extends ChangeNotifier {
         isVerified: userData['isVerified'] ?? false,
         preferences: UserPreferences.fromMap(userData['preferences'] ?? {}),
         profile: Map<String, dynamic>.from(userData['profile'] ?? {}),
-        createdAt: userData['createdAt']?.toDate() ?? DateTime.now(),
-        updatedAt: userData['updatedAt']?.toDate() ?? DateTime.now(),
-        lastLoginAt: userData['lastLoginAt']?.toDate(),
+        createdAt: _parseDateField(userData['createdAt']) ?? DateTime.now(),
+        updatedAt: _parseDateField(userData['updatedAt']) ?? DateTime.now(),
+        lastLoginAt: _parseDateField(userData['lastLoginAt']),
       );
       
       debugPrint('✅ Utilisateur chargé: ${_user?.displayName}');
@@ -325,8 +348,8 @@ class AuthProvider extends ChangeNotifier {
           isVerified: data['isVerified'] ?? false,
           preferences: preferences,
           profile: data['profile'] ?? {},
-          createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-          updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          createdAt: _parseDateField(data['createdAt']) ?? DateTime.now(),
+          updatedAt: _parseDateField(data['updatedAt']) ?? DateTime.now(),
         );
 
         debugPrint('✅ Utilisateur chargé: ${_user?.displayName} (${_user?.userType.value})');

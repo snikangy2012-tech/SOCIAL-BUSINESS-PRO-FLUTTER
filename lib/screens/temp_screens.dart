@@ -3,7 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 
 // Écran générique temporaire (équivalent à PlaceholderComponent.tsx)
 class TempScreen extends StatelessWidget {

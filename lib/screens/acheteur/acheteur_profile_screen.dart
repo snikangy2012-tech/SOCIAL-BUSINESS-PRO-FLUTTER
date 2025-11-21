@@ -1,9 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../../providers/auth_provider_firebase.dart';
-import '../../config/constants.dart';
+import '../../services/firebase_service.dart';
+import 'package:social_business_pro/config/constants.dart';
 
 class AcheteurProfileScreen extends StatefulWidget {
   const AcheteurProfileScreen({super.key});
@@ -14,6 +18,7 @@ class AcheteurProfileScreen extends StatefulWidget {
 
 class _AcheteurProfileScreenState extends State<AcheteurProfileScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _imagePicker = ImagePicker();
   bool _isEditing = false;
   bool _isLoading = false;
 
@@ -37,6 +42,81 @@ class _AcheteurProfileScreenState extends State<AcheteurProfileScreen> {
     _emailController.dispose();
     _phoneController.dispose();
     super.dispose();
+  }
+
+  /// Upload de la photo de profil vers Firebase Storage
+  Future<void> _updateProfilePhoto() async {
+    try {
+      // Sélectionner une image depuis la galerie
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+
+      if (image == null) return;
+
+      final authProvider = context.read<AuthProvider>();
+      final userId = authProvider.user?.id;
+
+      if (userId == null) throw Exception('Utilisateur non connecté');
+
+      // Afficher un indicateur de chargement
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+
+      // Upload vers Firebase Storage
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profile_photos')
+          .child('$userId.jpg');
+
+      File imageFile = File(image.path);
+      await storageRef.putFile(imageFile);
+      final imageUrl = await storageRef.getDownloadURL();
+
+      // Mettre à jour Firestore avec la nouvelle URL
+      await FirebaseService.updateDocument(
+        collection: FirebaseCollections.users,
+        docId: userId,
+        data: {
+          'photoURL': imageUrl,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+      );
+
+      if (mounted) {
+        Navigator.pop(context); // Fermer le dialog de chargement
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Photo de profil mise à jour avec succès'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+
+        // Recharger le profil pour afficher la nouvelle photo
+        setState(() {});
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur upload photo: $e');
+      if (mounted) {
+        Navigator.pop(context); // Fermer le dialog de chargement
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Erreur lors de la mise à jour de la photo: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _saveProfile() async {
@@ -171,14 +251,7 @@ class _AcheteurProfileScreenState extends State<AcheteurProfileScreen> {
                                 child: IconButton(
                                   icon: const Icon(Icons.camera_alt, size: 18),
                                   color: Colors.white,
-                                  onPressed: () {
-                                    // TODO: Implémenter upload photo
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Fonctionnalité à venir'),
-                                      ),
-                                    );
-                                  },
+                                  onPressed: _updateProfilePhoto,
                                 ),
                               ),
                             ),
@@ -294,9 +367,9 @@ class _AcheteurProfileScreenState extends State<AcheteurProfileScreen> {
                       ),
                     const SizedBox(height: 24),
 
-                    // Options du compte
+                    // Gestion du compte
                     const Text(
-                      'Compte',
+                      'Gestion du compte',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -320,27 +393,11 @@ class _AcheteurProfileScreenState extends State<AcheteurProfileScreen> {
                       onTap: () => context.push('/acheteur/payment-methods'),
                     ),
 
-                    // Historique des commandes
-                    _buildMenuTile(
-                      icon: Icons.shopping_bag,
-                      title: 'Mes commandes',
-                      subtitle: 'Voir l\'historique de vos commandes',
-                      onTap: () => context.push('/acheteur/orders'),
-                    ),
-
-                    // Favoris
-                    _buildMenuTile(
-                      icon: Icons.favorite,
-                      title: 'Mes favoris',
-                      subtitle: 'Produits favoris',
-                      onTap: () => context.push('/favorites'),
-                    ),
-
                     // Notifications
                     _buildMenuTile(
                       icon: Icons.notifications,
                       title: 'Notifications',
-                      subtitle: 'Gérer vos notifications',
+                      subtitle: 'Gérer vos préférences de notifications',
                       onTap: () => context.push('/notifications'),
                     ),
 
@@ -355,6 +412,14 @@ class _AcheteurProfileScreenState extends State<AcheteurProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
+
+                    // Préférences utilisateur
+                    _buildMenuTile(
+                      icon: Icons.settings,
+                      title: 'Paramètres utilisateur',
+                      subtitle: 'Notifications, thème, langue',
+                      onTap: () => context.push('/user-settings'),
+                    ),
 
                     // Changer le mot de passe
                     _buildMenuTile(

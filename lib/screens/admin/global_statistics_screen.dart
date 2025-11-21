@@ -7,7 +7,7 @@ import '../../models/user_model.dart';
 import '../../models/product_model.dart';
 import '../../models/order_model.dart';
 import '../../models/delivery_model.dart';
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 
 class GlobalStatisticsScreen extends StatefulWidget {
   const GlobalStatisticsScreen({super.key});
@@ -413,6 +413,7 @@ class _GlobalStatisticsScreenState extends State<GlobalStatisticsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Statistiques Globales'),
         actions: [
           PopupMenuButton<String>(

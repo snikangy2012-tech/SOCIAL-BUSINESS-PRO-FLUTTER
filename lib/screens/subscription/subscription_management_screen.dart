@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../../models/subscription_model.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../providers/subscription_provider.dart';

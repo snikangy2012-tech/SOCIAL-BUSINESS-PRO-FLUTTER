@@ -1,11 +1,16 @@
 // ===== lib/screens/vendeur/vendeur_dashboard.dart =====
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:provider/provider.dart';
 
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../../providers/auth_provider_firebase.dart' as auth;
 import '../../providers/vendeur_navigation_provider.dart';
+import '../../providers/notification_provider.dart';
+import '../../services/review_service.dart';
+import '../../services/vendor_stats_service.dart';
 
 class VendeurDashboard extends StatefulWidget {
   const VendeurDashboard({super.key});
@@ -16,26 +21,46 @@ class VendeurDashboard extends StatefulWidget {
 
 class _VendeurDashboardState extends State<VendeurDashboard> {
   bool _isLoading = true;
-  
+  Timer? _refreshTimer;
+  final _refreshInterval = const Duration(minutes: 15); // ✅ Rafraîchir toutes les 15 minutes
+
   // Données du dashboard
   DashboardStats _stats = DashboardStats();
-  List<RecentOrder> _recentOrders = [];
+  List<RecentOrderData> _recentOrders = []; // ✅ Utilise RecentOrderData du service
 
   @override
   void initState() {
     super.initState();
     debugPrint('🚀 === VendeurDashboard initState ===');
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       debugPrint('📄 PostFrameCallback - Démarrage chargement');
       _loadDashboardData();
     });
+
+    // 🔄 Démarrer le rafraîchissement automatique
+    _startAutoRefresh();
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Intentionnellement vide
+  }
+
+  void _startAutoRefresh() {
+    _refreshTimer = Timer.periodic(_refreshInterval, (timer) {
+      if (mounted) {
+        debugPrint('🔄 Auto-refresh vendeur dashboard');
+        _loadDashboardData();
+      }
+    });
   }
 
   Future<void> _loadDashboardData() async {
@@ -65,57 +90,47 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
       }
 
       debugPrint('✅ Utilisateur validé');
-      debugPrint('📊 Chargement données...');
-      
-      // Simulation de chargement
-      await Future.delayed(const Duration(milliseconds: 800));
-      
+      debugPrint('📊 Chargement données réelles...');
+
+      // ✅ Charger les statistiques réelles depuis Firestore
+      final vendorStats = await VendorStatsService.getVendorStats(user.id);
+      debugPrint('✅ Statistiques chargées');
+
+      // ✅ Charger les commandes récentes réelles
+      final recentOrders = await VendorStatsService.getRecentOrders(user.id, limit: 5);
+      debugPrint('✅ Commandes récentes chargées');
+
+      // Charger la note moyenne réelle depuis ReviewService
+      final reviewService = ReviewService();
+      double avgRating = 0.0;
+      try {
+        avgRating = await reviewService.getAverageRating(user.id, 'vendor');
+        debugPrint('⭐ Note moyenne chargée: $avgRating');
+      } catch (e) {
+        debugPrint('⚠️ Erreur chargement note: $e');
+      }
+
       if (!mounted) {
         debugPrint('❌ Widget démonté pendant le chargement');
         return;
       }
-      
-      // Données mock
+
+      // ✅ Utiliser les données réelles
       setState(() {
         _stats = DashboardStats(
-          totalSales: 45,
-          monthlyRevenue: 2850000,
-          totalOrders: 45,
-          pendingOrders: 5,
-          completedOrders: 40,
-          totalProducts: 12,
-          activeProducts: 10,
-          viewsThisMonth: 234,
-          averageRating: 4.5,
-          responseTime: '2h',
+          totalSales: vendorStats.deliveredOrders,
+          monthlyRevenue: vendorStats.monthlyRevenue,
+          totalOrders: vendorStats.totalOrders,
+          pendingOrders: vendorStats.pendingOrders,
+          completedOrders: vendorStats.completedOrders,
+          totalProducts: vendorStats.totalProducts,
+          activeProducts: vendorStats.activeProducts,
+          viewsThisMonth: vendorStats.viewsThisMonth,
+          averageRating: avgRating,
+          responseTime: '2h', // TODO: Calculer le temps de réponse réel
         );
-        
-        _recentOrders = [
-          RecentOrder(
-            id: '1',
-            orderNumber: 'CMD-001',
-            customerName: 'Jean Kouassi',
-            amount: 45000,
-            status: 'pending',
-            date: DateTime.now().subtract(const Duration(hours: 2)),
-          ),
-          RecentOrder(
-            id: '2',
-            orderNumber: 'CMD-002',
-            customerName: 'Marie Koné',
-            amount: 78000,
-            status: 'confirmed',
-            date: DateTime.now().subtract(const Duration(hours: 5)),
-          ),
-          RecentOrder(
-            id: '3',
-            orderNumber: 'CMD-003',
-            customerName: 'Yao Kouadio',
-            amount: 125000,
-            status: 'delivered',
-            date: DateTime.now().subtract(const Duration(days: 1)),
-          ),
-        ];
+
+        _recentOrders = recentOrders;
       });
       
       debugPrint('✅ Données chargées avec succès');
@@ -214,6 +229,49 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
               pinned: true,
               elevation: 0,
               backgroundColor: AppColors.primary,
+              actions: [
+                // Bouton notifications avec badge
+                Consumer<NotificationProvider>(
+                  builder: (context, notificationProvider, child) {
+                    final unreadCount = notificationProvider.unreadCount;
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.notifications_outlined),
+                          onPressed: () => context.push('/notifications'),
+                          tooltip: 'Notifications',
+                        ),
+                        if (unreadCount > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: AppColors.error,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 18,
+                                minHeight: 18,
+                              ),
+                              child: Text(
+                                unreadCount > 99 ? '99+' : unreadCount.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ],
               flexibleSpace: FlexibleSpaceBar(
                 background: Container(
                   decoration: const BoxDecoration(
@@ -492,11 +550,14 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
     return InkWell(
       onTap: () {
         final navProvider = context.read<VendeurNavigationProvider>();
-        
+
         if (title.contains('Commandes')) {
           navProvider.goToOrders();
         } else if (title.contains('Produits') || title.contains('actifs')) {
           navProvider.goToProducts();
+        } else if (title.contains('Note')) {
+          // Navigation vers l'écran des avis
+          context.push('/vendeur/reviews');
         }
       },
       borderRadius: BorderRadius.circular(16),
@@ -619,20 +680,4 @@ class DashboardStats {
   });
 }
 
-class RecentOrder {
-  final String id;
-  final String orderNumber;
-  final String customerName;
-  final num amount;
-  final String status;
-  final DateTime date;
-
-  RecentOrder({
-    required this.id,
-    required this.orderNumber,
-    required this.customerName,
-    required this.amount,
-    required this.status,
-    required this.date,
-  });
-}
+// ✅ RecentOrder supprimé - on utilise maintenant RecentOrderData du VendorStatsService

@@ -34,10 +34,11 @@ dependencies:
   # ===== GESTION D'ÉTAT =====
   provider: ^6.1.2
   
-  # ===== GÉOLOCALISATION & CARTES ===== 
+  # ===== GÉOLOCALISATION & CARTES =====
   geolocator: ^12.0.0              # ✅ Nouveau - Géolocalisation
   google_maps_flutter: ^2.7.0      # ✅ Nouveau - Cartes Google
   location: ^7.0.0                  # ✅ Nouveau - Services de localisation
+  geocoding: ^3.0.0                # ✅ Nouveau - Recherche d'adresses
   
   # ===== NOTIFICATIONS =====
   flutter_local_notifications: ^18.0.1  # ✅ Nouveau - Notifications locales
@@ -53,6 +54,7 @@ dependencies:
   url_launcher: ^6.3.1             # ✅ Nouveau - Ouvrir URLs/téléphone
   share_plus: ^10.1.2              # ✅ Nouveau - Partage social
   permission_handler: ^11.3.1      # ✅ Nouveau - Gestion permissions
+  http: ^1.2.0                     # ✅ Requêtes HTTP pour Mobile Money API
 
 dev_dependencies:
   flutter_test:
@@ -66,6 +68,7 @@ flutter:
   assets:
     - assets/icons/
     - assets/images/
+    - assets/Mobile Money LOGO/
   
   # Polices personnalisées (optionnel - pour matcher React Native)
   # fonts:

@@ -4,7 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../models/product_model.dart';
 import '../services/analytics_service.dart';
 
@@ -84,9 +84,13 @@ class CartProvider extends ChangeNotifier {
 
   // Définir l'utilisateur
   void setUserId(String userId) {
+    debugPrint('🔑 CartProvider: setUserId appelé avec userId: $userId');
     if (_userId != userId) {
       _userId = userId;
+      debugPrint('🔑 CartProvider: Chargement du panier pour userId: $_userId');
       _loadCart();
+    } else {
+      debugPrint('🔑 CartProvider: userId déjà défini, pas de rechargement');
     }
   }
 
@@ -94,9 +98,13 @@ class CartProvider extends ChangeNotifier {
 
   /// Charger le panier depuis Firestore
   Future<void> _loadCart() async {
-    if (_userId == null) return;
+    if (_userId == null) {
+      debugPrint('⚠️ CartProvider: _loadCart appelé mais userId est null');
+      return;
+    }
 
     try {
+      debugPrint('📦 CartProvider: Chargement du panier pour userId: $_userId');
       _isLoading = true;
       notifyListeners();
 
@@ -110,18 +118,21 @@ class CartProvider extends ChangeNotifier {
       if (doc.exists) {
         final data = doc.data()!;
         final itemsList = data['items'] as List<dynamic>? ?? [];
-        
+
         _items = itemsList
             .map((item) => CartItem.fromMap(item as Map<String, dynamic>))
             .toList();
+
+        debugPrint('✅ CartProvider: Panier chargé avec ${_items.length} items');
       } else {
         _items = [];
+        debugPrint('ℹ️ CartProvider: Aucun panier existant, création d\'un nouveau');
       }
 
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      debugPrint('Erreur chargement panier: $e');
+      debugPrint('❌ CartProvider: Erreur chargement panier: $e');
       _isLoading = false;
       notifyListeners();
     }
@@ -129,9 +140,14 @@ class CartProvider extends ChangeNotifier {
 
   /// Sauvegarder le panier dans Firestore
   Future<void> _saveCart() async {
-    if (_userId == null) return;
+    if (_userId == null) {
+      debugPrint('⚠️ CartProvider: _saveCart appelé mais userId est null');
+      return;
+    }
 
     try {
+      debugPrint('💾 CartProvider: Sauvegarde du panier (${_items.length} items) pour userId: $_userId');
+
       await _db
           .collection(FirebaseCollections.users)
           .doc(_userId)
@@ -141,14 +157,25 @@ class CartProvider extends ChangeNotifier {
         'items': _items.map((item) => item.toMap()).toList(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
+
+      debugPrint('✅ CartProvider: Panier sauvegardé avec succès');
     } catch (e) {
-      debugPrint('Erreur sauvegarde panier: $e');
+      debugPrint('❌ CartProvider: Erreur sauvegarde panier: $e');
+      rethrow; // Propager l'erreur pour que l'UI puisse la gérer
     }
   }
 
   /// Ajouter un produit au panier
   Future<void> addProduct(ProductModel product, {int quantity = 1}) async {
     try {
+      // Vérifier que l'utilisateur est connecté
+      if (_userId == null) {
+        debugPrint('❌ CartProvider: userId est null, impossible d\'ajouter au panier');
+        throw Exception('Vous devez être connecté pour ajouter au panier');
+      }
+
+      debugPrint('🛒 CartProvider: Ajout produit ${product.name} (userId: $_userId)');
+
       // Vérifier si le produit existe déjà
       final existingIndex = _items.indexWhere(
         (item) => item.productId == product.id,
@@ -157,9 +184,10 @@ class CartProvider extends ChangeNotifier {
       if (existingIndex >= 0) {
         // Augmenter la quantité
         final newQuantity = _items[existingIndex].quantity + quantity;
-        
+
         if (newQuantity <= product.stock) {
           _items[existingIndex].quantity = newQuantity;
+          debugPrint('🛒 CartProvider: Quantité mise à jour: $newQuantity');
         } else {
           throw Exception('Stock insuffisant (${product.stock} disponibles)');
         }
@@ -178,6 +206,7 @@ class CartProvider extends ChangeNotifier {
           maxStock: product.stock,
           vendeurId: product.vendeurId,
         ));
+        debugPrint('🛒 CartProvider: Nouveau produit ajouté (total: ${_items.length} items)');
       }
 
       // Logger l'événement
@@ -190,7 +219,9 @@ class CartProvider extends ChangeNotifier {
 
       await _saveCart();
       notifyListeners();
+      debugPrint('✅ CartProvider: Produit ajouté avec succès');
     } catch (e) {
+      debugPrint('❌ CartProvider: Erreur ajout produit: $e');
       rethrow;
     }
   }

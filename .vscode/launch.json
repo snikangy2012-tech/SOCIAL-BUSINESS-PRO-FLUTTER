@@ -1,0 +1,55 @@
+{
+    // Configuration de lancement Flutter pour VS Code
+    // Optimisée pour Dell Inspiron 3593 (8 Go RAM)
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Flutter Web (Chrome) - RECOMMANDÉ",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "args": [
+                "-d",
+                "chrome",
+                "--web-renderer",
+                "html",
+                "--dart-define=FLUTTER_WEB_USE_SKIA=false"
+            ],
+            "flutterMode": "debug"
+        },
+        {
+            "name": "Flutter Web (Edge)",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "args": [
+                "-d",
+                "edge",
+                "--web-renderer",
+                "html"
+            ],
+            "flutterMode": "debug"
+        },
+        {
+            "name": "Flutter Mobile (Appareil USB)",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "flutterMode": "debug"
+        },
+        {
+            "name": "Flutter Profile Mode (Optimisation)",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "Flutter Release Mode (Production)",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "flutterMode": "release"
+        }
+    ]
+}

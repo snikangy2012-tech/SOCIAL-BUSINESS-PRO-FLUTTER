@@ -5,10 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
+
+// Import constants AVANT les autres fichiers locaux pour éviter les conflits
+import 'package:social_business_pro/config/constants.dart';
 import 'package:social_business_pro/providers/auth_provider_firebase.dart';
 import '../../services/auth_service_web.dart';
-
-import '../../config/constants.dart';
 import '../../services/auth_service_extended.dart';
 import '../../widgets/custom_widgets.dart';
 
@@ -202,6 +203,93 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
     }
   }
 
+  // Widget personnalisé pour le bouton Google Sign-In
+  Widget _buildGoogleSignInButton() {
+    final bool isLoadingGoogle = _isLoading && _authMethod == 'google';
+
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _handleGoogleLogin,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          elevation: 2,
+          shadowColor: Colors.black26,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            side: BorderSide(color: Colors.grey.shade300, width: 1),
+          ),
+        ),
+        child: isLoadingGoogle
+            ? const SizedBox(
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Logo Google (utilisant un Container avec des couleurs pour simuler le logo)
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Stack(
+                      children: [
+                        // Fond blanc
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        // Logo Google stylisé avec icon
+                        Center(
+                          child: ShaderMask(
+                            shaderCallback: (bounds) => const LinearGradient(
+                              colors: [
+                                Color(0xFF4285F4), // Bleu Google
+                                Color(0xFFEA4335), // Rouge Google
+                                Color(0xFFFBBC05), // Jaune Google
+                                Color(0xFF34A853), // Vert Google
+                              ],
+                              stops: [0.25, 0.5, 0.75, 1.0],
+                            ).createShader(bounds),
+                            child: const Text(
+                              'G',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Continuer avec Google',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -216,7 +304,7 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
 
               // Logo de l'application
               const AppLogo(size: 120),
-              
+
               const SizedBox(height: AppSpacing.xl),
 
               // Titre de connexion
@@ -259,16 +347,8 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      
                       const SizedBox(height: AppSpacing.md),
-                      
-                      CustomButton(
-                        text: 'Continuer avec Google',
-                        icon: Icons.g_mobiledata,
-                        backgroundColor: AppColors.info,
-                        isLoading: _isLoading && _authMethod == 'google',
-                        onPressed: _isLoading ? null : _handleGoogleLogin,
-                      ),
+                      _buildGoogleSignInButton(),
                     ],
                   ),
                 ),
@@ -379,9 +459,9 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(AppSpacing.md),
                             decoration: BoxDecoration(
-                              color: AppColors.error.withValues(alpha:0.1),
+                              color: AppColors.error.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(AppRadius.md),
-                              border: Border.all(color: AppColors.error.withValues(alpha:0.3)),
+                              border: Border.all(color: AppColors.error.withOpacity(0.3)),
                             ),
                             child: Row(
                               children: [
@@ -425,9 +505,7 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
                         fontSize: AppFontSizes.md,
                       ),
                     ),
-                    
                     const SizedBox(height: AppSpacing.md),
-                    
                     CustomButton(
                       text: 'Créer un compte',
                       icon: Icons.person_add,
@@ -445,9 +523,9 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
               Container(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: AppColors.info.withValues(alpha:0.1),
+                  color: AppColors.info.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(AppRadius.md),
-                  border: Border.all(color: AppColors.info.withValues(alpha:0.3)),
+                  border: Border.all(color: AppColors.info.withOpacity(0.3)),
                 ),
                 child: const Column(
                   children: [

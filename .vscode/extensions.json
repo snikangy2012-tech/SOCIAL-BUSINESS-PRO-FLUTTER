@@ -1,0 +1,17 @@
+{
+    // Extensions recommandées pour Flutter dans VS Code
+    "recommendations": [
+        "dart-code.flutter",
+        "dart-code.dart-code",
+        "alexisvt.flutter-snippets",
+        "nash.awesome-flutter-snippets",
+        "esbenp.prettier-vscode",
+        "usernamehw.errorlens",
+        "gruntfuggly.todo-tree"
+    ],
+    // Extensions à ne pas installer (trop gourmandes pour 8 Go RAM)
+    "unwantedRecommendations": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools"
+    ]
+}

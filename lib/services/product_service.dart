@@ -7,8 +7,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 
-import '../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../models/product_model.dart';
+import 'kyc_verification_service.dart';
 
 class ProductService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -65,17 +66,25 @@ class ProductService {
   /// Récupérer les produits d'un vendeur
   Future<List<ProductModel>> getVendorProducts(String vendeurId) async {
     try {
+      debugPrint('📊 Récupération produits pour vendeur: $vendeurId');
+
       final snapshot = await _db
           .collection(FirebaseCollections.products)
           .where('vendeurId', isEqualTo: vendeurId)
           .orderBy('createdAt', descending: true)
           .get();
 
+      debugPrint('✅ Produits récupérés: ${snapshot.docs.length}');
+      for (var doc in snapshot.docs) {
+        debugPrint('  - ${doc.id}: ${doc.data()['name']} (actif: ${doc.data()['isActive']})');
+      }
+
       return snapshot.docs
           .map((doc) => ProductModel.fromMap(doc.data()))
           .toList();
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('❌ Erreur récupération produits vendeur: $e');
+      debugPrint('📍 Stack trace: $stackTrace');
       return [];
     }
   }
@@ -134,6 +143,20 @@ class ProductService {
   /// Créer un nouveau produit
   Future<String> createProduct(CreateProductData product) async {
     try {
+      // 🔐 VÉRIFICATION KYC: Le vendeur doit être vérifié pour créer des produits
+      final canSell = await KYCVerificationService.canPerformAction(
+        product.vendeurId,
+        'sell',
+      );
+
+      if (!canSell) {
+        debugPrint('❌ Vendeur ${product.vendeurId} non vérifié - création produit bloquée');
+        throw Exception(
+          'Votre compte doit être vérifié avant d\'ajouter des produits. '
+          'Complétez votre vérification d\'identité dans "Profil > Vérification".',
+        );
+      }
+
       final productRef = _db.collection(FirebaseCollections.products).doc();
       final productId = productRef.id;
 

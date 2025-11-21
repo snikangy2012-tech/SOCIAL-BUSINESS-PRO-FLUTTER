@@ -5,10 +5,12 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
-import '../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../models/delivery_model.dart';
+import 'kyc_verification_service.dart';
 
 
 /// Service de gestion des livraisons
@@ -81,6 +83,122 @@ class DeliveryService {
       return DeliveryModel.fromMap(doc.data()!);
     } catch (e) {
       throw Exception('Erreur récupération livraison: $e');
+    }
+  }
+
+  /// Récupérer une livraison par numéro de commande
+  static Future<DeliveryModel?> getDeliveryByOrderId(String orderId) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection(FirebaseCollections.deliveries)
+          .where('orderId', isEqualTo: orderId)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) return null;
+      return DeliveryModel.fromMap(snapshot.docs.first.data());
+    } catch (e) {
+      throw Exception('Erreur récupération livraison par orderId: $e');
+    }
+  }
+
+  /// Créer un document de livraison depuis une commande acceptée
+  static Future<DeliveryModel> createDeliveryFromOrder({
+    required String orderId,
+    required String livreurId,
+  }) async {
+    try {
+      // 🔐 VÉRIFICATION KYC: Le livreur doit être vérifié pour accepter des livraisons
+      final canDeliver = await KYCVerificationService.canPerformAction(
+        livreurId,
+        'deliver',
+      );
+
+      if (!canDeliver) {
+        debugPrint('❌ Livreur $livreurId non vérifié - acceptation livraison bloquée');
+        throw Exception(
+          'Votre compte doit être vérifié avant d\'accepter des livraisons. '
+          'Complétez vos documents dans "Profil > Gestion des documents".',
+        );
+      }
+
+      final db = FirebaseFirestore.instance;
+
+      // Récupérer les détails de la commande
+      final orderDoc = await db
+          .collection(FirebaseCollections.orders)
+          .doc(orderId)
+          .get();
+
+      if (!orderDoc.exists) {
+        throw Exception('Commande introuvable');
+      }
+
+      final orderData = orderDoc.data()!;
+
+      // Créer le document de livraison
+      final deliveryRef = db.collection(FirebaseCollections.deliveries).doc();
+
+      // Extraire les coordonnées depuis la commande
+      final pickupAddress = {
+        'street': orderData['deliveryAddress'] ?? '',
+        'coordinates': {
+          'latitude': orderData['pickupLatitude'] ?? 0.0,
+          'longitude': orderData['pickupLongitude'] ?? 0.0,
+        },
+      };
+
+      final deliveryAddress = {
+        'street': orderData['deliveryAddress'] ?? '',
+        'coordinates': {
+          'latitude': orderData['deliveryLatitude'] ?? 0.0,
+          'longitude': orderData['deliveryLongitude'] ?? 0.0,
+        },
+      };
+
+      // Calculer la distance
+      double distance = 0.0;
+      if (orderData['pickupLatitude'] != null && orderData['deliveryLatitude'] != null) {
+        final pickupCoords = pickupAddress['coordinates'] as Map<String, dynamic>;
+        final deliveryCoords = deliveryAddress['coordinates'] as Map<String, dynamic>;
+
+        distance = DeliveryService()._calculateDistance(
+          pickupCoords,
+          deliveryCoords,
+        );
+      }
+
+      // Calculer les frais et la durée
+      final deliveryFee = DeliveryService()._calculateDeliveryFee(distance);
+      final estimatedDuration = DeliveryService()._estimateDeliveryDuration(distance);
+
+      final delivery = DeliveryModel(
+        id: deliveryRef.id,
+        orderId: orderId,
+        vendeurId: orderData['vendeurId'] ?? '',
+        acheteurId: orderData['buyerId'] ?? '',
+        livreurId: livreurId,
+        pickupAddress: pickupAddress,
+        deliveryAddress: deliveryAddress,
+        distance: distance,
+        deliveryFee: deliveryFee,
+        estimatedDuration: estimatedDuration,
+        packageDescription: '${(orderData['items'] as List).length} article(s)',
+        packageValue: (orderData['totalAmount'] ?? 0).toDouble(),
+        isFragile: false,
+        status: 'assigned',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        assignedAt: DateTime.now(),
+      );
+
+      await deliveryRef.set(delivery.toMap());
+
+      debugPrint('✅ Document de livraison créé: ${delivery.id}');
+      return delivery;
+    } catch (e) {
+      debugPrint('❌ Erreur création livraison depuis commande: $e');
+      throw Exception('Impossible de créer la livraison: $e');
     }
   }
 
@@ -372,11 +490,11 @@ class DeliveryService {
 
   /// Calculer les frais de livraison
   double _calculateDeliveryFee(double distance) {
-    // Tarifs par distance
-    if (distance <= 5) return 1000; // 1000 FCFA pour < 5km
-    if (distance <= 10) return 1500; // 1500 FCFA pour 5-10km
-    if (distance <= 20) return 2500; // 2500 FCFA pour 10-20km
-    return 2500 + ((distance - 20) * 100); // +100 FCFA par km au-delà de 20km
+    // Tarifs par distance (paliers révisés)
+    if (distance <= 10) return 1000;  // 1000 FCFA pour 0-10km
+    if (distance <= 20) return 1500;  // 1500 FCFA pour 10-20km
+    if (distance <= 30) return 2000;  // 2000 FCFA pour 20-30km
+    return 2000 + ((distance - 30) * 100); // 2000 FCFA + 100 FCFA/km au-delà de 30km
   }
 
   /// Estimer la durée de livraison (en minutes)
@@ -459,13 +577,13 @@ class DeliveryService {
 
       final todayEarnings = todayDeliveries
           .where((d) => d.status == 'delivered')
-          .fold(0.0, (sum, d) => sum + d.deliveryFee);
+          .fold<double>(0.0, (total, d) => total + d.deliveryFee);
 
       final totalEarnings = completedDeliveries
-          .fold(0.0, (sum, d) => sum + d.deliveryFee);
+          .fold<double>(0.0, (total, d) => total + d.deliveryFee);
 
       final totalDistance = completedDeliveries
-          .fold(0.0, (sum, d) => sum + d.distance);
+          .fold<double>(0.0, (total, d) => total + d.distance);
 
       return {
         'todayDeliveries': todayDeliveries.length,

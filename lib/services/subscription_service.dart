@@ -2,17 +2,22 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../models/subscription_model.dart';
+import '../config/constants.dart';
 
 /// Service de gestion des abonnements vendeurs et niveaux livreurs
 class SubscriptionService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static final _firestore = FirebaseFirestore.instance;
 
   // Collections Firestore
   static const String _subscriptionsCollection = 'subscriptions'; // Abonnements VENDEURS
-  static const String _livreurSubscriptionsCollection = 'livreur_subscriptions'; // Abonnements LIVREURS (hybride)
-  static const String _livreurTiersCollection = 'livreur_tiers'; // Info niveau LIVREURS (performance tracking)
-  static const String _subscriptionPaymentsCollection = 'subscription_payments'; // Paiements vendeurs
-  static const String _livreurSubscriptionPaymentsCollection = 'livreur_subscription_payments'; // Paiements livreurs
+  static const String _livreurSubscriptionsCollection =
+      'livreur_subscriptions'; // Abonnements LIVREURS (hybride)
+  static const String _livreurTiersCollection =
+      'livreur_tiers'; // Info niveau LIVREURS (performance tracking)
+  static const String _subscriptionPaymentsCollection =
+      'subscription_payments'; // Paiements vendeurs
+  static const String _livreurSubscriptionPaymentsCollection =
+      'livreur_subscription_payments'; // Paiements livreurs
 
   /// Récupère l'abonnement actif d'un vendeur
   Future<VendeurSubscription?> getVendeurSubscription(String vendeurId) async {
@@ -28,7 +33,6 @@ class SubscriptionService {
           .get();
 
       if (querySnapshot.docs.isEmpty) {
-        debugPrint('⚠️ Aucun abonnement trouvé, création BASIQUE par défaut');
         return await createBasiqueSubscription(vendeurId);
       }
 
@@ -48,33 +52,30 @@ class SubscriptionService {
 
       final subscription = VendeurSubscription.createBasique(vendeurId);
 
-      // ✅ Sur Web/Dev: Retourner directement version locale (pas d'écriture Firestore)
-      // Sur Firestore offline, les écritures bloquent indéfiniment même avec timeout
-      debugPrint('📱 Création abonnement BASIQUE local (mode dev/offline)');
-      final localSubscription = subscription.copyWith(id: 'local_${vendeurId}_basique');
-      debugPrint('✅ Abonnement BASIQUE créé: local_${vendeurId}_basique');
-      return localSubscription;
-
-      // NOTE PRODUCTION: Décommenter pour activer l'écriture Firestore en production
-      // try {
-      //   final docRef = await _firestore
-      //       .collection(_subscriptionsCollection)
-      //       .add(subscription.toMap())
-      //       .timeout(
-      //         const Duration(seconds: 5),
-      //         onTimeout: () {
-      //           throw TimeoutException('Timeout création abonnement BASIQUE');
-      //         },
-      //       );
-      //   debugPrint('✅ Abonnement BASIQUE créé dans Firestore: ${docRef.id}');
-      //   return subscription.copyWith(id: docRef.id);
-      // } catch (e) {
-      //   debugPrint('❌ Erreur Firestore, fallback local: $e');
-      //   return subscription.copyWith(id: 'local_${vendeurId}_basique');
-      // }
+      // ✅ ACTIVER L'ÉCRITURE FIRESTORE pour que l'admin puisse voir les abonnements
+      try {
+        final docRef = await _firestore
+            .collection('vendeur_subscriptions')
+            .add(subscription.toMap())
+            .timeout(
+              const Duration(seconds: 10),
+              onTimeout: () {
+                throw TimeoutException('Timeout création abonnement BASIQUE');
+              },
+            );
+        debugPrint('✅ Abonnement BASIQUE créé dans Firestore: ${docRef.id}');
+        return subscription.copyWith(id: docRef.id);
+      } catch (e) {
+        debugPrint('❌ Erreur Firestore, fallback local: $e');
+        // Fallback vers abonnement local uniquement en cas d'échec
+        final localSubscription = subscription.copyWith(id: 'local_${vendeurId}_basique');
+        debugPrint('⚠️ Abonnement BASIQUE créé en local: local_${vendeurId}_basique');
+        return localSubscription;
+      }
     } catch (e) {
       debugPrint('❌ Erreur création abonnement BASIQUE: $e');
-      return VendeurSubscription.createBasique(vendeurId).copyWith(id: 'local_${vendeurId}_basique');
+      return VendeurSubscription.createBasique(vendeurId)
+          .copyWith(id: 'local_${vendeurId}_basique');
     }
   }
 
@@ -96,14 +97,22 @@ class SubscriptionService {
       // Récupérer l'abonnement actuel
       final currentSubscription = await getVendeurSubscription(vendeurId);
 
-      // Annuler l'abonnement actuel si existant
-      if (currentSubscription != null && currentSubscription.id.isNotEmpty) {
-        await _firestore.collection(_subscriptionsCollection).doc(currentSubscription.id).update({
-          'status': SubscriptionStatus.cancelled.name,
-          'endDate': Timestamp.fromDate(DateTime.now()),
-          'updatedAt': Timestamp.fromDate(DateTime.now()),
-        });
-        debugPrint('🔄 Ancien abonnement annulé');
+      // Annuler l'abonnement actuel si existant ET s'il n'est pas local
+      if (currentSubscription != null &&
+          currentSubscription.id.isNotEmpty &&
+          !currentSubscription.id.startsWith('local_')) {
+        try {
+          await _firestore.collection(_subscriptionsCollection).doc(currentSubscription.id).update({
+            'status': SubscriptionStatus.cancelled.name,
+            'endDate': Timestamp.fromDate(DateTime.now()),
+            'updatedAt': Timestamp.fromDate(DateTime.now()),
+          });
+          debugPrint('🔄 Ancien abonnement annulé');
+        } catch (e) {
+          debugPrint('⚠️ Impossible d\'annuler ancien abonnement (probablement local): $e');
+        }
+      } else if (currentSubscription != null && currentSubscription.id.startsWith('local_')) {
+        debugPrint('⚠️ Abonnement local détecté, skip annulation Firestore');
       }
 
       // Créer le nouvel abonnement
@@ -117,9 +126,8 @@ class SubscriptionService {
         nextBillingDate: nextBillingDate,
       );
 
-      final docRef = await _firestore
-          .collection(_subscriptionsCollection)
-          .add(newSubscription.toMap());
+      final docRef =
+          await _firestore.collection(_subscriptionsCollection).add(newSubscription.toMap());
 
       // Enregistrer le paiement
       await _recordPayment(
@@ -150,12 +158,21 @@ class SubscriptionService {
         throw Exception('Aucun abonnement actif trouvé');
       }
 
-      // Marquer l'abonnement actuel comme annulé
-      await _firestore.collection(_subscriptionsCollection).doc(currentSubscription.id).update({
-        'status': SubscriptionStatus.cancelled.name,
-        'endDate': Timestamp.fromDate(DateTime.now()),
-        'updatedAt': Timestamp.fromDate(DateTime.now()),
-      });
+      // Marquer l'abonnement actuel comme annulé (sauf si local)
+      if (!currentSubscription.id.startsWith('local_')) {
+        try {
+          await _firestore.collection(_subscriptionsCollection).doc(currentSubscription.id).update({
+            'status': SubscriptionStatus.cancelled.name,
+            'endDate': Timestamp.fromDate(DateTime.now()),
+            'updatedAt': Timestamp.fromDate(DateTime.now()),
+          });
+          debugPrint('🔄 Abonnement annulé');
+        } catch (e) {
+          debugPrint('⚠️ Impossible d\'annuler abonnement (probablement local): $e');
+        }
+      } else {
+        debugPrint('⚠️ Abonnement local détecté, skip annulation Firestore');
+      }
 
       // Créer un abonnement BASIQUE
       return await createBasiqueSubscription(vendeurId);
@@ -255,12 +272,12 @@ class SubscriptionService {
           .limit(1)
           .get()
           .timeout(
-            const Duration(seconds: 10),
-            onTimeout: () {
-              debugPrint('⏱️ Timeout récupération abonnement, création STARTER');
-              throw TimeoutException('Timeout récupération abonnement livreur');
-            },
-          );
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('⏱️ Timeout récupération abonnement, création STARTER');
+          throw TimeoutException('Timeout récupération abonnement livreur');
+        },
+      );
 
       if (querySnapshot.docs.isEmpty) {
         debugPrint('⚠️ Aucun abonnement trouvé, création STARTER par défaut');
@@ -288,27 +305,30 @@ class SubscriptionService {
 
       final subscription = LivreurSubscription.createStarter(livreurId);
 
-      // ✅ Sur Web/Dev: Retourner directement version locale (pas d'écriture Firestore)
-      // Sur Firestore offline, les écritures bloquent indéfiniment même avec timeout
-      debugPrint('📱 Création abonnement STARTER local (mode dev/offline)');
-      final localSubscription = subscription.copyWith(id: 'local_${livreurId}_starter');
-      debugPrint('✅ Abonnement STARTER créé: local_${livreurId}_starter');
-      return localSubscription;
-
-      // NOTE PRODUCTION: Décommenter pour activer l'écriture Firestore en production
-      // try {
-      //   final docRef = await _firestore
-      //       .collection(_livreurSubscriptionsCollection)
-      //       .add(subscription.toMap());
-      //   debugPrint('✅ Abonnement STARTER créé dans Firestore: ${docRef.id}');
-      //   return subscription.copyWith(id: docRef.id);
-      // } catch (e) {
-      //   debugPrint('❌ Erreur Firestore, fallback local: $e');
-      //   return subscription.copyWith(id: 'local_${livreurId}_starter');
-      // }
+      // ✅ ACTIVER L'ÉCRITURE FIRESTORE pour que l'admin puisse voir les abonnements
+      try {
+        final docRef = await _firestore
+            .collection('livreur_subscriptions')
+            .add(subscription.toMap())
+            .timeout(
+              const Duration(seconds: 10),
+              onTimeout: () {
+                throw TimeoutException('Timeout création abonnement STARTER');
+              },
+            );
+        debugPrint('✅ Abonnement STARTER créé dans Firestore: ${docRef.id}');
+        return subscription.copyWith(id: docRef.id);
+      } catch (e) {
+        debugPrint('❌ Erreur Firestore, fallback local: $e');
+        // Fallback vers abonnement local uniquement en cas d'échec
+        final localSubscription = subscription.copyWith(id: 'local_${livreurId}_starter');
+        debugPrint('⚠️ Abonnement STARTER créé en local: local_${livreurId}_starter');
+        return localSubscription;
+      }
     } catch (e) {
       debugPrint('❌ Erreur création abonnement STARTER: $e');
-      return LivreurSubscription.createStarter(livreurId).copyWith(id: 'local_${livreurId}_starter');
+      return LivreurSubscription.createStarter(livreurId)
+          .copyWith(id: 'local_${livreurId}_starter');
     }
   }
 
@@ -337,7 +357,10 @@ class SubscriptionService {
 
       // Annuler l'abonnement actuel si existant
       if (currentSubscription != null && currentSubscription.id.isNotEmpty) {
-        await _firestore.collection(_livreurSubscriptionsCollection).doc(currentSubscription.id).update({
+        await _firestore
+            .collection(_livreurSubscriptionsCollection)
+            .doc(currentSubscription.id)
+            .update({
           'status': SubscriptionStatus.cancelled.name,
           'endDate': Timestamp.fromDate(DateTime.now()),
           'updatedAt': Timestamp.fromDate(DateTime.now()),
@@ -358,9 +381,8 @@ class SubscriptionService {
         currentRating: currentRating,
       );
 
-      final docRef = await _firestore
-          .collection(_livreurSubscriptionsCollection)
-          .add(newSubscription.toMap());
+      final docRef =
+          await _firestore.collection(_livreurSubscriptionsCollection).add(newSubscription.toMap());
 
       // Enregistrer le paiement
       await _recordLivreurPayment(
@@ -392,7 +414,10 @@ class SubscriptionService {
       }
 
       // Marquer l'abonnement actuel comme annulé
-      await _firestore.collection(_livreurSubscriptionsCollection).doc(currentSubscription.id).update({
+      await _firestore
+          .collection(_livreurSubscriptionsCollection)
+          .doc(currentSubscription.id)
+          .update({
         'status': SubscriptionStatus.cancelled.name,
         'endDate': Timestamp.fromDate(DateTime.now()),
         'updatedAt': Timestamp.fromDate(DateTime.now()),
@@ -415,7 +440,8 @@ class SubscriptionService {
     try {
       debugPrint('🔄 Renouvellement abonnement livreur: $subscriptionId');
 
-      final doc = await _firestore.collection(_livreurSubscriptionsCollection).doc(subscriptionId).get();
+      final doc =
+          await _firestore.collection(_livreurSubscriptionsCollection).doc(subscriptionId).get();
 
       if (!doc.exists) {
         throw Exception('Abonnement non trouvé');
@@ -654,12 +680,12 @@ class SubscriptionService {
           .limit(50)
           .get()
           .timeout(
-            const Duration(seconds: 10),
-            onTimeout: () {
-              debugPrint('⏱️ Timeout récupération historique, retour liste vide');
-              throw TimeoutException('Timeout récupération historique paiements');
-            },
-          );
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('⏱️ Timeout récupération historique, retour liste vide');
+          throw TimeoutException('Timeout récupération historique paiements');
+        },
+      );
 
       final payments =
           querySnapshot.docs.map((doc) => SubscriptionPayment.fromFirestore(doc)).toList();
@@ -892,6 +918,94 @@ class SubscriptionService {
     }
   }
 
+  // ==================== MÉTHODES DE MIGRATION ====================
+
+  /// Crée les abonnements manquants pour tous les vendeurs existants
+  Future<void> createMissingVendeurSubscriptions() async {
+    try {
+      debugPrint('🔄 Création abonnements manquants pour vendeurs...');
+
+      // Récupérer tous les vendeurs
+      final vendeurs = await _firestore
+          .collection(FirebaseCollections.users)
+          .where('userType', isEqualTo: 'vendeur')
+          .get();
+
+      int created = 0;
+      for (var vendeurDoc in vendeurs.docs) {
+        final vendeurId = vendeurDoc.id;
+
+        // Vérifier si l'abonnement existe déjà
+        final existingSub = await _firestore
+            .collection('vendeur_subscriptions')
+            .where('vendeurId', isEqualTo: vendeurId)
+            .limit(1)
+            .get();
+
+        if (existingSub.docs.isEmpty) {
+          // Créer abonnement BASIQUE
+          final subscription = VendeurSubscription.createBasique(vendeurId);
+          await _firestore
+              .collection('vendeur_subscriptions')
+              .add(subscription.toMap());
+          created++;
+          debugPrint('✅ Abonnement créé pour vendeur: $vendeurId');
+        }
+      }
+
+      debugPrint('✅ Migration terminée: $created abonnements vendeurs créés');
+    } catch (e) {
+      debugPrint('❌ Erreur migration abonnements vendeurs: $e');
+    }
+  }
+
+  /// Crée les abonnements manquants pour tous les livreurs existants
+  Future<void> createMissingLivreurSubscriptions() async {
+    try {
+      debugPrint('🔄 Création abonnements manquants pour livreurs...');
+
+      // Récupérer tous les livreurs
+      final livreurs = await _firestore
+          .collection(FirebaseCollections.users)
+          .where('userType', isEqualTo: 'livreur')
+          .get();
+
+      int created = 0;
+      for (var livreurDoc in livreurs.docs) {
+        final livreurId = livreurDoc.id;
+
+        // Vérifier si l'abonnement existe déjà
+        final existingSub = await _firestore
+            .collection('livreur_subscriptions')
+            .where('livreurId', isEqualTo: livreurId)
+            .limit(1)
+            .get();
+
+        if (existingSub.docs.isEmpty) {
+          // Créer abonnement STARTER
+          final subscription = LivreurSubscription.createStarter(livreurId);
+          await _firestore
+              .collection('livreur_subscriptions')
+              .add(subscription.toMap());
+          created++;
+          debugPrint('✅ Abonnement créé pour livreur: $livreurId');
+        }
+      }
+
+      debugPrint('✅ Migration terminée: $created abonnements livreurs créés');
+    } catch (e) {
+      debugPrint('❌ Erreur migration abonnements livreurs: $e');
+    }
+  }
+
+  /// Crée tous les abonnements manquants (vendeurs + livreurs)
+  Future<void> createAllMissingSubscriptions() async {
+    debugPrint('🔄 Début migration complète des abonnements...');
+    await createMissingVendeurSubscriptions();
+    await createMissingLivreurSubscriptions();
+    debugPrint('✅ Migration complète terminée !');
+  }
+
   // ==================== MÉTHODES DE TEST ====================
 
   /// Crée des données de test pour les abonnements (à utiliser en développement uniquement)
@@ -961,25 +1075,16 @@ class SubscriptionService {
       debugPrint('🧹 Nettoyage données de test...');
 
       // Supprimer abonnements de test
-      final subscriptions = await _firestore
-          .collection(_subscriptionsCollection)
-          .where('vendeurId', whereIn: [
-            'test_vendeur_basique',
-            'test_vendeur_pro',
-            'test_vendeur_premium'
-          ])
-          .get();
+      final subscriptions = await _firestore.collection(_subscriptionsCollection).where('vendeurId',
+          whereIn: ['test_vendeur_basique', 'test_vendeur_pro', 'test_vendeur_premium']).get();
 
       for (var doc in subscriptions.docs) {
         await doc.reference.delete();
       }
 
       // Supprimer tiers de test
-      final tiers = await _firestore
-          .collection(_livreurTiersCollection)
-          .where('livreurId',
-              whereIn: ['test_livreur_starter', 'test_livreur_pro', 'test_livreur_premium'])
-          .get();
+      final tiers = await _firestore.collection(_livreurTiersCollection).where('livreurId',
+          whereIn: ['test_livreur_starter', 'test_livreur_pro', 'test_livreur_premium']).get();
 
       for (var doc in tiers.docs) {
         await doc.reference.delete();

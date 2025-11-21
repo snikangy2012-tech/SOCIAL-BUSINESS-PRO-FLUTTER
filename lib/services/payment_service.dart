@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/payment_method_model.dart';
-import '../config/firebase_collections.dart';
+import '../config/constants.dart';
 
 class PaymentService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -16,12 +16,14 @@ class PaymentService {
       final querySnapshot = await _firestore
           .collection(FirebaseCollections.paymentMethods)
           .where('userId', isEqualTo: userId)
-          .orderBy('createdAt', descending: true)
           .get();
 
       final methods = querySnapshot.docs
           .map((doc) => PaymentMethodModel.fromFirestore(doc))
           .toList();
+
+      // Tri côté client par date de création (plus récent en premier)
+      methods.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       debugPrint('✅ ${methods.length} moyens de paiement trouvés');
       return methods;

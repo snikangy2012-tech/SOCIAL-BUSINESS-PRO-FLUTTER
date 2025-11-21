@@ -8,7 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:async';
 
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../../services/auth_service_extended.dart';
 import '../../widgets/custom_widgets.dart';
 
@@ -39,17 +39,52 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   int _countdown = 60;
   bool _canResend = false;
   Timer? _timer;
+  StreamSubscription? _otpStatusSubscription;
+  String? _statusMessage;
 
   @override
   void initState() {
     super.initState();
     _startCountdown();
+    _listenToOtpStatus();
+  }
+
+  void _listenToOtpStatus() {
+    _otpStatusSubscription = AuthServiceExtended.otpStatusStream.listen((event) {
+      if (!mounted) return;
+
+      final eventType = event['event'];
+      final message = event['message'];
+
+      setState(() {
+        _statusMessage = message;
+      });
+
+      if (eventType == 'autoRetrievalTimeout') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: AppColors.warning,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      } else if (eventType == 'verificationFailed') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
     _otpController.dispose();
     _timer?.cancel();
+    _otpStatusSubscription?.cancel();
     super.dispose();
   }
 

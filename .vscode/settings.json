@@ -1,3 +1,132 @@
 {
-    "claude-code.useTerminal": false
+    // Claude Code
+    "claude-code.useTerminal": false,
+
+    // ========================================
+    // Configuration VS Code pour Flutter
+    // Optimisée pour Dell Inspiron 3593 (8 Go RAM)
+    // ========================================
+
+    // DART & FLUTTER
+    "dart.flutterSdkPath": "C:\\flutter",
+    "dart.previewFlutterUiGuides": true,
+    "dart.previewFlutterUiGuidesCustomTracking": true,
+    "dart.debugExternalPackageLibraries": false,
+    "dart.debugSdkLibraries": false,
+
+    // Hot Reload automatique
+    "dart.flutterHotReloadOnSave": "always",
+    "dart.flutterHotRestartOnSave": "never",
+
+    // Performance : Limiter l'analyse
+    "dart.analysisServerFolding": true,
+    "dart.closingLabels": true,
+    "dart.lineLength": 100,
+
+    // Formatage automatique
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true,
+    "[dart]": {
+        "editor.formatOnSave": true,
+        "editor.formatOnType": true,
+        "editor.rulers": [100],
+        "editor.selectionHighlight": true,
+        "editor.suggestSelection": "first",
+        "editor.tabCompletion": "onlySnippets",
+        "editor.wordBasedSuggestions": "off"
+    },
+
+    // OPTIMISATION MÉMOIRE (Important pour 8 Go RAM)
+    "dart.maxLogLineLength": 2000,
+    "dart.vmAdditionalArgs": [
+        "--observe",
+        "--pause-isolates-on-start=false"
+    ],
+
+    // Désactiver les fonctionnalités gourmandes
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/*/**": true,
+        "**/.hg/store/**": true,
+        "**/build/**": true,
+        "**/.dart_tool/**": true,
+        "**/android/build/**": true,
+        "**/ios/build/**": true,
+        "**/.flutter-plugins-dependencies": true
+    },
+
+    "files.exclude": {
+        "**/.dart_tool": true,
+        "**/.packages": true,
+        "**/build": true
+    },
+
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/bower_components": true,
+        "**/*.code-search": true,
+        "**/build": true,
+        "**/.dart_tool": true,
+        "**/android/build": true,
+        "**/ios/build": true
+    },
+
+    // FIREBASE
+    "files.associations": {
+        "*.json": "json",
+        "firebase.json": "json",
+        "firestore.rules": "firebase-rules",
+        "storage.rules": "firebase-rules"
+    },
+
+    // TERMINAL
+    "terminal.integrated.defaultProfile.windows": "Command Prompt",
+
+    // INTERFACE (Optimisée pour performance)
+    "editor.minimap.enabled": true,
+    "editor.minimap.maxColumn": 100,
+    "editor.renderWhitespace": "selection",
+    "editor.suggestSelection": "first",
+    "editor.quickSuggestions": {
+        "other": true,
+        "comments": false,
+        "strings": true
+    },
+
+    // Désactiver les animations (économie RAM)
+    "workbench.list.smoothScrolling": false,
+    "editor.smoothScrolling": false,
+    "workbench.tree.indent": 15,
+
+    // GIT
+    "git.autofetch": false,
+    "git.enableSmartCommit": true,
+    "git.confirmSync": false,
+
+    // AUTRES
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 1000,
+    "explorer.confirmDelete": false,
+    "explorer.confirmDragAndDrop": false,
+
+    // FLUTTER SPÉCIFIQUE POUR CE PROJET
+    "dart.flutterCreateOrganization": "com.socialbusiness",
+    "dart.flutterCreateIOSLanguage": "swift",
+    "dart.flutterCreateAndroidLanguage": "kotlin",
+
+    // LANCEMENT PAR DÉFAUT (Web optimisé)
+    "dart.flutterRunAdditionalArgs": [
+        "--dart-define=FLUTTER_WEB_USE_SKIA=false",
+        "--web-renderer=html"
+    ],
+
+    // Ignorer les avertissements non critiques
+    "dart.showTodos": false,
+    "dart.analysisExcludedFolders": [
+        "build",
+        ".dart_tool",
+        "android/build",
+        "ios/build"
+    ]
 }

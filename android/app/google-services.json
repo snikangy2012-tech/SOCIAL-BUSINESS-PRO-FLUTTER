@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "162267219364-ds8o6q022a2a4ugb0fp5mof58856gko0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "ci.socialbusinesspro.social_media_business_pro",
+            "certificate_hash": "8db26092ac5f4f5fc9dc81daa944f655fd841323"
+          }
+        },
+        {
           "client_id": "162267219364-v60udt8p5augn8oeq5tkjmdqgeguc03m.apps.googleusercontent.com",
           "client_type": 3
         }

@@ -1,0 +1,12 @@
+{
+  "name": "firestore-migration-scripts",
+  "version": "1.0.0",
+  "description": "Scripts de migration Firestore pour SOCIAL BUSINESS Pro",
+  "main": "migrate_user_dates.js",
+  "scripts": {
+    "migrate": "node migrate_user_dates.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}

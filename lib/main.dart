@@ -6,14 +6,19 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'config/constants.dart';
 import 'config/firebase_options.dart';
 import 'providers/auth_provider_firebase.dart';
 import 'providers/cart_provider.dart';
+import 'providers/favorite_provider.dart';
 import 'providers/subscription_provider.dart';
+import 'providers/notification_provider.dart';
 import 'routes/app_router.dart';
 import 'providers/vendeur_navigation_provider.dart';
+import 'providers/admin_navigation_provider.dart';
+import 'utils/system_ui_helper.dart';
 
 // Clé globale de navigation
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -21,24 +26,57 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   // Initialisation Flutter
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  // Initialisation du formatage de dates pour le français
+  await initializeDateFormatting('fr_FR', null);
+  debugPrint('✅ Initialisation locale fr_FR terminée');
+
   // Orientation portrait uniquement
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
+  // Configuration par défaut de l'UI système (barres visibles, fond blanc)
+  SystemUIHelper.setDefaultSystemUI();
+
   try {
     // ===== INITIALISATION FIREBASE =====
     debugPrint('🔥 Initialisation Firebase...');
     final Stopwatch stopwatch = Stopwatch()..start();
 
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    stopwatch.stop();
-    debugPrint('✅ Firebase initialisé en ${stopwatch.elapsedMilliseconds}ms');
-    
+    // Vérifier si Firebase est déjà initialisé pour éviter l'erreur duplicate-app
+    try {
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+        stopwatch.stop();
+        debugPrint('✅ Firebase initialisé en ${stopwatch.elapsedMilliseconds}ms');
+      } else {
+        debugPrint('ℹ️ Firebase déjà initialisé, utilisation de l\'instance existante');
+      }
+    } on FirebaseException catch (e) {
+      if (e.code == 'duplicate-app') {
+        debugPrint('ℹ️ Firebase déjà initialisé (duplicate-app ignoré)');
+        // Récupérer l'app existante
+        Firebase.app();
+      } else {
+        rethrow;
+      }
+    } catch (e) {
+      debugPrint('⚠️ Erreur inattendue Firebase: $e');
+      // Tenter de récupérer l'app par défaut
+      try {
+        Firebase.app();
+      } catch (_) {
+        // Si vraiment aucune app, on réessaye l'initialisation
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      }
+    }
+
     debugPrint('📋 Project ID: ${Firebase.app().options.projectId}');
     
     
@@ -107,7 +145,10 @@ class SocialBusinessProApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => AuthProvider(),
         ),
+
+        // Providers de navigation
         ChangeNotifierProvider(create: (_) => VendeurNavigationProvider()),
+        ChangeNotifierProvider(create: (_) => AdminNavigationProvider()),
 
         // Provider d'abonnements
         ChangeNotifierProvider(
@@ -122,6 +163,28 @@ class SocialBusinessProApp extends StatelessWidget {
               cart.setUserId(auth.user!.id);
             }
             return cart ?? CartProvider();
+          },
+        ),
+
+        // Provider de favoris (dépend de l'auth)
+        ChangeNotifierProxyProvider<AuthProvider, FavoriteProvider>(
+          create: (_) => FavoriteProvider(),
+          update: (_, auth, favorite) {
+            if (favorite != null && auth.user != null) {
+              favorite.setUserId(auth.user!.id);
+            }
+            return favorite ?? FavoriteProvider();
+          },
+        ),
+
+        // Provider de notifications (dépend de l'auth)
+        ChangeNotifierProxyProvider<AuthProvider, NotificationProvider>(
+          create: (_) => NotificationProvider(),
+          update: (_, auth, notification) {
+            if (notification != null && auth.user != null) {
+              notification.initialize(auth.user!.id);
+            }
+            return notification ?? NotificationProvider();
           },
         ),
       ],

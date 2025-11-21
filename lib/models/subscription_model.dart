@@ -10,16 +10,16 @@ enum VendeurSubscriptionTier {
 /// Types de niveaux pour livreurs (Hybride : Performance + Abonnement payant)
 /// Conformément au modèle business finalisé (voir BUSINESS_MODEL.md)
 enum LivreurTier {
-  starter,  // Gratuit - Commission 25% - Débloqué au démarrage
-  pro,      // 10,000 FCFA/mois - Commission 20% - Débloqué à 50 livraisons + 4.0★
-  premium,  // 30,000 FCFA/mois - Commission 15% - Débloqué à 200 livraisons + 4.5★
+  starter, // Gratuit - Commission 25% - Débloqué au démarrage
+  pro, // 10,000 FCFA/mois - Commission 20% - Débloqué à 50 livraisons + 4.0★
+  premium, // 30,000 FCFA/mois - Commission 15% - Débloqué à 200 livraisons + 4.5★
 }
 
 /// Statut de déblocage d'un niveau livreur
 enum LivreurTierUnlockStatus {
-  locked,      // Pas encore atteint les critères de performance
-  unlocked,    // Critères atteints, peut souscrire
-  subscribed,  // Souscription active et payée
+  locked, // Pas encore atteint les critères de performance
+  unlocked, // Critères atteints, peut souscrire
+  subscribed, // Souscription active et payée
 }
 
 /// Statut de l'abonnement
@@ -111,9 +111,8 @@ class VendeurSubscription {
       ),
       startDate: (map['startDate'] as Timestamp).toDate(),
       endDate: map['endDate'] != null ? (map['endDate'] as Timestamp).toDate() : null,
-      nextBillingDate: map['nextBillingDate'] != null
-          ? (map['nextBillingDate'] as Timestamp).toDate()
-          : null,
+      nextBillingDate:
+          map['nextBillingDate'] != null ? (map['nextBillingDate'] as Timestamp).toDate() : null,
       monthlyPrice: (map['monthlyPrice'] ?? 0).toDouble(),
       productLimit: map['productLimit'] ?? 20,
       commissionRate: (map['commissionRate'] ?? 0.10).toDouble(),
@@ -134,8 +133,7 @@ class VendeurSubscription {
       'status': status.name,
       'startDate': Timestamp.fromDate(startDate),
       'endDate': endDate != null ? Timestamp.fromDate(endDate!) : null,
-      'nextBillingDate':
-          nextBillingDate != null ? Timestamp.fromDate(nextBillingDate!) : null,
+      'nextBillingDate': nextBillingDate != null ? Timestamp.fromDate(nextBillingDate!) : null,
       'monthlyPrice': monthlyPrice,
       'productLimit': productLimit,
       'commissionRate': commissionRate,
@@ -327,9 +325,8 @@ class LivreurSubscription {
       ),
       startDate: (map['startDate'] as Timestamp).toDate(),
       endDate: map['endDate'] != null ? (map['endDate'] as Timestamp).toDate() : null,
-      nextBillingDate: map['nextBillingDate'] != null
-          ? (map['nextBillingDate'] as Timestamp).toDate()
-          : null,
+      nextBillingDate:
+          map['nextBillingDate'] != null ? (map['nextBillingDate'] as Timestamp).toDate() : null,
       monthlyPrice: (map['monthlyPrice'] ?? 0).toDouble(),
       commissionRate: (map['commissionRate'] ?? 0.25).toDouble(),
       hasPriority: map['hasPriority'] ?? false,
@@ -355,8 +352,7 @@ class LivreurSubscription {
       'status': status.name,
       'startDate': Timestamp.fromDate(startDate),
       'endDate': endDate != null ? Timestamp.fromDate(endDate!) : null,
-      'nextBillingDate':
-          nextBillingDate != null ? Timestamp.fromDate(nextBillingDate!) : null,
+      'nextBillingDate': nextBillingDate != null ? Timestamp.fromDate(nextBillingDate!) : null,
       'monthlyPrice': monthlyPrice,
       'commissionRate': commissionRate,
       'hasPriority': hasPriority,
@@ -434,8 +430,7 @@ class LivreurSubscription {
 
   /// Vérifie si le livreur a atteint les critères pour débloquer ce niveau
   bool get hasMetPerformanceCriteria {
-    return currentDeliveries >= requiredDeliveries &&
-           currentRating >= requiredRating;
+    return currentDeliveries >= requiredDeliveries && currentRating >= requiredRating;
   }
 
   /// Vérifie si le niveau suivant est débloqué (peut souscrire)
@@ -544,16 +539,12 @@ class LivreurTierInfo {
 
   /// Vérifie si le livreur peut passer au niveau PRO
   bool get canUpgradeToPro {
-    return currentTier == LivreurTier.starter &&
-        totalDeliveries >= 50 &&
-        averageRating >= 4.0;
+    return currentTier == LivreurTier.starter && totalDeliveries >= 50 && averageRating >= 4.0;
   }
 
   /// Vérifie si le livreur peut passer au niveau PREMIUM
   bool get canUpgradeToPremium {
-    return currentTier == LivreurTier.pro &&
-        totalDeliveries >= 200 &&
-        averageRating >= 4.5;
+    return currentTier == LivreurTier.pro && totalDeliveries >= 200 && averageRating >= 4.5;
   }
 
   /// Obtient le prochain niveau disponible

@@ -4,7 +4,7 @@
 /// À utiliser quand Firestore est inaccessible
 library;
 
-import 'constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 
 class UserTypeConfig {
   /// Mapping manuel des emails vers leur type d'utilisateur

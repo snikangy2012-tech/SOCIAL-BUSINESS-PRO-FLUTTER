@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../../services/mobile_money_service.dart';
 import '../../models/order_model.dart';
 // Import nécessaire pour Timer

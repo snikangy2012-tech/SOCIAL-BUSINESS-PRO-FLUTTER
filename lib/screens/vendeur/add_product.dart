@@ -8,10 +8,12 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
+import '../../providers/vendeur_navigation_provider.dart';
 import '../../services/product_service.dart';
 import '../../config/product_categories.dart';
+import '../../config/product_subcategories.dart';
 
 class AddProduct extends StatefulWidget {
   const AddProduct({super.key});
@@ -37,6 +39,9 @@ class _AddProductState extends State<AddProduct> {
   // État du formulaire
   int _currentStep = 0;
   String _selectedCategory = '';
+  String _selectedSubcategory = '';
+  String _otherSubcategory = ''; // Pour "Autre (à préciser)"
+  final _otherSubcategoryController = TextEditingController();
   // ignore: prefer_final_fields
   List<File> _selectedImages = [];
   List<String> _tags = [];
@@ -52,6 +57,7 @@ class _AddProductState extends State<AddProduct> {
     _stockController.dispose();
     _brandController.dispose();
     _tagsController.dispose();
+    _otherSubcategoryController.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -198,7 +204,7 @@ class _AddProductState extends State<AddProduct> {
             
             // Catégorie
             DropdownButtonFormField<String>(
-              initialValue: _selectedCategory.isEmpty ? null : _selectedCategory,
+              value: _selectedCategory.isEmpty ? null : _selectedCategory,
               decoration: const InputDecoration(
                 labelText: 'Catégorie *',
                 border: OutlineInputBorder(),
@@ -207,12 +213,15 @@ class _AddProductState extends State<AddProduct> {
               items: ProductCategories.allCategories.map((category) {
                 return DropdownMenuItem<String>(
                   value: category.id,
-                  child: Text(category.name),
+                  child: Text('${category.icon} ${category.name}'),
                 );
               }).toList(),
               onChanged: (value) {
                 setState(() {
                   _selectedCategory = value ?? '';
+                  _selectedSubcategory = ''; // Reset sous-catégorie
+                  _otherSubcategory = '';
+                  _otherSubcategoryController.clear();
                 });
               },
               validator: (value) {
@@ -222,8 +231,74 @@ class _AddProductState extends State<AddProduct> {
                 return null;
               },
             ),
-            
+
             const SizedBox(height: AppSpacing.lg),
+
+            // Sous-catégorie (apparaît seulement si une catégorie est sélectionnée)
+            if (_selectedCategory.isNotEmpty) ...[
+              DropdownButtonFormField<String>(
+                value: _selectedSubcategory.isEmpty ? null : _selectedSubcategory,
+                decoration: const InputDecoration(
+                  labelText: 'Sous-catégorie *',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.list),
+                ),
+                items: ProductSubcategories.getSubcategories(_selectedCategory)
+                    .map((subcategory) {
+                  return DropdownMenuItem<String>(
+                    value: subcategory,
+                    child: Text(subcategory),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedSubcategory = value ?? '';
+                    if (_selectedSubcategory != 'Autre (à préciser)') {
+                      _otherSubcategory = '';
+                      _otherSubcategoryController.clear();
+                    }
+                  });
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Veuillez sélectionner une sous-catégorie';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: AppSpacing.lg),
+            ],
+
+            // Champ "Autre sous-catégorie" (apparaît si "Autre" est sélectionné)
+            if (_selectedSubcategory == 'Autre (à préciser)') ...[
+              TextFormField(
+                controller: _otherSubcategoryController,
+                decoration: const InputDecoration(
+                  labelText: 'Précisez la sous-catégorie *',
+                  hintText: 'Ex: T-shirts pour homme...',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.edit),
+                ),
+                maxLength: 50,
+                onChanged: (value) {
+                  setState(() {
+                    _otherSubcategory = value;
+                  });
+                },
+                validator: (value) {
+                  if (_selectedSubcategory == 'Autre (à préciser)') {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Veuillez préciser la sous-catégorie';
+                    }
+                    if (value.trim().length < 3) {
+                      return 'Au moins 3 caractères requis';
+                    }
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: AppSpacing.lg),
+            ],
             
             // Description
             TextFormField(
@@ -938,10 +1013,34 @@ class _AddProductState extends State<AddProduct> {
 
   // Validations par étape
   bool _validateStep1() {
-    if (_formKey.currentState?.validate() != true) {
+    debugPrint('🔍 Validation Step 1...');
+
+    // Vérifier les champs texte manuellement plutôt que via Form.validate()
+    // car le Form peut ne pas être visible si on est sur une autre étape
+    if (_nameController.text.trim().isEmpty) {
+      debugPrint('❌ Step 1 échoué: nom du produit vide');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Veuillez saisir le nom du produit'),
+          backgroundColor: AppColors.error,
+        ),
+      );
       return false;
     }
+
+    if (_descriptionController.text.trim().isEmpty) {
+      debugPrint('❌ Step 1 échoué: description vide');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Veuillez saisir une description'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return false;
+    }
+
     if (_selectedCategory.isEmpty) {
+      debugPrint('❌ Step 1 échoué: catégorie non sélectionnée');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Veuillez sélectionner une catégorie'),
@@ -950,11 +1049,15 @@ class _AddProductState extends State<AddProduct> {
       );
       return false;
     }
+
+    debugPrint('✅ Step 1 validé (nom: "${_nameController.text.trim()}", catégorie: $_selectedCategory)');
     return true;
   }
 
   bool _validateStep2() {
+    debugPrint('🔍 Validation Step 2...');
     if (_selectedImages.isEmpty) {
+      debugPrint('❌ Step 2 échoué: aucune image sélectionnée');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Ajoutez au moins une image de votre produit'),
@@ -963,14 +1066,20 @@ class _AddProductState extends State<AddProduct> {
       );
       return false;
     }
+    debugPrint('✅ Step 2 validé (${_selectedImages.length} images)');
     return true;
   }
 
   bool _validateStep3() {
+    debugPrint('🔍 Validation Step 3...');
     final price = int.tryParse(_priceController.text);
     final stock = int.tryParse(_stockController.text);
 
+    debugPrint('📊 Prix saisi: "${_priceController.text}" -> parsed: $price');
+    debugPrint('📦 Stock saisi: "${_stockController.text}" -> parsed: $stock');
+
     if (price == null || price <= 0) {
+      debugPrint('❌ Step 3 échoué: prix invalide');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Veuillez saisir un prix valide'),
@@ -981,6 +1090,7 @@ class _AddProductState extends State<AddProduct> {
     }
 
     if (stock == null || stock < 0) {
+      debugPrint('❌ Step 3 échoué: stock invalide');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Veuillez saisir une quantité en stock valide'),
@@ -990,6 +1100,7 @@ class _AddProductState extends State<AddProduct> {
       return false;
     }
 
+    debugPrint('✅ Step 3 validé (prix: $price, stock: $stock)');
     return true;
   }
 
@@ -1044,7 +1155,12 @@ class _AddProductState extends State<AddProduct> {
 
   // Sauvegarde du produit
   Future<void> _saveProduct() async {
-    if (!_validateAllSteps()) return;
+    debugPrint('🔘 Bouton "Publier le produit" pressé');
+    if (!_validateAllSteps()) {
+      debugPrint('❌ Validation échouée');
+      return;
+    }
+    debugPrint('✅ Validation réussie, création du produit...');
 
     setState(() {
       _isLoading = true;
@@ -1061,44 +1177,49 @@ class _AddProductState extends State<AddProduct> {
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
         price: double.parse(_priceController.text),
-        originalPrice: _originalPriceController.text.isNotEmpty 
+        originalPrice: _originalPriceController.text.isNotEmpty
             ? double.parse(_originalPriceController.text)
             : null,
         stock: int.parse(_stockController.text),
         category: _selectedCategory,
-        brand: _brandController.text.trim().isNotEmpty 
+        subCategory: _selectedSubcategory == 'Autre (à préciser)'
+            ? _otherSubcategory.trim()
+            : _selectedSubcategory,
+        brand: _brandController.text.trim().isNotEmpty
             ? _brandController.text.trim()
             : null,
         tags: _tags,
         images: _selectedImages,
         isActive: _isActive,
-        vendeurId: authProvider.user!.id, vendeurName: '',
+        vendeurId: authProvider.user!.id,
+        vendeurName: authProvider.user!.displayName,
       );
 
       // Appeler le service pour créer le produit
       final productService = ProductService();
       final productId = await productService.createProduct(productData);
-      
+
+      if (!mounted) return;
+
+      // Afficher un message de succès
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('✅ Produit ajouté avec succès ! ID: $productId'),
           backgroundColor: AppColors.success,
+          duration: const Duration(seconds: 3),
         ),
       );
 
-      // Afficher un message de succès
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Produit ajouté avec succès !'),
-          backgroundColor: AppColors.success,
-          duration: Duration(seconds: 3),
-        ),
-      );
-
-      // Retourner à la liste des produits
-      context.go('/vendeur/products');
+      // Retourner à la liste des produits (via navigation Provider)
+      if (mounted) {
+        final navProvider = context.read<VendeurNavigationProvider>();
+        navProvider.setIndex(1); // Index 1 = Articles
+        context.go('/vendeur/products');
+      }
 
     } catch (e) {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erreur lors de l\'ajout: $e'),
@@ -1107,9 +1228,11 @@ class _AddProductState extends State<AddProduct> {
         ),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

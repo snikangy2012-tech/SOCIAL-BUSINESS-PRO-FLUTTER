@@ -5,8 +5,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/foundation.dart';
 
-import '../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../models/user_model.dart';
+import 'subscription_service.dart';
 
 class FirebaseService {
   static final firebase_auth.FirebaseAuth _auth = firebase_auth.FirebaseAuth.instance;
@@ -139,6 +140,24 @@ class FirebaseService {
       }
 
       debugPrint('✅ Inscription terminée avec succès');
+
+      // ÉTAPE 7 : Créer l'abonnement par défaut (VENDEUR et LIVREUR uniquement)
+      try {
+        if (userType == UserType.vendeur) {
+          debugPrint('📊 Création abonnement BASIQUE par défaut pour vendeur...');
+          final subscriptionService = SubscriptionService();
+          await subscriptionService.createBasiqueSubscription(credential.user!.uid);
+          debugPrint('✅ Abonnement BASIQUE créé pour vendeur');
+        } else if (userType == UserType.livreur) {
+          debugPrint('📊 Création abonnement STARTER par défaut pour livreur...');
+          final subscriptionService = SubscriptionService();
+          await subscriptionService.createStarterLivreurSubscription(credential.user!.uid);
+          debugPrint('✅ Abonnement STARTER créé pour livreur');
+        }
+      } catch (subscriptionError) {
+        debugPrint('⚠️ Erreur création abonnement par défaut (non critique): $subscriptionError');
+        // Ne pas bloquer l'inscription si l'abonnement échoue
+      }
 
       // Retourner le modèle utilisateur
       return UserModel(

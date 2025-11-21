@@ -2,12 +2,20 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../../models/product_model.dart';
+import '../../models/review_model.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/favorite_provider.dart';
+import '../../providers/auth_provider_firebase.dart';
 import '../../services/product_service.dart';
+import '../../services/review_service.dart';
 import '../../widgets/custom_widgets.dart';
+import '../../widgets/rating_stars.dart';
+import '../../widgets/review_list.dart';
+import '../../widgets/review_dialog.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -23,16 +31,51 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   final ProductService _productService = ProductService();
+  final ReviewService _reviewService = ReviewService();
+
   ProductModel? _product;
   bool _isLoading = true;
   String? _errorMessage;
   int _quantity = 1;
   int _selectedImageIndex = 0;
 
+  // Avis
+  List<ReviewModel> _reviews = [];
+  bool _isLoadingReviews = true;
+  double _averageRating = 0.0;
+  int _totalReviews = 0;
+  Map<int, int> _ratingDistribution = {};
+
   @override
   void initState() {
     super.initState();
     _loadProduct();
+    _loadReviews();
+  }
+
+  Future<void> _loadReviews() async {
+    try {
+      setState(() => _isLoadingReviews = true);
+
+      final reviews = await _reviewService.getReviewsByProduct(widget.productId);
+      final avgRating = await _reviewService.getAverageRating(widget.productId, 'product');
+      final distribution = await _reviewService.getRatingDistribution(widget.productId, 'product');
+
+      if (mounted) {
+        setState(() {
+          _reviews = reviews;
+          _averageRating = avgRating;
+          _totalReviews = reviews.length;
+          _ratingDistribution = distribution;
+          _isLoadingReviews = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur chargement avis: $e');
+      if (mounted) {
+        setState(() => _isLoadingReviews = false);
+      }
+    }
   }
 
   Future<void> _loadProduct() async {
@@ -75,7 +118,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             action: SnackBarAction(
               label: 'Voir',
               textColor: Colors.white,
-              onPressed: () => context.push('/cart'),
+              onPressed: () => context.push('/acheteur/cart'),
             ),
           ),
         );
@@ -101,7 +144,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       await cartProvider.addProduct(_product!, quantity: _quantity);
 
       if (mounted) {
-        context.push('/checkout');
+        context.push('/acheteur/checkout');
       }
     } catch (e) {
       if (mounted) {
@@ -219,18 +262,78 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         IconButton(
           icon: const Icon(Icons.share, color: Colors.white),
           onPressed: () {
-            // TODO: Implémenter le partage
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Partage du produit')),
-            );
+            if (_product != null) {
+              final shareText = '''
+🛍️ ${_product!.name}
+
+💰 Prix: ${_product!.price.toStringAsFixed(0)} FCFA${_product!.originalPrice != null ? '\n🏷️ Prix d\'origine: ${_product!.originalPrice!.toStringAsFixed(0)} FCFA' : ''}
+
+📝 ${_product!.description}
+
+🏪 Vendeur: ${_product!.vendeurName}
+📦 Stock disponible: ${_product!.stock} unité(s)
+
+Découvrez ce produit sur Social Business Pro!
+''';
+              Share.share(
+                shareText,
+                subject: _product!.name,
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Produit non chargé, veuillez réessayer'),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+            }
           },
         ),
-        IconButton(
-          icon: const Icon(Icons.favorite_border, color: Colors.white),
-          onPressed: () {
-            // TODO: Implémenter les favoris
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Ajouté aux favoris')),
+        Consumer<FavoriteProvider>(
+          builder: (context, favoriteProvider, _) {
+            if (_product == null) {
+              return const SizedBox.shrink();
+            }
+
+            final isFavorite = favoriteProvider.isFavorite(_product!.id);
+
+            return IconButton(
+              icon: Icon(
+                isFavorite ? Icons.favorite : Icons.favorite_border,
+                color: Colors.white,
+              ),
+              onPressed: () async {
+                try {
+                  await favoriteProvider.toggleFavorite(
+                    _product!.id,
+                    _product!.name,
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          isFavorite
+                              ? 'Retiré des favoris'
+                              : 'Ajouté aux favoris',
+                        ),
+                        duration: const Duration(seconds: 1),
+                        backgroundColor: isFavorite
+                            ? AppColors.textSecondary
+                            : AppColors.success,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erreur: $e'),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
+                  }
+                }
+              },
             );
           },
         ),
@@ -370,11 +473,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
           const SizedBox(height: AppSpacing.sm),
 
-          // Catégorie
-          Chip(
-            label: Text(_product!.category),
-            backgroundColor: AppColors.primary.withValues(alpha:0.1),
-            labelStyle: const TextStyle(color: AppColors.primary),
+          // Catégorie et note
+          Row(
+            children: [
+              Chip(
+                label: Text(_product!.category),
+                backgroundColor: AppColors.primary.withValues(alpha:0.1),
+                labelStyle: const TextStyle(color: AppColors.primary),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              if (_totalReviews > 0)
+                RatingBadge(
+                  rating: _averageRating,
+                  reviewCount: _totalReviews,
+                  onTap: () {
+                    // Scroll vers la section avis
+                    // TODO: Implémenter le scroll automatique
+                  },
+                ),
+            ],
           ),
 
           const SizedBox(height: AppSpacing.md),
@@ -564,24 +681,142 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              TextButton(
-                onPressed: () {
-                  // TODO: Voir tous les avis
-                },
-                child: const Text('Voir tous'),
-              ),
+              if (_totalReviews > 0)
+                TextButton.icon(
+                  onPressed: () async {
+                    final authProvider = context.read<AuthProvider>();
+                    final hasOrdered = await _checkIfUserOrderedProduct(authProvider.user?.id);
+
+                    if (!mounted) return;
+
+                    if (hasOrdered) {
+                      final result = await ReviewDialog.show(
+                        context,
+                        targetId: widget.productId,
+                        targetType: 'product',
+                        targetName: _product?.name ?? 'Produit',
+                      );
+
+                      if (result == true) {
+                        _loadReviews();
+                      }
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Vous devez commander ce produit pour laisser un avis'),
+                          backgroundColor: AppColors.warning,
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.edit, size: 18),
+                  label: const Text('Laisser un avis'),
+                ),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          const Text(
-            'Aucun avis pour le moment',
-            style: TextStyle(
-              color: AppColors.textSecondary,
+
+          // Résumé des avis
+          if (_isLoadingReviews)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(AppSpacing.lg),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (_totalReviews > 0) ...[
+            ReviewSummary(
+              averageRating: _averageRating,
+              totalReviews: _totalReviews,
+              distribution: _ratingDistribution,
             ),
-          ),
+            const SizedBox(height: AppSpacing.lg),
+            const Divider(),
+            const SizedBox(height: AppSpacing.md),
+
+            // Liste des avis (3 premiers)
+            ReviewList(
+              reviews: _reviews.take(3).toList(),
+              showResponseField: false,
+            ),
+
+            if (_reviews.length > 3) ...[
+              const SizedBox(height: AppSpacing.md),
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    // TODO: Navigation vers écran complet des avis
+                  },
+                  child: Text('Voir les ${_reviews.length - 3} autres avis'),
+                ),
+              ),
+            ],
+          ] else
+            Center(
+              child: Column(
+                children: [
+                  const Text(
+                    'Aucun avis pour le moment',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      final authProvider = context.read<AuthProvider>();
+                      final hasOrdered = await _checkIfUserOrderedProduct(authProvider.user?.id);
+
+                      if (!mounted) return;
+
+                      if (hasOrdered) {
+                        final result = await ReviewDialog.show(
+                          context,
+                          targetId: widget.productId,
+                          targetType: 'product',
+                          targetName: _product?.name ?? 'Produit',
+                        );
+
+                        if (result == true) {
+                          _loadReviews();
+                        }
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Vous devez commander ce produit pour laisser un avis'),
+                            backgroundColor: AppColors.warning,
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.rate_review),
+                    label: const Text('Soyez le premier à donner votre avis'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  // Vérifie si l'utilisateur a commandé ce produit
+  Future<bool> _checkIfUserOrderedProduct(String? userId) async {
+    if (userId == null) return false;
+
+    try {
+      // Logique pour vérifier si l'utilisateur a déjà commandé ce produit
+      // Pour l'instant, on retourne true pour permettre les tests
+      // TODO: Implémenter la vérification réelle dans OrderService
+      return true;
+    } catch (e) {
+      debugPrint('❌ Erreur vérification commande: $e');
+      return false;
+    }
   }
 
   Widget _buildBottomBar() {

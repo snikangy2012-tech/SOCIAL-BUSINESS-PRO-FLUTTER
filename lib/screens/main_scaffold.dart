@@ -2,10 +2,12 @@
 // Scaffold principal avec Bottom Navigation Bar - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../providers/auth_provider_firebase.dart';
+import '../providers/cart_provider.dart';
 import 'acheteur/acheteur_home.dart';
 import 'acheteur/categories_screen.dart';
 import 'acheteur/favorite_screen.dart';
@@ -39,12 +41,54 @@ class _MainScaffoldState extends State<MainScaffold> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
-      bottomNavigationBar: BottomNavigationBar(
+    return PopScope(
+      canPop: true, // ✅ Permet la navigation retour (go_router gère les sous-pages)
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        if (didPop) return;
+
+        // Si on n'est pas sur l'accueil (index 0), revenir à l'accueil
+        if (_currentIndex != 0) {
+          setState(() => _currentIndex = 0);
+          return;
+        }
+
+        // Si on est sur l'accueil, demander confirmation avant de quitter
+        final shouldExit = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Quitter l\'application ?'),
+            content: const Text('Voulez-vous vraiment quitter SOCIAL BUSINESS Pro ?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Annuler'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Quitter'),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldExit == true && context.mounted) {
+          SystemNavigator.pop(); // Quitte l'application
+        }
+      },
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: const SystemUiOverlayStyle(
+          // ✅ Force les boutons système Android à rester OPAQUES (non transparents)
+          systemNavigationBarColor: Color(0xFF000000), // Fond noir opaque
+          systemNavigationBarIconBrightness: Brightness.light, // Icônes blanches
+          systemNavigationBarDividerColor: Color(0xFF000000), // Diviseur noir
+        ),
+        child: Scaffold(
+          extendBody: false, // ✅ Empêche le body de passer sous les boutons Android
+          body: IndexedStack(
+            index: _currentIndex,
+            children: _screens,
+          ),
+          bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
         type: BottomNavigationBarType.fixed,
@@ -74,35 +118,41 @@ class _MainScaffoldState extends State<MainScaffold> {
           
           // 3: Panier avec badge ✅
           BottomNavigationBarItem(
-            icon: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Icon(_currentIndex == 3 ? Icons.shopping_cart : Icons.shopping_cart_outlined),
-                Positioned(
-                  right: -6,
-                  top: -6,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 16,
-                      minHeight: 16,
-                    ),
-                    child: const Text(
-                      '0',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+            icon: Consumer<CartProvider>(
+              builder: (context, cart, child) {
+                final itemCount = cart.itemCount;
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(_currentIndex == 3 ? Icons.shopping_cart : Icons.shopping_cart_outlined),
+                    if (itemCount > 0)
+                      Positioned(
+                        right: -6,
+                        top: -6,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            itemCount > 99 ? '99+' : '$itemCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              ],
+                  ],
+                );
+              },
             ),
             label: 'Panier',
           ),
@@ -114,8 +164,8 @@ class _MainScaffoldState extends State<MainScaffold> {
                 return Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    Icon(_currentIndex == 4 
-                        ? Icons.business_center 
+                    Icon(_currentIndex == 4
+                        ? Icons.business_center
                         : Icons.business_center_outlined),
                     if (auth.isAuthenticated)
                       Positioned(
@@ -138,6 +188,8 @@ class _MainScaffoldState extends State<MainScaffold> {
             label: 'Business Pro',
           ),
         ],
+          ),
+        ),
       ),
     );
   }

@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../../models/order_model.dart';
 import '../../services/order_service.dart';
 import '../../providers/auth_provider_firebase.dart';
@@ -29,14 +29,13 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
   bool _isLoading = true;
   String? _errorMessage;
 
-  // Filtres par statut
+  // Filtres par statut (SIMPLIFIÉS)
   final List<String> _statusFilters = [
     'all',
-    'pending',
-    'confirmed',
-    'in_delivery',
-    'delivered',
-    'cancelled',
+    'en_attente',
+    'en_cours',
+    'livree',
+    'annulee',
   ];
 
   @override
@@ -96,68 +95,50 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
     return _allOrders.where((order) => order.status.toLowerCase() == status.toLowerCase()).toList();
   }
 
-  // Obtenir la couleur selon le statut
+  // Obtenir la couleur selon le statut (SIMPLIFIÉ)
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'pending':
+      case 'en_attente':
         return AppColors.warning;
-      case 'confirmed':
+      case 'en_cours':
         return AppColors.info;
-      case 'preparing':
-        return AppColors.info;
-      case 'ready':
-        return Colors.purple;
-      case 'in_delivery':
-        return Colors.orange;
-      case 'delivered':
+      case 'livree':
         return AppColors.success;
-      case 'cancelled':
+      case 'annulee':
         return AppColors.error;
       default:
         return AppColors.textLight;
     }
   }
 
-  // Obtenir le libellé du statut
+  // Obtenir le libellé du statut (SIMPLIFIÉ)
   String _getStatusLabel(String status) {
     switch (status.toLowerCase()) {
       case 'all':
         return 'Toutes';
-      case 'pending':
+      case 'en_attente':
         return 'En attente';
-      case 'confirmed':
-        return 'Confirmée';
-      case 'preparing':
-        return 'En préparation';
-      case 'ready':
-        return 'Prête';
-      case 'in_delivery':
-        return 'En livraison';
-      case 'delivered':
+      case 'en_cours':
+        return 'En cours';
+      case 'livree':
         return 'Livrée';
-      case 'cancelled':
+      case 'annulee':
         return 'Annulée';
       default:
         return status;
     }
   }
 
-  // Obtenir l'icône du statut
+  // Obtenir l'icône du statut (SIMPLIFIÉ)
   IconData _getStatusIcon(String status) {
     switch (status.toLowerCase()) {
-      case 'pending':
-        return Icons.hourglass_empty;
-      case 'confirmed':
-        return Icons.check_circle_outline;
-      case 'preparing':
-        return Icons.kitchen;
-      case 'ready':
-        return Icons.shopping_bag;
-      case 'in_delivery':
+      case 'en_attente':
+        return Icons.schedule;
+      case 'en_cours':
         return Icons.local_shipping;
-      case 'delivered':
+      case 'livree':
         return Icons.check_circle;
-      case 'cancelled':
+      case 'annulee':
         return Icons.cancel;
       default:
         return Icons.receipt;
@@ -180,19 +161,24 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
-          indicatorColor: AppColors.primary,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textLight,
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
           tabs: _statusFilters.map((status) {
             final count = _getFilteredOrders(status).length;
             return Tab(
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(_getStatusLabel(status)),
-                  if (status.toLowerCase() == 'all' && _allOrders.isNotEmpty)
+                  Flexible(
+                    child: Text(
+                      _getStatusLabel(status),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (status.toLowerCase() == 'all' && _allOrders.isNotEmpty) ...[
+                    const SizedBox(width: 4),
                     Container(
-                      margin: const EdgeInsets.only(left: 4),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6,
                         vertical: 2,
@@ -210,6 +196,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
                         ),
                       ),
                     ),
+                  ],
                 ],
               ),
             );
@@ -351,7 +338,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
             const SizedBox(height: AppSpacing.lg),
             CustomButton(
               text: 'Découvrir les produits',
-              onPressed: () => context.go('/acheteur'),
+              onPressed: () => context.go('/categories'),
               icon: Icons.shopping_bag,
             ),
           ],
@@ -388,7 +375,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Commande #${order.orderNumber}',
+                          'Commande ${order.displayNumber}',
                           style: const TextStyle(
                             fontSize: AppFontSizes.md,
                             fontWeight: FontWeight.bold,

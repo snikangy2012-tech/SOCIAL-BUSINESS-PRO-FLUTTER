@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/auth_provider_firebase.dart';
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 
 class AdminProfileScreen extends StatefulWidget {
   const AdminProfileScreen({super.key});
@@ -131,6 +131,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('🔐 Profil Administrateur'),
         centerTitle: true,
         backgroundColor: AppColors.error,
@@ -351,25 +352,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Dashboard
-                    _buildMenuTile(
-                      icon: Icons.dashboard,
-                      title: 'Tableau de bord',
-                      subtitle: 'Vue d\'ensemble de la plateforme',
-                      color: AppColors.error,
-                      onTap: () => context.go('/admin'),
-                    ),
-
-                    // Gestion des utilisateurs
-                    _buildMenuTile(
-                      icon: Icons.people,
-                      title: 'Gestion des utilisateurs',
-                      subtitle: 'Acheteurs, vendeurs, livreurs',
-                      color: AppColors.primary,
-                      onTap: () => context.push('/admin/users'),
-                    ),
-
-                    // Gestion des vendeurs
+                     // Gestion des vendeurs
                     _buildMenuTile(
                       icon: Icons.store,
                       title: 'Gestion des vendeurs',
@@ -378,13 +361,31 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                       onTap: () => context.push('/admin/vendors'),
                     ),
 
+                    // Gestion des livreurs
+                    _buildMenuTile(
+                      icon: Icons.local_shipping,
+                      title: 'Gestion des livreurs',
+                      subtitle: 'Approuver et gérer les livreurs',
+                      color: AppColors.success,
+                      onTap: () => context.push('/admin/livreurs'),
+                    ),
+
+                    // Gestion des abonnements
+                    _buildMenuTile(
+                      icon: Icons.subscriptions,
+                      title: 'Gestion des abonnements',
+                      subtitle: 'Voir et gérer les abonnements',
+                      color: AppColors.primary,
+                      onTap: () => context.push('/admin/subscription-management'),
+                    ),
+
                     // Statistiques globales
                     _buildMenuTile(
                       icon: Icons.bar_chart,
                       title: 'Statistiques globales',
                       subtitle: 'Analytics de la plateforme',
                       color: AppColors.info,
-                      onTap: () => context.push('/admin/statistics'),
+                      onTap: () => context.push('/admin/global-statistics'),
                     ),
 
                     const SizedBox(height: 24),
@@ -399,19 +400,22 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                     ),
                     const SizedBox(height: 16),
 
+                    // Paramètres utilisateur
+                    _buildMenuTile(
+                      icon: Icons.settings,
+                      title: 'Paramètres utilisateur',
+                      subtitle: 'Notifications, thème, langue',
+                      color: AppColors.primary,
+                      onTap: () => context.push('/user-settings'),
+                    ),
+
                     // Changer le mot de passe
                     _buildMenuTile(
                       icon: Icons.lock,
                       title: 'Mot de passe',
                       subtitle: 'Changer votre mot de passe admin',
                       color: AppColors.warning,
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Fonctionnalité à venir'),
-                          ),
-                        );
-                      },
+                      onTap: () => context.push('/change-password'),
                     ),
 
                     // Journal d'activité

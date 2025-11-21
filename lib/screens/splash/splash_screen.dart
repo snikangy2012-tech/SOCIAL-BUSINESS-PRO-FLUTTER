@@ -1,8 +1,9 @@
 // ===== lib/screens/splash/splash_screen.dart =====
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart'; 
+import 'package:go_router/go_router.dart';
 
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
+import '../../utils/system_ui_helper.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -15,13 +16,25 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    
+
+    // Activer le mode plein écran immersif pour le splash
+    SystemUIHelper.setSplashScreenUI();
+
     // Simuler un chargement de 2 secondes puis aller à la connexion
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
-        context.go('/login'); // Maintenant ça fonctionne !
+        // Restaurer les barres système avant de quitter le splash
+        SystemUIHelper.setDefaultSystemUI();
+        context.go('/login');
       }
     });
+  }
+
+  @override
+  void dispose() {
+    // S'assurer que les barres système sont restaurées
+    SystemUIHelper.setDefaultSystemUI();
+    super.dispose();
   }
 
   @override

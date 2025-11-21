@@ -1,6 +1,7 @@
 // ===== lib/screens/admin/admin_dashboard.dart =====
 // Dashboard administrateur avec gestion de tous les profils
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -8,8 +9,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
+import 'package:social_business_pro/utils/create_test_activities.dart';
 import '../../providers/auth_provider_firebase.dart' as auth;
+import '../../providers/notification_provider.dart';
 import '../../widgets/custom_widgets.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -20,6 +23,9 @@ class AdminDashboard extends StatefulWidget {
 }
 
 class _AdminDashboardState extends State<AdminDashboard> {
+  Timer? _refreshTimer;
+  final _refreshInterval = const Duration(seconds: 30); // Rafraîchir toutes les 30 secondes
+
   Future<void> _createFirestoreProfileIfNeeded() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || !kIsWeb) return; // Seulement sur Web
@@ -64,11 +70,31 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   void initState() {
     super.initState();
-    
+
     // ✅ Créer le profil Firestore après 3 secondes (non bloquant)
     if (kIsWeb) {
       Future.delayed(const Duration(seconds: 3), _createFirestoreProfileIfNeeded);
     }
+
+    // 🔄 Démarrer le rafraîchissement automatique
+    _startAutoRefresh();
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startAutoRefresh() {
+    _refreshTimer = Timer.periodic(_refreshInterval, (timer) {
+      if (mounted) {
+        setState(() {
+          // Force le rebuild pour rafraîchir les StreamBuilders
+          debugPrint('🔄 Auto-refresh admin dashboard');
+        });
+      }
+    });
   }
 
 
@@ -76,7 +102,56 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundSecondary,
-      appBar: _buildAppBar(),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: const Text('Administration'),
+        backgroundColor: AppColors.warning,
+        foregroundColor: Colors.white,
+        elevation: 2,
+        actions: [
+          // Bouton notifications avec badge
+          Consumer<NotificationProvider>(
+            builder: (context, notificationProvider, child) {
+              final unreadCount = notificationProvider.unreadCount;
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined),
+                    onPressed: () => context.push('/notifications'),
+                    tooltip: 'Notifications',
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: AppColors.error,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+                        child: Text(
+                          unreadCount > 99 ? '99+' : unreadCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
@@ -84,24 +159,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
           children: [
             // En-tête de bienvenue
             _buildWelcomeHeader(),
-            
+
             const SizedBox(height: AppSpacing.xl),
-            
+
             // Statistiques rapides
             _buildQuickStats(),
-            
+
             const SizedBox(height: AppSpacing.xl),
-            
-            // Gestion des utilisateurs
-            _buildUserManagementSection(),
-            
+
+            // Activités récentes
+            _buildRecentActivities(),
+
             const SizedBox(height: AppSpacing.xl),
-            
-            // Gestion de la plateforme
-            _buildPlatformManagementSection(),
-            
-            const SizedBox(height: AppSpacing.xl),
-            
+
             // Actions rapides admin
             _buildQuickActionsSection(),
           ],
@@ -110,108 +180,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  // AppBar personnalisée pour admin
-  AppBar _buildAppBar() {
-    return AppBar(
-      title: const Text('Administration SOCIAL BUSINESS'),
-      backgroundColor: AppColors.warning,
-      foregroundColor: Colors.white,
-      elevation: 2,
-      actions: [
-        // ✅ Bouton Accueil
-        IconButton(
-          icon: const Icon(Icons.home_outlined),
-          tooltip: 'Accueil',
-          onPressed: () {
-            // Retour à l'accueil acheteur
-            context.go('/acheteur-home');
-          },
-        ),
-        // Bouton notifications
-        IconButton(
-          icon: Stack(
-            children: [
-              const Icon(Icons.notifications),
-              Positioned(
-                right: 0,
-                top: 0,
-                child: Container(
-                  width: 12,
-                  height: 12,
-                  decoration: const BoxDecoration(
-                    color: AppColors.error,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: Text(
-                      '3',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          onPressed: () => context.go('/notifications'),
-        ),
-        
-        // Menu admin
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.admin_panel_settings),
-          onSelected: (value) {
-            switch (value) {
-              case 'profile':
-                context.go('/admin/profile');
-                break;
-              case 'settings':
-                context.go('/settings');
-                break;
-              case 'logout':
-                _handleLogout();
-                break;
-            }
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'profile',
-              child: Row(
-                children: [
-                  Icon(Icons.person, color: AppColors.textSecondary),
-                  SizedBox(width: 8),
-                  Text('Mon Profil'),
-                ],
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'settings',
-              child: Row(
-                children: [
-                  Icon(Icons.settings, color: AppColors.textSecondary),
-                  SizedBox(width: 8),
-                  Text('Paramètres'),
-                ],
-              ),
-            ),
-            const PopupMenuDivider(),
-            const PopupMenuItem(
-              value: 'logout',
-              child: Row(
-                children: [
-                  Icon(Icons.logout, color: AppColors.error),
-                  SizedBox(width: 8),
-                  Text('Déconnexion', style: TextStyle(color: AppColors.error)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 
   // En-tête de bienvenue
   Widget _buildWelcomeHeader() {
@@ -286,7 +254,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  // Statistiques rapides
+  // Statistiques rapides avec données réelles
   Widget _buildQuickStats() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,56 +268,184 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          mainAxisSpacing: AppSpacing.md,
-          crossAxisSpacing: AppSpacing.md,
-          childAspectRatio: 1.5,
-          children: const [
-            _StatCard(
-              title: 'Vendeurs',
-              value: '1,247',
-              icon: Icons.store,
-              color: AppColors.primary,
-              trend: '+12%',
-            ),
-            _StatCard(
-              title: 'Acheteurs',
-              value: '8,956',
-              icon: Icons.shopping_bag,
-              color: AppColors.secondary,
-              trend: '+8%',
-            ),
-            _StatCard(
-              title: 'Livreurs',
-              value: '342',
-              icon: Icons.delivery_dining,
-              color: AppColors.success,
-              trend: '+15%',
-            ),
-            _StatCard(
-              title: 'Commandes',
-              value: '15,623',
-              icon: Icons.receipt_long,
-              color: AppColors.info,
-              trend: '+23%',
-            ),
-          ],
+
+        StreamBuilder<Map<String, int>>(
+          stream: _getStatisticsStream(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(AppSpacing.xl),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+
+            final stats = snapshot.data ?? {
+              'vendeurs': 0,
+              'acheteurs': 0,
+              'livreurs': 0,
+              'commandes': 0,
+              'kycPending': 0,
+            };
+
+            final kycPending = stats['kycPending'] as int? ?? 0;
+
+            return GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              mainAxisSpacing: AppSpacing.md,
+              crossAxisSpacing: AppSpacing.md,
+              childAspectRatio: 1.5,
+              children: [
+                _StatCard(
+                  title: 'Vendeurs',
+                  value: stats['vendeurs'].toString(),
+                  icon: Icons.store,
+                  color: AppColors.primary,
+                  trend: '+12%',
+                ),
+                _StatCard(
+                  title: 'Acheteurs',
+                  value: stats['acheteurs'].toString(),
+                  icon: Icons.shopping_bag,
+                  color: AppColors.secondary,
+                  trend: '+8%',
+                ),
+                _StatCard(
+                  title: 'Livreurs',
+                  value: stats['livreurs'].toString(),
+                  icon: Icons.delivery_dining,
+                  color: AppColors.success,
+                  trend: '+15%',
+                ),
+                _StatCard(
+                  title: 'Commandes',
+                  value: stats['commandes'].toString(),
+                  icon: Icons.receipt_long,
+                  color: AppColors.info,
+                  trend: '+23%',
+                ),
+                // Carte KYC avec alerte si en attente
+                GestureDetector(
+                  onTap: kycPending > 0 ? () => context.go('/admin/kyc-verification') : null,
+                  child: _StatCard(
+                    title: 'KYC à vérifier',
+                    value: kycPending.toString(),
+                    icon: Icons.verified_user,
+                    color: kycPending > 0 ? AppColors.warning : AppColors.success,
+                    trend: kycPending > 0 ? 'Action requise' : 'À jour',
+                    isAlert: kycPending > 0,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ],
     );
   }
 
-  // Section gestion des utilisateurs
-  Widget _buildUserManagementSection() {
+  // Stream pour récupérer les statistiques en temps réel
+  Stream<Map<String, int>> _getStatisticsStream() async* {
+    // Émettre les stats initiales immédiatement
+    yield await _fetchStatistics();
+
+    // Puis continuer avec un rafraîchissement périodique
+    await for (final _ in Stream.periodic(const Duration(seconds: 30))) {
+      yield await _fetchStatistics();
+    }
+  }
+
+  Future<Map<String, int>> _fetchStatistics() async {
+    try {
+      // Compter les vendeurs
+      final vendeursSnapshot = await FirebaseFirestore.instance
+          .collection(FirebaseCollections.users)
+          .where('userType', isEqualTo: 'vendeur')
+          .count()
+          .get();
+
+      // Compter les acheteurs
+      final acheteursSnapshot = await FirebaseFirestore.instance
+          .collection(FirebaseCollections.users)
+          .where('userType', isEqualTo: 'acheteur')
+          .count()
+          .get();
+
+      // Compter les livreurs
+      final livreursSnapshot = await FirebaseFirestore.instance
+          .collection(FirebaseCollections.users)
+          .where('userType', isEqualTo: 'livreur')
+          .count()
+          .get();
+
+      // Compter les commandes
+      final commandesSnapshot = await FirebaseFirestore.instance
+          .collection(FirebaseCollections.orders)
+          .count()
+          .get();
+
+      // Compter les KYC en attente (vendeurs et livreurs)
+      int kycPending = 0;
+      try {
+        // KYC vendeurs en attente
+        final vendeurKycSnapshot = await FirebaseFirestore.instance
+            .collection(FirebaseCollections.users)
+            .where('userType', isEqualTo: 'vendeur')
+            .get();
+
+        for (var doc in vendeurKycSnapshot.docs) {
+          final kycStatus = doc.data()['kycVerificationStatus'] as String?;
+          if (kycStatus == 'pending') {
+            kycPending++;
+          }
+        }
+
+        // KYC livreurs en attente
+        final livreurKycSnapshot = await FirebaseFirestore.instance
+            .collection(FirebaseCollections.users)
+            .where('userType', isEqualTo: 'livreur')
+            .get();
+
+        for (var doc in livreurKycSnapshot.docs) {
+          final kycStatus = doc.data()['kycVerificationStatus'] as String?;
+          if (kycStatus == 'pending') {
+            kycPending++;
+          }
+        }
+      } catch (e) {
+        debugPrint('⚠️ Erreur comptage KYC: $e');
+      }
+
+      return {
+        'vendeurs': vendeursSnapshot.count ?? 0,
+        'acheteurs': acheteursSnapshot.count ?? 0,
+        'livreurs': livreursSnapshot.count ?? 0,
+        'commandes': commandesSnapshot.count ?? 0,
+        'kycPending': kycPending,
+      };
+    } catch (e) {
+      debugPrint('❌ Erreur récupération stats: $e');
+      return {
+        'vendeurs': 0,
+        'acheteurs': 0,
+        'livreurs': 0,
+        'commandes': 0,
+        'kycPending': 0,
+      };
+    }
+  }
+
+
+  // Activités récentes avec alertes importantes
+  Widget _buildRecentActivities() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Gestion des utilisateurs',
+          'Activités récentes',
           style: TextStyle(
             fontSize: AppFontSizes.lg,
             fontWeight: FontWeight.bold,
@@ -357,84 +453,376 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        
-        Row(
-          children: [
-            Expanded(
-              child: _ManagementCard(
-                title: 'Vendeurs',
-                subtitle: 'Gérer les comptes vendeurs',
-                icon: Icons.store,
-                color: AppColors.primary,
-                onTap: () => _switchToUserView(UserType.vendeur),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: _ManagementCard(
-                title: 'Acheteurs',
-                subtitle: 'Gérer les comptes acheteurs',
-                icon: Icons.shopping_bag,
-                color: AppColors.secondary,
-                onTap: () => _switchToUserView(UserType.acheteur),
-              ),
-            ),
-          ],
-        ),
-        
-        const SizedBox(height: AppSpacing.md),
-        
-        _ManagementCard(
-          title: 'Livreurs',
-          subtitle: 'Gérer les comptes livreurs et livraisons',
-          icon: Icons.delivery_dining,
-          color: AppColors.success,
-          onTap: () => _switchToUserView(UserType.livreur),
+
+        StreamBuilder<Map<String, dynamic>>(
+          stream: _getRecentActivitiesStream(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(AppSpacing.lg),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+
+            final activities = snapshot.data ?? {};
+            final pendingVendors = activities['pendingVendors'] ?? 0;
+            final pendingLivreurs = activities['pendingLivreurs'] ?? 0;
+            final suspendedUsers = activities['suspendedUsers'] ?? 0;
+            final recentOrders = activities['recentOrders'] ?? 0;
+            final activeSubscriptions = activities['activeSubscriptions'] ?? 0;
+            final expiredSubscriptions = activities['expiredSubscriptions'] ?? 0;
+            final kycVendeursPending = activities['kycVendeursPending'] ?? 0;
+            final kycLivreursPending = activities['kycLivreursPending'] ?? 0;
+            final totalKycPending = kycVendeursPending + kycLivreursPending;
+
+            return Column(
+              children: [
+                // Alertes KYC (priorité haute)
+                if (totalKycPending > 0)
+                  _buildAlertCard(
+                    title: 'Vérifications KYC en attente',
+                    items: [
+                      if (kycVendeursPending > 0)
+                        _AlertItem(
+                          icon: Icons.store_outlined,
+                          label: '$kycVendeursPending KYC vendeur(s) à vérifier',
+                          color: AppColors.warning,
+                          onTap: () => context.go('/admin/kyc-verification'),
+                        ),
+                      if (kycLivreursPending > 0)
+                        _AlertItem(
+                          icon: Icons.delivery_dining_outlined,
+                          label: '$kycLivreursPending KYC livreur(s) à vérifier',
+                          color: AppColors.warning,
+                          onTap: () => context.go('/admin/kyc-verification'),
+                        ),
+                    ],
+                  ),
+
+                if (totalKycPending > 0) const SizedBox(height: AppSpacing.sm),
+
+                // Alertes urgentes (en attente d'approbation)
+                if (pendingVendors > 0 || pendingLivreurs > 0)
+                  _buildAlertCard(
+                    title: 'Approbations en attente',
+                    items: [
+                      if (pendingVendors > 0)
+                        _AlertItem(
+                          icon: Icons.store,
+                          label: '$pendingVendors vendeur(s) en attente',
+                          color: AppColors.warning,
+                          onTap: () => context.go('/admin/vendors'),
+                        ),
+                      if (pendingLivreurs > 0)
+                        _AlertItem(
+                          icon: Icons.delivery_dining,
+                          label: '$pendingLivreurs livreur(s) en attente',
+                          color: AppColors.warning,
+                          onTap: () => context.go('/admin/livreurs'),
+                        ),
+                    ],
+                  ),
+
+                const SizedBox(height: AppSpacing.sm),
+
+                // Utilisateurs suspendus
+                if (suspendedUsers > 0)
+                  _buildAlertCard(
+                    title: 'Utilisateurs suspendus',
+                    items: [
+                      _AlertItem(
+                        icon: Icons.block,
+                        label: '$suspendedUsers utilisateur(s) suspendu(s)',
+                        color: AppColors.error,
+                        onTap: () {
+                          // Navigation vers gestion utilisateurs
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Voir les utilisateurs suspendus'),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+
+                const SizedBox(height: AppSpacing.sm),
+
+                // Abonnements expirés
+                if (expiredSubscriptions > 0)
+                  _buildAlertCard(
+                    title: 'Abonnements expirés',
+                    items: [
+                      _AlertItem(
+                        icon: Icons.card_membership,
+                        label: '$expiredSubscriptions abonnement(s) expiré(s)',
+                        color: AppColors.error,
+                        onTap: () => context.go('/admin/subscription-management'),
+                      ),
+                    ],
+                  ),
+
+                const SizedBox(height: AppSpacing.sm),
+
+                // Informations générales
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.info_outline, color: AppColors.info, size: 20),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Informations générales',
+                              style: TextStyle(
+                                fontSize: AppFontSizes.md,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        _buildInfoRow(
+                          Icons.receipt_long,
+                          'Commandes récentes (7j)',
+                          recentOrders.toString(),
+                          AppColors.info,
+                        ),
+                        const Divider(height: 16),
+                        _buildInfoRow(
+                          Icons.verified,
+                          'Abonnements actifs',
+                          activeSubscriptions.toString(),
+                          AppColors.success,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ],
     );
   }
 
-  // Section gestion de la plateforme
-  Widget _buildPlatformManagementSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  // Card d'alerte avec liste d'items
+  Widget _buildAlertCard({
+    required String title,
+    required List<_AlertItem> items,
+  }) {
+    return Card(
+      color: AppColors.warning.withValues(alpha: 0.05),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.warning_amber, color: AppColors.warning, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: AppFontSizes.md,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.warning,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            ...items.map((item) => InkWell(
+              onTap: item.onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    Icon(item.icon, color: item.color, size: 18),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        item.label,
+                        style: const TextStyle(fontSize: AppFontSizes.sm),
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right, size: 18, color: AppColors.textSecondary),
+                  ],
+                ),
+              ),
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Ligne d'information
+  Widget _buildInfoRow(IconData icon, String label, String value, Color color) {
+    return Row(
       children: [
-        const Text(
-          'Gestion de la plateforme',
-          style: TextStyle(
-            fontSize: AppFontSizes.lg,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+        Icon(icon, color: color, size: 18),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: AppFontSizes.sm),
           ),
         ),
-        const SizedBox(height: AppSpacing.md),
-        
-        Row(
-          children: [
-            Expanded(
-              child: _ManagementCard(
-                title: 'Produits',
-                subtitle: 'Modération et gestion',
-                icon: Icons.inventory_2,
-                color: AppColors.info,
-                onTap: () => context.go('/admin/products'),
-              ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: AppFontSizes.sm,
+              fontWeight: FontWeight.bold,
+              color: color,
             ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: _ManagementCard(
-                title: 'Commandes',
-                subtitle: 'Suivi et résolution',
-                icon: Icons.receipt_long,
-                color: AppColors.warning,
-                onTap: () => context.go('/admin/orders'),
-              ),
-            ),
-          ],
+          ),
         ),
       ],
     );
+  }
+
+  // Stream pour récupérer les activités récentes
+  Stream<Map<String, dynamic>> _getRecentActivitiesStream() async* {
+    // Émettre les activités initiales immédiatement
+    yield await _fetchRecentActivities();
+
+    // Puis continuer avec un rafraîchissement périodique
+    await for (final _ in Stream.periodic(const Duration(seconds: 30))) {
+      yield await _fetchRecentActivities();
+    }
+  }
+
+  Future<Map<String, dynamic>> _fetchRecentActivities() async {
+    try {
+      // Vendeurs en attente
+      final pendingVendorsSnapshot = await FirebaseFirestore.instance
+          .collection(FirebaseCollections.users)
+          .where('userType', isEqualTo: 'vendeur')
+          .get();
+
+      final pendingVendors = pendingVendorsSnapshot.docs.where((doc) {
+        final status = doc.data()['profile']?['status'] as String?;
+        return status?.toLowerCase() == 'pending';
+      }).length;
+
+      // Livreurs en attente
+      final pendingLivreursSnapshot = await FirebaseFirestore.instance
+          .collection(FirebaseCollections.users)
+          .where('userType', isEqualTo: 'livreur')
+          .get();
+
+      final pendingLivreurs = pendingLivreursSnapshot.docs.where((doc) {
+        final status = doc.data()['profile']?['status'] as String?;
+        return status?.toLowerCase() == 'pending';
+      }).length;
+
+      // Utilisateurs suspendus (tous types)
+      final allUsersSnapshot = await FirebaseFirestore.instance
+          .collection(FirebaseCollections.users)
+          .get();
+
+      final suspendedUsers = allUsersSnapshot.docs.where((doc) {
+        final status = doc.data()['profile']?['status'] as String?;
+        return status?.toLowerCase() == 'suspended';
+      }).length;
+
+      // Commandes récentes (derniers 7 jours)
+      final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
+      final recentOrdersSnapshot = await FirebaseFirestore.instance
+          .collection(FirebaseCollections.orders)
+          .where('createdAt', isGreaterThan: Timestamp.fromDate(sevenDaysAgo))
+          .count()
+          .get();
+
+      // Abonnements actifs vendeurs
+      final activeVendeurSubsSnapshot = await FirebaseFirestore.instance
+          .collection(FirebaseCollections.vendeurSubscriptions)
+          .where('status', isEqualTo: 'active')
+          .count()
+          .get();
+
+      // Abonnements actifs livreurs
+      final activeLivreurSubsSnapshot = await FirebaseFirestore.instance
+          .collection(FirebaseCollections.livreurSubscriptions)
+          .where('status', isEqualTo: 'active')
+          .count()
+          .get();
+
+      // Abonnements expirés vendeurs
+      final expiredVendeurSubsSnapshot = await FirebaseFirestore.instance
+          .collection(FirebaseCollections.vendeurSubscriptions)
+          .where('status', isEqualTo: 'expired')
+          .count()
+          .get();
+
+      // Abonnements expirés livreurs
+      final expiredLivreurSubsSnapshot = await FirebaseFirestore.instance
+          .collection(FirebaseCollections.livreurSubscriptions)
+          .where('status', isEqualTo: 'expired')
+          .count()
+          .get();
+
+      // Compter les KYC en attente par type
+      int kycVendeursPending = 0;
+      int kycLivreursPending = 0;
+
+      try {
+        // KYC vendeurs en attente
+        for (var doc in pendingVendorsSnapshot.docs) {
+          final kycStatus = doc.data()['kycVerificationStatus'] as String?;
+          if (kycStatus == 'pending') {
+            kycVendeursPending++;
+          }
+        }
+
+        // KYC livreurs en attente
+        for (var doc in pendingLivreursSnapshot.docs) {
+          final kycStatus = doc.data()['kycVerificationStatus'] as String?;
+          if (kycStatus == 'pending') {
+            kycLivreursPending++;
+          }
+        }
+      } catch (e) {
+        debugPrint('⚠️ Erreur comptage KYC activités: $e');
+      }
+
+      return {
+        'pendingVendors': pendingVendors,
+        'pendingLivreurs': pendingLivreurs,
+        'suspendedUsers': suspendedUsers,
+        'recentOrders': recentOrdersSnapshot.count ?? 0,
+        'activeSubscriptions': (activeVendeurSubsSnapshot.count ?? 0) + (activeLivreurSubsSnapshot.count ?? 0),
+        'expiredSubscriptions': (expiredVendeurSubsSnapshot.count ?? 0) + (expiredLivreurSubsSnapshot.count ?? 0),
+        'kycVendeursPending': kycVendeursPending,
+        'kycLivreursPending': kycLivreursPending,
+      };
+    } catch (e) {
+      debugPrint('❌ Erreur récupération activités: $e');
+      return {
+        'pendingVendors': 0,
+        'pendingLivreurs': 0,
+        'suspendedUsers': 0,
+        'recentOrders': 0,
+        'activeSubscriptions': 0,
+        'expiredSubscriptions': 0,
+        'kycVendeursPending': 0,
+        'kycLivreursPending': 0,
+      };
+    }
   }
 
   // Actions rapides admin
@@ -451,96 +839,94 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        
+
         CustomButton(
-          text: 'Gestion complète des utilisateurs',
-          icon: Icons.people,
+          text: 'Voir toutes les activités',
+          icon: Icons.timeline,
           backgroundColor: AppColors.info,
-          onPressed: () => context.go('/admin/users'),
-        ),
-        
-        const SizedBox(height: AppSpacing.sm),
-        
-        CustomButton(
-          text: 'Rapports et analytiques',
-          icon: Icons.analytics,
-          backgroundColor: AppColors.secondary,
-          isOutlined: true,
-          onPressed: () => context.go('/admin/global-stats'),
+          onPressed: () => context.go('/admin/activities'),
         ),
 
         const SizedBox(height: AppSpacing.sm),
+
+        CustomButton(
+          text: 'Gérer les paramètres',
+          icon: Icons.settings,
+          backgroundColor: AppColors.secondary,
+          isOutlined: true,
+          onPressed: () => context.go('/admin/settings'),
+        ),
+
+        const SizedBox(height: AppSpacing.sm),
+
+        // Bouton pour générer des données de test
+        CustomButton(
+          text: 'Générer données de test',
+          icon: Icons.science,
+          backgroundColor: AppColors.warning,
+          isOutlined: true,
+          onPressed: () async {
+            try {
+              // Afficher un loader
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+
+              // Générer les activités de test
+              await ActivityLogSeeder.seedTestActivities();
+
+              // Fermer le loader
+              if (context.mounted) {
+                Navigator.of(context).pop();
+
+                // Afficher un message de succès
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('✅ 12 activités de test créées avec succès'),
+                    backgroundColor: AppColors.success,
+                    duration: Duration(seconds: 3),
+                  ),
+                );
+              }
+            } catch (e) {
+              // Fermer le loader
+              if (context.mounted) {
+                Navigator.of(context).pop();
+
+                // Afficher l'erreur
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('❌ Erreur: $e'),
+                    backgroundColor: AppColors.error,
+                    duration: const Duration(seconds: 5),
+                  ),
+                );
+              }
+            }
+          },
+        ),
       ],
     );
   }
+}
 
-  // Méthode pour changer de vue utilisateur
-  void _switchToUserView(UserType targetType) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Changer de vue vers ${targetType.value}'),
-        content: Text(
-          'Voulez-vous basculer temporairement en mode ${targetType.value} '
-          'pour voir l\'interface utilisateur ?'
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Redirection vers la vue correspondante
-              switch (targetType) {
-                case UserType.vendeur:
-                  context.go('/vendeur');
-                  break;
-                case UserType.acheteur:
-                  context.go('/acheteur');
-                  break;
-                case UserType.livreur:
-                  context.go('/livreur');
-                  break;
-                case UserType.admin:
-                  break;
-              }
-            },
-            child: const Text('Basculer'),
-          ),
-        ],
-      ),
-    );
-  }
+// Helper class pour les items d'alerte
+class _AlertItem {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
 
-  // Méthode de déconnexion
-  void _handleLogout() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Déconnexion'),
-        content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await context.read<auth.AuthProvider>().logout();
-              if (mounted) {
-                context.go('/login');
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Se déconnecter'),
-          ),
-        ],
-      ),
-    );
-  }
+  const _AlertItem({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
 }
 
 // Widget carte de statistiques
@@ -550,6 +936,7 @@ class _StatCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final String trend;
+  final bool isAlert;
 
   const _StatCard({
     required this.title,
@@ -557,6 +944,7 @@ class _StatCard extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.trend,
+    this.isAlert = false,
   });
 
   @override
@@ -576,6 +964,7 @@ class _StatCard extends StatelessWidget {
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -588,14 +977,16 @@ class _StatCard extends StatelessWidget {
                   vertical: 2,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha:0.2),
+                  color: isAlert
+                      ? AppColors.warning.withValues(alpha:0.2)
+                      : AppColors.success.withValues(alpha:0.2),
                   borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
                 child: Text(
                   trend,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: AppFontSizes.xs,
-                    color: AppColors.success,
+                    color: isAlert ? AppColors.warning : AppColors.success,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -603,19 +994,25 @@ class _StatCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.sm),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: AppFontSizes.xl,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+          Flexible(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: AppFontSizes.xl,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: AppFontSizes.sm,
-              color: AppColors.textSecondary,
+          Flexible(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: AppFontSizes.sm,
+                color: AppColors.textSecondary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -624,72 +1021,3 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-// Widget carte de gestion
-class _ManagementCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _ManagementCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: AppColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha:0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha:0.2),
-                borderRadius: BorderRadius.circular(AppRadius.md),
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: AppFontSizes.md,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                fontSize: AppFontSizes.sm,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

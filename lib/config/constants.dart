@@ -144,11 +144,15 @@ class FirebaseCollections {
   static const String products = 'products';
   static const String orders = 'orders';
   static const String payments = 'payments';
+  static const String paymentMethods = 'payment_methods';
   static const String deliveries = 'deliveries';
   static const String notifications = 'notifications';
   static const String categories = 'categories';
   static const String reviews = 'reviews';
   static const String analytics = 'analytics';
+  static const String vendeurSubscriptions = 'vendeur_subscriptions';
+  static const String livreurSubscriptions = 'livreur_subscriptions';
+  static const String refunds = 'refunds';
 }
 
 enum VerificationStatus {
@@ -160,17 +164,194 @@ enum VerificationStatus {
   String get value => toString().split('.').last;
 }
 
+// ===== STATUTS DE COMMANDE (SIMPLIFIÉ) =====
 enum OrderStatus {
-  pending('pending'),
-  confirmed('confirmed'),
-  preparing('preparing'),
-  ready('ready'),
-  inDelivery('in_delivery'),
-  delivered('delivered'),
-  cancelled('cancelled');
+  enAttente('en_attente'),    // Nouvelle commande, en attente de confirmation
+  enCours('en_cours'),        // Confirmée, préparée et/ou en livraison
+  livree('livree'),           // Livrée avec succès
+  annulee('annulee');         // Annulée
 
   final String value;
   const OrderStatus(this.value);
+
+  String get label {
+    switch (this) {
+      case OrderStatus.enAttente:
+        return 'En attente';
+      case OrderStatus.enCours:
+        return 'En cours';
+      case OrderStatus.livree:
+        return 'Livrée';
+      case OrderStatus.annulee:
+        return 'Annulée';
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case OrderStatus.enAttente:
+        return AppColors.warning;
+      case OrderStatus.enCours:
+        return AppColors.info;
+      case OrderStatus.livree:
+        return AppColors.success;
+      case OrderStatus.annulee:
+        return AppColors.error;
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case OrderStatus.enAttente:
+        return Icons.schedule;
+      case OrderStatus.enCours:
+        return Icons.local_shipping;
+      case OrderStatus.livree:
+        return Icons.check_circle;
+      case OrderStatus.annulee:
+        return Icons.cancel;
+    }
+  }
+}
+
+// ===== STATUTS DE LIVRAISON (SIMPLIFIÉ) =====
+enum DeliveryStatus {
+  assignee('assignee'),       // Assignée au livreur, pas encore prise en charge
+  enRoute('en_route'),        // En cours de livraison
+  terminee('terminee');       // Livrée
+
+  final String value;
+  const DeliveryStatus(this.value);
+
+  String get label {
+    switch (this) {
+      case DeliveryStatus.assignee:
+        return 'Assignée';
+      case DeliveryStatus.enRoute:
+        return 'En route';
+      case DeliveryStatus.terminee:
+        return 'Terminée';
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case DeliveryStatus.assignee:
+        return AppColors.warning;
+      case DeliveryStatus.enRoute:
+        return AppColors.info;
+      case DeliveryStatus.terminee:
+        return AppColors.success;
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case DeliveryStatus.assignee:
+        return Icons.assignment;
+      case DeliveryStatus.enRoute:
+        return Icons.directions_bike;
+      case DeliveryStatus.terminee:
+        return Icons.check_circle_outline;
+    }
+  }
+}
+
+// ===== STATUTS DE REMBOURSEMENT =====
+enum RefundStatus {
+  demandeEnvoyee('demande_envoyee'),       // Demande de retour envoyée par l'acheteur
+  approuvee('approuvee'),                  // Demande approuvée par le vendeur
+  refusee('refusee'),                      // Demande refusée par le vendeur
+  produitRetourne('produit_retourne'),     // Produit retourné au vendeur
+  rembourse('rembourse');                  // Remboursement effectué par le vendeur
+
+  final String value;
+  const RefundStatus(this.value);
+
+  String get label {
+    switch (this) {
+      case RefundStatus.demandeEnvoyee:
+        return 'Demande envoyée';
+      case RefundStatus.approuvee:
+        return 'Approuvée';
+      case RefundStatus.refusee:
+        return 'Refusée';
+      case RefundStatus.produitRetourne:
+        return 'Produit retourné';
+      case RefundStatus.rembourse:
+        return 'Remboursé';
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case RefundStatus.demandeEnvoyee:
+        return AppColors.warning;
+      case RefundStatus.approuvee:
+        return AppColors.info;
+      case RefundStatus.refusee:
+        return AppColors.error;
+      case RefundStatus.produitRetourne:
+        return AppColors.info;
+      case RefundStatus.rembourse:
+        return AppColors.success;
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case RefundStatus.demandeEnvoyee:
+        return Icons.send;
+      case RefundStatus.approuvee:
+        return Icons.check_circle_outline;
+      case RefundStatus.refusee:
+        return Icons.cancel;
+      case RefundStatus.produitRetourne:
+        return Icons.keyboard_return;
+      case RefundStatus.rembourse:
+        return Icons.check_circle;
+    }
+  }
+}
+
+// ===== RAISONS DE RETOUR =====
+class RefundReasons {
+  static const String produitDefectueux = 'produit_defectueux';
+  static const String produitDifferent = 'produit_different';
+  static const String mauvaiseProduit = 'mauvaise_taille_couleur';
+  static const String nonConforme = 'non_conforme_description';
+  static const String arrivedDamaged = 'arrive_endommage';
+  static const String autre = 'autre';
+
+  static String getLabel(String reason) {
+    switch (reason) {
+      case produitDefectueux:
+        return 'Produit défectueux';
+      case produitDifferent:
+        return 'Produit différent de la commande';
+      case mauvaiseProduit:
+        return 'Mauvaise taille ou couleur';
+      case nonConforme:
+        return 'Non conforme à la description';
+      case arrivedDamaged:
+        return 'Arrivé endommagé';
+      case autre:
+        return 'Autre raison';
+      default:
+        return reason;
+    }
+  }
+
+  static List<String> getAllReasons() {
+    return [
+      produitDefectueux,
+      produitDifferent,
+      mauvaiseProduit,
+      nonConforme,
+      arrivedDamaged,
+      autre,
+    ];
+  }
 }
 
 // ===== DURÉES D'ANIMATION =====

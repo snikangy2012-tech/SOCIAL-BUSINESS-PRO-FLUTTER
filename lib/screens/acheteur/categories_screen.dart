@@ -4,13 +4,17 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../../config/product_categories.dart';
+import '../../config/product_subcategories.dart';
+import '../../models/product_model.dart';
 import '../../services/product_service.dart';
 import '../../services/analytics_service.dart';
 
 class CategoriesScreen extends StatefulWidget {
-  const CategoriesScreen({super.key});
+  final String? initialCategory;
+
+  const CategoriesScreen({super.key, this.initialCategory});
 
   @override
   State<CategoriesScreen> createState() => _CategoriesScreenState();
@@ -22,316 +26,79 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   String _selectedCategory = 'mode';
-  bool _isLoading = false;
+  String _selectedSubcategory = 'Toutes'; // Filtre par sous-catégorie
+  bool _isLoading = true;
   String _searchQuery = '';
+  List<ProductModel> _allProducts = [];
+  Map<String, int> _categoryCounts = {};
+  Map<String, int> _subcategoryCounts = {}; // Compteur par sous-catégorie
 
-  // Sous-catégories par catégorie principale
-  final Map<String, List<SubCategory>> _subCategories = {
-    'mode': [
-      SubCategory(
-        id: 'robes',
-        name: 'Robes',
-        image: 'https://picsum.photos/200/200?random=1',
-        productCount: 145,
-      ),
-      SubCategory(
-        id: 'chemises',
-        name: 'Chemises',
-        image: 'https://picsum.photos/200/200?random=2',
-        productCount: 89,
-      ),
-      SubCategory(
-        id: 'pantalons',
-        name: 'Pantalons',
-        image: 'https://picsum.photos/200/200?random=3',
-        productCount: 67,
-      ),
-      SubCategory(
-        id: 'chaussures',
-        name: 'Chaussures',
-        image: 'https://picsum.photos/200/200?random=4',
-        productCount: 123,
-      ),
-      SubCategory(
-        id: 'accessoires',
-        name: 'Accessoires',
-        image: 'https://picsum.photos/200/200?random=5',
-        productCount: 234,
-      ),
-      SubCategory(
-        id: 'sacs',
-        name: 'Sacs',
-        image: 'https://picsum.photos/200/200?random=6',
-        productCount: 78,
-      ),
-    ],
-    'electronique': [
-      SubCategory(
-        id: 'smartphones',
-        name: 'Smartphones',
-        image: 'https://picsum.photos/200/200?random=10',
-        productCount: 234,
-      ),
-      SubCategory(
-        id: 'tablettes',
-        name: 'Tablettes',
-        image: 'https://picsum.photos/200/200?random=11',
-        productCount: 56,
-      ),
-      SubCategory(
-        id: 'ordinateurs',
-        name: 'Ordinateurs',
-        image: 'https://picsum.photos/200/200?random=12',
-        productCount: 89,
-      ),
-      SubCategory(
-        id: 'accessoires-tech',
-        name: 'Accessoires',
-        image: 'https://picsum.photos/200/200?random=13',
-        productCount: 345,
-      ),
-      SubCategory(
-        id: 'tv',
-        name: 'Télévisions',
-        image: 'https://picsum.photos/200/200?random=14',
-        productCount: 67,
-      ),
-      SubCategory(
-        id: 'audio',
-        name: 'Audio & Son',
-        image: 'https://picsum.photos/200/200?random=15',
-        productCount: 123,
-      ),
-    ],
-    'alimentation': [
-      SubCategory(
-        id: 'epicerie',
-        name: 'Épicerie',
-        image: 'https://picsum.photos/200/200?random=20',
-        productCount: 456,
-      ),
-      SubCategory(
-        id: 'boissons',
-        name: 'Boissons',
-        image: 'https://picsum.photos/200/200?random=21',
-        productCount: 234,
-      ),
-      SubCategory(
-        id: 'snacks',
-        name: 'Snacks',
-        image: 'https://picsum.photos/200/200?random=22',
-        productCount: 178,
-      ),
-      SubCategory(
-        id: 'conserves',
-        name: 'Conserves',
-        image: 'https://picsum.photos/200/200?random=23',
-        productCount: 89,
-      ),
-      SubCategory(
-        id: 'condiments',
-        name: 'Condiments',
-        image: 'https://picsum.photos/200/200?random=24',
-        productCount: 145,
-      ),
-      SubCategory(
-        id: 'surgeles',
-        name: 'Surgelés',
-        image: 'https://picsum.photos/200/200?random=25',
-        productCount: 67,
-      ),
-    ],
-    'maison': [
-      SubCategory(
-        id: 'meubles',
-        name: 'Meubles',
-        image: 'https://picsum.photos/200/200?random=30',
-        productCount: 123,
-      ),
-      SubCategory(
-        id: 'decoration',
-        name: 'Décoration',
-        image: 'https://picsum.photos/200/200?random=31',
-        productCount: 267,
-      ),
-      SubCategory(
-        id: 'cuisine',
-        name: 'Cuisine',
-        image: 'https://picsum.photos/200/200?random=32',
-        productCount: 189,
-      ),
-      SubCategory(
-        id: 'linge',
-        name: 'Linge de maison',
-        image: 'https://picsum.photos/200/200?random=33',
-        productCount: 145,
-      ),
-      SubCategory(
-        id: 'jardin',
-        name: 'Jardin',
-        image: 'https://picsum.photos/200/200?random=34',
-        productCount: 78,
-      ),
-      SubCategory(
-        id: 'bricolage',
-        name: 'Bricolage',
-        image: 'https://picsum.photos/200/200?random=35',
-        productCount: 234,
-      ),
-    ],
-    'beaute': [
-      SubCategory(
-        id: 'parfums',
-        name: 'Parfums',
-        image: 'https://picsum.photos/200/200?random=40',
-        productCount: 156,
-      ),
-      SubCategory(
-        id: 'maquillage',
-        name: 'Maquillage',
-        image: 'https://picsum.photos/200/200?random=41',
-        productCount: 234,
-      ),
-      SubCategory(
-        id: 'soins-peau',
-        name: 'Soins de la peau',
-        image: 'https://picsum.photos/200/200?random=42',
-        productCount: 189,
-      ),
-      SubCategory(
-        id: 'soins-cheveux',
-        name: 'Soins des cheveux',
-        image: 'https://picsum.photos/200/200?random=43',
-        productCount: 167,
-      ),
-      SubCategory(
-        id: 'hygiene',
-        name: 'Hygiène',
-        image: 'https://picsum.photos/200/200?random=44',
-        productCount: 123,
-      ),
-      SubCategory(
-        id: 'accessoires-beaute',
-        name: 'Accessoires',
-        image: 'https://picsum.photos/200/200?random=45',
-        productCount: 89,
-      ),
-    ],
-    'sport': [
-      SubCategory(
-        id: 'vetements-sport',
-        name: 'Vêtements',
-        image: 'https://picsum.photos/200/200?random=50',
-        productCount: 145,
-      ),
-      SubCategory(
-        id: 'chaussures-sport',
-        name: 'Chaussures',
-        image: 'https://picsum.photos/200/200?random=51',
-        productCount: 123,
-      ),
-      SubCategory(
-        id: 'equipement-gym',
-        name: 'Équipement gym',
-        image: 'https://picsum.photos/200/200?random=52',
-        productCount: 78,
-      ),
-      SubCategory(
-        id: 'football',
-        name: 'Football',
-        image: 'https://picsum.photos/200/200?random=53',
-        productCount: 234,
-      ),
-      SubCategory(
-        id: 'basketball',
-        name: 'Basketball',
-        image: 'https://picsum.photos/200/200?random=54',
-        productCount: 89,
-      ),
-      SubCategory(
-        id: 'accessoires-sport',
-        name: 'Accessoires',
-        image: 'https://picsum.photos/200/200?random=55',
-        productCount: 167,
-      ),
-    ],
-    'auto': [
-      SubCategory(
-        id: 'pieces-auto',
-        name: 'Pièces auto',
-        image: 'https://picsum.photos/200/200?random=60',
-        productCount: 345,
-      ),
-      SubCategory(
-        id: 'accessoires-auto',
-        name: 'Accessoires',
-        image: 'https://picsum.photos/200/200?random=61',
-        productCount: 234,
-      ),
-      SubCategory(
-        id: 'entretien-auto',
-        name: 'Entretien',
-        image: 'https://picsum.photos/200/200?random=62',
-        productCount: 156,
-      ),
-      SubCategory(
-        id: 'moto',
-        name: 'Moto',
-        image: 'https://picsum.photos/200/200?random=63',
-        productCount: 89,
-      ),
-      SubCategory(
-        id: 'pneus',
-        name: 'Pneus',
-        image: 'https://picsum.photos/200/200?random=64',
-        productCount: 123,
-      ),
-      SubCategory(
-        id: 'gps-auto',
-        name: 'GPS & Navigation',
-        image: 'https://picsum.photos/200/200?random=65',
-        productCount: 67,
-      ),
-    ],
-    'services': [
-      SubCategory(
-        id: 'nettoyage',
-        name: 'Nettoyage',
-        image: 'https://picsum.photos/200/200?random=70',
-        productCount: 45,
-      ),
-      SubCategory(
-        id: 'reparation',
-        name: 'Réparation',
-        image: 'https://picsum.photos/200/200?random=71',
-        productCount: 67,
-      ),
-      SubCategory(
-        id: 'livraison',
-        name: 'Livraison',
-        image: 'https://picsum.photos/200/200?random=72',
-        productCount: 123,
-      ),
-      SubCategory(
-        id: 'evenements',
-        name: 'Événements',
-        image: 'https://picsum.photos/200/200?random=73',
-        productCount: 34,
-      ),
-      SubCategory(
-        id: 'beaute-services',
-        name: 'Beauté à domicile',
-        image: 'https://picsum.photos/200/200?random=74',
-        productCount: 56,
-      ),
-      SubCategory(
-        id: 'autres',
-        name: 'Autres services',
-        image: 'https://picsum.photos/200/200?random=75',
-        productCount: 89,
-      ),
-    ],
-  };
+  @override
+  void initState() {
+    super.initState();
+    // Utiliser la catégorie initiale si fournie
+    if (widget.initialCategory != null && widget.initialCategory!.isNotEmpty) {
+      _selectedCategory = widget.initialCategory!;
+    }
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    setState(() => _isLoading = true);
+    try {
+      final products = await _productService.getProducts();
+
+      // Calculer le nombre de produits par catégorie et sous-catégorie
+      final counts = <String, int>{};
+      final subCounts = <String, int>{};
+
+      for (var product in products) {
+        counts[product.category] = (counts[product.category] ?? 0) + 1;
+
+        // Compter par sous-catégorie (avec clé "categorie:souscategorie")
+        if (product.subCategory != null && product.subCategory!.isNotEmpty) {
+          final key = '${product.category}:${product.subCategory}';
+          subCounts[key] = (subCounts[key] ?? 0) + 1;
+        }
+      }
+
+      setState(() {
+        _allProducts = products;
+        _categoryCounts = counts;
+        _subcategoryCounts = subCounts;
+        _isLoading = false;
+      });
+
+      debugPrint('✅ ${products.length} produits chargés');
+      debugPrint('📊 Répartition: $_categoryCounts');
+      debugPrint('📊 Sous-catégories: $_subcategoryCounts');
+    } catch (e) {
+      debugPrint('❌ Erreur chargement produits: $e');
+      setState(() => _isLoading = false);
+    }
+  }
+
+  List<ProductModel> _getProductsForCategory(String categoryId, {String? subcategory}) {
+    var filtered = _allProducts
+        .where((product) => product.category.toLowerCase() == categoryId.toLowerCase());
+
+    // Filtrer par sous-catégorie si spécifiée
+    if (subcategory != null && subcategory != 'Toutes') {
+      filtered = filtered.where((product) =>
+        product.subCategory?.toLowerCase() == subcategory.toLowerCase()
+      );
+    }
+
+    return filtered.toList();
+  }
+
+  int _getSubcategoryCount(String categoryId, String subcategory) {
+    if (subcategory == 'Toutes') {
+      return _categoryCounts[categoryId] ?? 0;
+    }
+    final key = '$categoryId:$subcategory';
+    return _subcategoryCounts[key] ?? 0;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -365,7 +132,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         IconButton(
           icon: const Icon(Icons.search),
           onPressed: () {
-            // TODO: Implémenter la recherche
+            // Navigation vers l'écran de recherche
+            context.push('/acheteur/search');
           },
         ),
       ],
@@ -460,7 +228,10 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                   selected: isSelected,
                   selectedTileColor: AppColors.primaryLight.withValues(alpha:0.3),
                   onTap: () {
-                    setState(() => _selectedCategory = category.id);
+                    setState(() {
+                      _selectedCategory = category.id;
+                      _selectedSubcategory = 'Toutes'; // Reset sous-catégorie
+                    });
                     Navigator.pop(context); // Fermer le drawer
                     _analytics.logSearch(category.name, category.id);
                   },
@@ -475,72 +246,111 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   // ===== CORPS DE LA PAGE =====
   Widget _buildBody() {
-    if (_isLoading) {  // ✅ AJOUTER
+    if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
     final selectedCategoryData = ProductCategories.allCategories
         .firstWhere((cat) => cat.id == _selectedCategory);
-    final allSubCategories = _subCategories[_selectedCategory] ?? [];
-    final subCategories = _searchQuery.isEmpty
-        ? allSubCategories
-        : allSubCategories
-            .where((sub) => sub.name.toLowerCase().contains(_searchQuery))
-            .toList();
+
+    // Obtenir les sous-catégories disponibles pour cette catégorie
+    final availableSubcategories = ['Toutes'] + ProductSubcategories.getSubcategories(_selectedCategory);
+
+    final categoryProducts = _getProductsForCategory(
+      _selectedCategory,
+      subcategory: _selectedSubcategory,
+    );
 
     return RefreshIndicator(
-      onRefresh: () async {
-        setState(() => _isLoading = true);
-        // Charger les vraies données
-        await _productService.getProducts();
-        setState(() => _isLoading = false);
-      },
-      child: CustomScrollView(
-        slivers: [
-          // En-tête de la catégorie sélectionnée
-          SliverToBoxAdapter(
-            child: _buildCategoryHeader(selectedCategoryData),
-          ),
+      onRefresh: _loadProducts,
+      child: categoryProducts.isEmpty
+          ? _buildEmptyState(selectedCategoryData)
+          : CustomScrollView(
+              slivers: [
+                // En-tête de la catégorie sélectionnée
+                SliverToBoxAdapter(
+                  child: _buildCategoryHeader(selectedCategoryData),
+                ),
 
-          // Titre de la section
-          SliverToBoxAdapter(
-            child: _buildSectionHeader(
-              'Explorez ${selectedCategoryData.name}',
-              'VOIR TOUS',
-              () {
-                context.push('/products/category/$_selectedCategory');
+                // Filtre par sous-catégories
+                SliverToBoxAdapter(
+                  child: _buildSubcategoryFilter(availableSubcategories),
+                ),
+
+                // Titre de la section
+                SliverToBoxAdapter(
+                  child: _buildSectionHeader(
+                    _selectedSubcategory == 'Toutes'
+                        ? 'Produits ${selectedCategoryData.name}'
+                        : _selectedSubcategory,
+                    '${categoryProducts.length} article${categoryProducts.length > 1 ? "s" : ""}',
+                  ),
+                ),
+
+                // Grille de produits réels
+                SliverPadding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  sliver: SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: AppSpacing.md,
+                      mainAxisSpacing: AppSpacing.md,
+                      childAspectRatio: 0.7,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) =>
+                          _buildProductCard(categoryProducts[index]),
+                      childCount: categoryProducts.length,
+                    ),
+                  ),
+                ),
+
+                // Espace en bas
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: AppSpacing.xl),
+                ),
+              ],
+            ),
+    );
+  }
+
+  // ===== FILTRE SOUS-CATÉGORIES =====
+  Widget _buildSubcategoryFilter(List<String> subcategories) {
+    return Container(
+      height: 50,
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        itemCount: subcategories.length,
+        itemBuilder: (context, index) {
+          final subcategory = subcategories[index];
+          final isSelected = _selectedSubcategory == subcategory;
+          final count = _getSubcategoryCount(_selectedCategory, subcategory);
+
+          return Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.sm),
+            child: FilterChip(
+              label: Text('$subcategory ($count)'),
+              selected: isSelected,
+              onSelected: (selected) {
+                setState(() {
+                  _selectedSubcategory = subcategory;
+                });
+                _analytics.logSearch(subcategory, _selectedCategory);
               },
-            ),
-          ),
-
-          // Grille de sous-catégories
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: AppSpacing.md,
-                mainAxisSpacing: AppSpacing.md,
-                childAspectRatio: 0.8,
+              backgroundColor: Colors.white,
+              selectedColor: AppColors.primary.withValues(alpha: 0.2),
+              labelStyle: TextStyle(
+                color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) =>
-                    _buildSubCategoryCard(subCategories[index]),
-                childCount: subCategories.length,
+              side: BorderSide(
+                color: isSelected ? AppColors.primary : AppColors.border,
               ),
             ),
-          ),
-
-          // Section promotionnelle (optionnel)
-          SliverToBoxAdapter(
-            child: _buildPromotionalSection(),
-          ),
-
-          // Espace en bas
-          const SliverToBoxAdapter(
-            child: SizedBox(height: AppSpacing.xl),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -588,7 +398,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${_subCategories[category.id]?.length ?? 0} sous-catégories',
+                  '${_categoryCounts[category.id] ?? 0} produits disponibles',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha:0.9),
                     fontSize: 14,
@@ -603,7 +413,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   }
 
   // ===== TITRE DE SECTION =====
-  Widget _buildSectionHeader(String title, String actionText, VoidCallback onPressed) {
+  Widget _buildSectionHeader(String title, String subtitle) {
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Row(
@@ -617,65 +427,10 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               color: AppColors.textPrimary,
             ),
           ),
-          TextButton(
-            onPressed: onPressed,
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.warning,
-              textStyle: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            child: Text(actionText),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ===== CARTE SOUS-CATÉGORIE =====
-  Widget _buildSubCategoryCard(SubCategory subCategory) {
-    return GestureDetector(
-      onTap: () {
-        _analytics.logSearch(subCategory.name, _selectedCategory);
-        context.push('/products/subcategory/${subCategory.id}');
-      },
-      child: Column(
-        children: [
-          // Image
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.backgroundSecondary,
-                shape: BoxShape.circle,
-                image: DecorationImage(
-                  image: NetworkImage(subCategory.image),
-                  fit: BoxFit.cover,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha:0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          // Nom
           Text(
-            subCategory.name,
+            subtitle,
             style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          // Nombre de produits
-          Text(
-            '${subCategory.productCount} produits',
-            style: const TextStyle(
-              fontSize: 10,
+              fontSize: 14,
               color: AppColors.textSecondary,
             ),
           ),
@@ -684,74 +439,142 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     );
   }
 
-  // ===== SECTION PROMOTIONNELLE =====
-  Widget _buildPromotionalSection() {
-    return Container(
-      margin: const EdgeInsets.all(AppSpacing.md),
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.warning.withValues(alpha:0.2),
-            AppColors.warning.withValues(alpha:0.1),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.warning.withValues(alpha:0.5)),
-      ),
-      child: Row(
+  // ===== ÉTAT VIDE =====
+  Widget _buildEmptyState(ProductCategory category) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.local_fire_department, color: AppColors.warning, size: 40),
-          const SizedBox(width: AppSpacing.md),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Offres spéciales',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Jusqu\'à -50% sur une sélection de produits',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
+          Text(
+            category.icon,
+            style: const TextStyle(fontSize: 80),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            'Aucun produit dans ${category.name}',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
             ),
           ),
-          ElevatedButton(
-            onPressed: () {
-              context.push('/promotions');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.warning,
-              foregroundColor: Colors.white,
+          const SizedBox(height: AppSpacing.sm),
+          const Text(
+            'Les produits seront affichés ici dès qu\'ils seront ajoutés',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.textSecondary,
             ),
-            child: const Text('Voir'),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
-}
 
-// ===== MODÈLE SOUS-CATÉGORIE =====
-class SubCategory {
-  final String id;
-  final String name;
-  final String image;
-  final int productCount;
-
-  SubCategory({
-    required this.id,
-    required this.name,
-    required this.image,
-    required this.productCount,
-  });
+  // ===== CARTE PRODUIT =====
+  Widget _buildProductCard(ProductModel product) {
+    return GestureDetector(
+      onTap: () => context.push('/product/${product.id}'),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image du produit
+            Expanded(
+              child: Stack(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(AppRadius.md),
+                      ),
+                      color: AppColors.backgroundSecondary,
+                      image: product.images.isNotEmpty
+                          ? DecorationImage(
+                              image: NetworkImage(product.images.first),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: product.images.isEmpty
+                        ? const Center(
+                            child: Icon(
+                              Icons.image_not_supported,
+                              size: 40,
+                              color: AppColors.textSecondary,
+                            ),
+                          )
+                        : null,
+                  ),
+                  // Badge stock faible
+                  if (product.stock < 10)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning,
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                        ),
+                        child: Text(
+                          'Stock: ${product.stock}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            // Infos produit
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${product.price.toStringAsFixed(0)} FCFA',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

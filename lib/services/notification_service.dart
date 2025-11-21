@@ -3,13 +3,16 @@
 // Migré depuis src/services/notification.service.ts
 
 import 'dart:async';
+import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
+import 'package:go_router/go_router.dart';
 
-import '../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../models/notification_model.dart';
+import '../main.dart' show navigatorKey;
 
 /// Service de gestion des notifications
 class NotificationService {
@@ -191,37 +194,109 @@ class NotificationService {
     if (notificationType == null) return;
 
     // Navigation selon le type
+    final context = navigatorKey.currentContext;
+    if (context == null) {
+      debugPrint('⚠️ Navigation impossible: contexte non disponible');
+      return;
+    }
+
     switch (notificationType) {
       case 'order':
         // Naviguer vers les détails de la commande
         debugPrint('📦 Navigation vers commande: $relatedId');
-        // TODO: Implémenter navigation
+        if (relatedId != null) {
+          context.push('/acheteur/order/$relatedId');
+        }
         break;
       case 'delivery':
         // Naviguer vers la livraison
         debugPrint('🚚 Navigation vers livraison: $relatedId');
+        if (relatedId != null) {
+          context.push('/livreur/delivery-detail/$relatedId');
+        }
         break;
       case 'payment':
         // Naviguer vers les paiements
-        debugPrint('💳 Navigation vers paiement: $relatedId');
+        debugPrint('💳 Navigation vers paiement');
+        context.push('/acheteur/order-history');
         break;
       case 'message':
-        // Naviguer vers les messages
-        debugPrint('💬 Navigation vers messages');
+        // Naviguer vers les notifications
+        debugPrint('💬 Navigation vers messages/notifications');
+        context.push('/notifications');
         break;
       case 'promotion':
-        // Naviguer vers les promotions
+        // Naviguer vers les catégories ou accueil
         debugPrint('🎁 Navigation vers promotions');
+        context.push('/categories');
+        break;
+      case 'review':
+        // Naviguer vers les avis
+        debugPrint('⭐ Navigation vers avis');
+        if (relatedId != null) {
+          context.push('/livreur/reviews');
+        }
         break;
       default:
         debugPrint('📱 Type de notification non géré: $notificationType');
+        // Par défaut, naviguer vers l'écran des notifications
+        context.push('/notifications');
     }
   }
 
   /// Callback pour les taps sur notifications locales
   void _onNotificationTapped(NotificationResponse response) {
     debugPrint('👆 Notification locale tapée: ${response.payload}');
-    // TODO: Gérer la navigation
+
+    if (response.payload == null) return;
+
+    try {
+      // Parser le payload JSON
+      final data = jsonDecode(response.payload!);
+      final type = data['type'] as String?;
+      final relatedId = data['relatedId'] as String?;
+
+      final context = navigatorKey.currentContext;
+      if (context == null) {
+        debugPrint('⚠️ Navigation impossible: contexte non disponible');
+        return;
+      }
+
+      // Navigation selon le type
+      switch (type) {
+        case 'order':
+          if (relatedId != null) {
+            context.push('/acheteur/order/$relatedId');
+          }
+          break;
+        case 'delivery':
+          if (relatedId != null) {
+            context.push('/livreur/delivery-detail/$relatedId');
+          }
+          break;
+        case 'payment':
+          context.push('/acheteur/order-history');
+          break;
+        case 'message':
+          context.push('/notifications');
+          break;
+        case 'promotion':
+          context.push('/categories');
+          break;
+        case 'review':
+          context.push('/livreur/reviews');
+          break;
+        default:
+          context.push('/notifications');
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur parsing payload notification: $e');
+      // En cas d'erreur, naviguer vers l'écran des notifications
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        context.push('/notifications');
+      }
+    }
   }
 
   // ===== AFFICHAGE DES NOTIFICATIONS =====
@@ -490,6 +565,59 @@ class NotificationService {
       debugPrint('📊 $unreadCount notifications non lues');
     } catch (e) {
       debugPrint('❌ Erreur sync notifications: $e');
+    }
+  }
+
+  // ===== NOTIFICATIONS ADMIN =====
+
+  /// Notifier tous les administrateurs
+  static Future<void> notifyAllAdmins({
+    required String type,
+    required String title,
+    required String body,
+    Map<String, dynamic>? data,
+  }) async {
+    try {
+      debugPrint('📢 Notification vers tous les admins: $title');
+
+      // Récupérer tous les admins
+      final adminsSnapshot = await FirebaseFirestore.instance
+          .collection(FirebaseCollections.users)
+          .where('userType', isEqualTo: 'admin')
+          .get();
+
+      if (adminsSnapshot.docs.isEmpty) {
+        debugPrint('⚠️ Aucun admin trouvé');
+        return;
+      }
+
+      // Créer une notification pour chaque admin
+      final batch = FirebaseFirestore.instance.batch();
+      final now = DateTime.now();
+
+      for (var adminDoc in adminsSnapshot.docs) {
+        final notificationRef = FirebaseFirestore.instance
+            .collection(FirebaseCollections.notifications)
+            .doc();
+
+        final notification = NotificationModel(
+          id: notificationRef.id,
+          userId: adminDoc.id,
+          type: type,
+          title: title,
+          body: body,
+          data: data ?? {},
+          isRead: false,
+          createdAt: now,
+        );
+
+        batch.set(notificationRef, notification.toMap());
+      }
+
+      await batch.commit();
+      debugPrint('✅ ${adminsSnapshot.docs.length} admins notifiés');
+    } catch (e) {
+      debugPrint('❌ Erreur notification admins: $e');
     }
   }
 

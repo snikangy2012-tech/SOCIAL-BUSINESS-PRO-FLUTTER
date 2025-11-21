@@ -8,8 +8,9 @@ import 'dart:async'; // ✅ AJOUTER pour TimeoutException
 import 'package:flutter/foundation.dart';
 
 import '../config/user_type_config.dart';
-import '../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import 'subscription_service.dart';
+import 'firestore_sync_service.dart';
 
 class AuthServiceWeb {
   static final firebase_auth.FirebaseAuth _auth = firebase_auth.FirebaseAuth.instance;
@@ -35,10 +36,20 @@ class AuthServiceWeb {
 
       await credential.user!.updateDisplayName(username);
 
-      // ✅ Stocker le userType dans la config locale
+      final userId = credential.user!.uid;
+
+      // ✅ Stocker le userType dans la config locale (fallback immédiat)
       UserTypeConfig.emailToUserType[email.toLowerCase()] = userType;
 
-      final userId = credential.user!.uid;
+      // ✅ Créer document Firestore EN ARRIÈRE-PLAN (non bloquant)
+      FirestoreSyncService.createUserDocumentAsync(
+        uid: userId,
+        email: email,
+        displayName: username,
+        phoneNumber: '',
+        userType: userType,
+      );
+      debugPrint('📤 Création document Firestore lancée en arrière-plan');
 
       // ✅ Créer l'abonnement par défaut selon le type d'utilisateur
       try {

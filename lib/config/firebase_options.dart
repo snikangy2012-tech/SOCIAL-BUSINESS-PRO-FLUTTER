@@ -45,42 +45,44 @@ class DefaultFirebaseOptions {
 
   // Configuration Android
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAndroid-Key-Here',
-    appId: '1:123456789:android:abcdef123456789abcdef',
-    messagingSenderId: '123456789',
-    projectId: 'social-business-pro-ci',
-    storageBucket: 'social-business-pro-ci.appspot.com',
+    apiKey: 'AIzaSyANfaX2lTV0TgVuaxFzZrE5-B-UV1tPKm4',
+    appId: '1:162267219364:android:6d52b4bb8143dafc43ad31',
+    messagingSenderId: '162267219364',
+    projectId: 'social-media-business-pro',
+    storageBucket: 'social-media-business-pro.firebasestorage.app',
   );
 
   // Configuration iOS
+  // TODO: Créer l'app iOS dans Firebase Console et remplacer ces valeurs
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyIOS-Key-Here',
-    appId: '1:123456789:ios:abcdef123456789abcdef',
-    messagingSenderId: '123456789',
-    projectId: 'social-business-pro-ci',
-    storageBucket: 'social-business-pro-ci.appspot.com',
-    iosBundleId: 'ci.socialbusinesspro.app',
+    apiKey: 'AIzaSyA-rTjMA0ZsE1n9nOeGlxq3swmbkrtg49o', // Temporaire: même que Web
+    appId: '1:162267219364:ios:XXXXXX', // TODO: Remplacer après création app iOS
+    messagingSenderId: '162267219364',
+    projectId: 'social-media-business-pro',
+    storageBucket: 'social-media-business-pro.firebasestorage.app',
+    iosBundleId: 'ci.socialbusinesspro.socialMediaBusinessPro',
   );
 
-  // Configuration macOS
+  // Configuration macOS (utilise la même config qu'iOS)
+  // TODO: Créer l'app macOS dans Firebase Console si nécessaire
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyIOS-Key-Here',
-    appId: '1:123456789:ios:abcdef123456789abcdef',
-    messagingSenderId: '123456789',
-    projectId: 'social-business-pro-ci',
-    storageBucket: 'social-business-pro-ci.appspot.com',
-    iosBundleId: 'ci.socialbusinesspro.app',
+    apiKey: 'AIzaSyA-rTjMA0ZsE1n9nOeGlxq3swmbkrtg49o', // Temporaire: même que Web
+    appId: '1:162267219364:ios:XXXXXX', // TODO: Même app ID qu'iOS ou créer app macOS
+    messagingSenderId: '162267219364',
+    projectId: 'social-media-business-pro',
+    storageBucket: 'social-media-business-pro.firebasestorage.app',
+    iosBundleId: 'ci.socialbusinesspro.socialMediaBusinessPro',
   );
 
-  // Configuration Windows
+  // Configuration Windows (utilise la config Web pour développement)
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyC8QjH4KjH4KjH4KjH4KjH4KjH4KjH4KjH4',
-    appId: '1:123456789:web:abcdef123456789abcdef',
-    messagingSenderId: '123456789',
-    projectId: 'social-business-pro-ci',
-    authDomain: 'social-business-pro-ci.firebaseapp.com',
-    storageBucket: 'social-business-pro-ci.appspot.com',
-    measurementId: 'G-XXXXXXXXXX',
+    apiKey: 'AIzaSyA-rTjMA0ZsE1n9nOeGlxq3swmbkrtg49o',
+    appId: '1:162267219364:web:58b3606f6c55669043ad31',
+    messagingSenderId: '162267219364',
+    projectId: 'social-media-business-pro',
+    authDomain: 'social-media-business-pro.firebaseapp.com',
+    storageBucket: 'social-media-business-pro.firebasestorage.app',
+    measurementId: 'G-ZTVBD3X1RE',
   );
 }
 

@@ -2,12 +2,13 @@
 // Écran de gestion des notifications - SOCIAL BUSINESS Pro
 // Transversal : utilisable par tous les types d'utilisateurs
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../../models/notification_model.dart';
 import '../../providers/auth_provider_firebase.dart';
 
@@ -23,11 +24,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   bool _isLoading = true;
   List<NotificationModel> _notifications = [];
   List<NotificationModel> _filteredNotifications = [];
+  Timer? _refreshTimer;
+  final _refreshInterval = const Duration(seconds: 20); // Rafraîchir toutes les 20 secondes
 
   @override
   void initState() {
     super.initState();
     _loadNotifications();
+
+    // 🔄 Démarrer le rafraîchissement automatique
+    _startAutoRefresh();
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startAutoRefresh() {
+    _refreshTimer = Timer.periodic(_refreshInterval, (timer) {
+      if (mounted) {
+        debugPrint('🔄 Auto-refresh notifications');
+        _loadNotifications();
+      }
+    });
   }
 
   Future<void> _loadNotifications() async {
@@ -338,7 +359,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
         ),
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: EdgeInsets.only(
+          left: AppSpacing.lg,
+          right: AppSpacing.lg,
+          top: AppSpacing.lg,
+          bottom: AppSpacing.lg + MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -567,14 +593,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: ChoiceChip(
         label: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label),
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
             if (count > 0) ...[
-              const SizedBox(width: AppSpacing.xs),
+              const SizedBox(width: 4),
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
+                  horizontal: 4,
                   vertical: 2,
                 ),
                 decoration: BoxDecoration(
@@ -674,16 +704,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          if (!notification.isRead)
+                          if (!notification.isRead) ...[
+                            const SizedBox(width: AppSpacing.xs),
                             Container(
                               width: 8,
                               height: 8,
-                              margin: const EdgeInsets.only(left: AppSpacing.xs),
                               decoration: const BoxDecoration(
                                 color: AppColors.primary,
                                 shape: BoxShape.circle,
                               ),
                             ),
+                          ],
                         ],
                       ),
 
@@ -732,7 +763,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void _showNotificationActions(NotificationModel notification) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => SafeArea(
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).padding.bottom,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

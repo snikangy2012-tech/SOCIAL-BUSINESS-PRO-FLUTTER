@@ -23,4 +23,5 @@ plugins {
     id("org.jetbrains.kotlin.android") version "2.1.0" apply false
 }
 
+rootProject.name = "social_media_business_pro"
 include(":app")

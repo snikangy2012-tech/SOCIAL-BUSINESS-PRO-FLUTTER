@@ -3,8 +3,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
+import '../../providers/cart_provider.dart';
 import '../../services/analytics_service.dart';
 
 class CartScreen extends StatefulWidget {
@@ -16,62 +18,78 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   final AnalyticsService _analytics = AnalyticsService();
-  
-  // TODO: Remplacer par CartProvider
-  List<Map<String, dynamic>> _cartItems = [];
 
   @override
   void initState() {
     super.initState();
     _analytics.logScreenView('CartScreen');
-    _loadCart();
-  }
-
-  void _loadCart() {
-    // TODO: Charger le panier depuis CartProvider ou localStorage
-    setState(() {
-      _cartItems = [];
-    });
-  }
-
-  double get _subtotal {
-    return _cartItems.fold(
-      0.0,
-      (sum, item) => sum + (item['price'] * item['quantity']),
-    );
-  }
-
-  double get _deliveryFee {
-    return _cartItems.isEmpty ? 0 : 1500;  // 1500 FCFA frais de livraison
-  }
-
-  double get _total {
-    return _subtotal + _deliveryFee;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mon Panier'),
-        actions: [
-          if (_cartItems.isNotEmpty)
-            TextButton(
-              onPressed: () {
-                // Vider le panier
-                setState(() => _cartItems.clear());
-              },
-              child: const Text(
-                'Vider',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-        ],
-      ),
-      body: _cartItems.isEmpty ? _buildEmptyCart() : _buildCartContent(),
-      bottomNavigationBar: _cartItems.isEmpty
-          ? null
-          : _buildBottomBar(),
+    return Consumer<CartProvider>(
+      builder: (context, cartProvider, child) {
+        final items = cartProvider.items;
+        final isEmpty = items.isEmpty;
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Mon Panier'),
+            actions: [
+              if (!isEmpty)
+                TextButton(
+                  onPressed: () async {
+                    // Demander confirmation avant de vider
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Vider le panier'),
+                        content: const Text(
+                          'Voulez-vous vraiment supprimer tous les articles du panier ?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Annuler'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.error,
+                            ),
+                            child: const Text('Vider'),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirm == true) {
+                      await cartProvider.clearCart();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Panier vidé'),
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text(
+                    'Vider',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+            ],
+          ),
+          body: cartProvider.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : isEmpty
+                  ? _buildEmptyCart()
+                  : _buildCartContent(cartProvider),
+          bottomNavigationBar: isEmpty ? null : _buildBottomBar(cartProvider),
+        );
+      },
     );
   }
 
@@ -124,7 +142,9 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   // Contenu du panier
-  Widget _buildCartContent() {
+  Widget _buildCartContent(CartProvider cartProvider) {
+    final items = cartProvider.items;
+
     return Column(
       children: [
         // En-tête
@@ -139,7 +159,7 @@ class _CartScreenState extends State<CartScreen> {
               ),
               const SizedBox(width: AppSpacing.sm),
               Text(
-                '${_cartItems.length} article(s)',
+                '${items.length} article(s) - ${cartProvider.totalQuantity} unité(s)',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -153,23 +173,23 @@ class _CartScreenState extends State<CartScreen> {
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.all(AppSpacing.md),
-            itemCount: _cartItems.length,
+            itemCount: items.length,
             separatorBuilder: (context, index) => const Divider(height: 24),
             itemBuilder: (context, index) {
-              final item = _cartItems[index];
-              return _buildCartItem(item, index);
+              final item = items[index];
+              return _buildCartItem(item, cartProvider);
             },
           ),
         ),
 
         // Résumé
-        _buildSummary(),
+        _buildSummary(cartProvider),
       ],
     );
   }
 
   // Article du panier
-  Widget _buildCartItem(Map<String, dynamic> item, int index) {
+  Widget _buildCartItem(CartItem item, CartProvider cartProvider) {
     return Row(
       children: [
         // Image
@@ -179,16 +199,27 @@ class _CartScreenState extends State<CartScreen> {
           decoration: BoxDecoration(
             color: AppColors.backgroundSecondary,
             borderRadius: BorderRadius.circular(AppRadius.md),
-            image: item['image'] != null
-                ? DecorationImage(
-                    image: NetworkImage(item['image']),
-                    fit: BoxFit.cover,
-                  )
-                : null,
           ),
-          child: item['image'] == null
-              ? const Icon(Icons.image, color: AppColors.textLight)
-              : null,
+          child: item.productImage.isNotEmpty
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  child: Image.network(
+                    item.productImage,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(
+                        Icons.image,
+                        color: AppColors.textLight,
+                        size: 40,
+                      );
+                    },
+                  ),
+                )
+              : const Icon(
+                  Icons.image,
+                  color: AppColors.textLight,
+                  size: 40,
+                ),
         ),
 
         const SizedBox(width: AppSpacing.md),
@@ -199,7 +230,7 @@ class _CartScreenState extends State<CartScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                item['name'] ?? 'Produit',
+                item.productName,
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -209,11 +240,19 @@ class _CartScreenState extends State<CartScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                '${item['price'].toStringAsFixed(0)} FCFA',
+                '${item.price.toStringAsFixed(0)} FCFA',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Total: ${item.total.toStringAsFixed(0)} FCFA',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -226,32 +265,54 @@ class _CartScreenState extends State<CartScreen> {
             // Bouton +
             IconButton(
               icon: const Icon(Icons.add_circle_outline),
-              color: AppColors.primary,
-              onPressed: () {
-                setState(() {
-                  _cartItems[index]['quantity']++;
-                });
-              },
+              color: item.quantity < item.maxStock
+                  ? AppColors.primary
+                  : AppColors.textLight,
+              onPressed: item.quantity < item.maxStock
+                  ? () async {
+                      try {
+                        await cartProvider.incrementQuantity(item.productId);
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Erreur: $e'),
+                              backgroundColor: AppColors.error,
+                            ),
+                          );
+                        }
+                      }
+                    }
+                  : null,
             ),
-            
+
             // Quantité
             Text(
-              '${item['quantity']}',
+              '${item.quantity}',
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
+
             // Bouton -
             IconButton(
               icon: const Icon(Icons.remove_circle_outline),
-              color: item['quantity'] > 1 ? AppColors.primary : AppColors.textLight,
-              onPressed: item['quantity'] > 1
-                  ? () {
-                      setState(() {
-                        _cartItems[index]['quantity']--;
-                      });
+              color: item.quantity > 1 ? AppColors.primary : AppColors.textLight,
+              onPressed: item.quantity > 1
+                  ? () async {
+                      try {
+                        await cartProvider.decrementQuantity(item.productId);
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Erreur: $e'),
+                              backgroundColor: AppColors.error,
+                            ),
+                          );
+                        }
+                      }
                     }
                   : null,
             ),
@@ -262,10 +323,53 @@ class _CartScreenState extends State<CartScreen> {
         IconButton(
           icon: const Icon(Icons.delete_outline),
           color: AppColors.error,
-          onPressed: () {
-            setState(() {
-              _cartItems.removeAt(index);
-            });
+          onPressed: () async {
+            // Demander confirmation
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Supprimer'),
+                content: Text(
+                  'Voulez-vous retirer "${item.productName}" du panier ?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Annuler'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                    ),
+                    child: const Text('Supprimer'),
+                  ),
+                ],
+              ),
+            );
+
+            if (confirm == true) {
+              try {
+                await cartProvider.removeItem(item.productId);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Article retiré du panier'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erreur: $e'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
+              }
+            }
           },
         ),
       ],
@@ -273,7 +377,7 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   // Résumé
-  Widget _buildSummary() {
+  Widget _buildSummary(CartProvider cartProvider) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: const BoxDecoration(
@@ -284,13 +388,13 @@ class _CartScreenState extends State<CartScreen> {
       ),
       child: Column(
         children: [
-          _buildSummaryRow('Sous-total', _subtotal),
+          _buildSummaryRow('Sous-total', cartProvider.subtotal),
           const SizedBox(height: AppSpacing.sm),
-          _buildSummaryRow('Frais de livraison', _deliveryFee),
+          _buildSummaryRow('Frais de livraison', cartProvider.deliveryFee),
           const Divider(height: 24),
           _buildSummaryRow(
             'Total',
-            _total,
+            cartProvider.total,
             isBold: true,
             isLarge: true,
           ),
@@ -329,14 +433,14 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   // Barre du bas avec bouton Commander
-  Widget _buildBottomBar() {
+  Widget _buildBottomBar(CartProvider cartProvider) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -346,13 +450,14 @@ class _CartScreenState extends State<CartScreen> {
         child: ElevatedButton(
           onPressed: () {
             _analytics.logBeginCheckout(
-              value: _total,
-              itemCount: _cartItems.length,
+              value: cartProvider.total,
+              itemCount: cartProvider.items.length,
             );
-            context.push('/checkout');
+            context.push('/acheteur/checkout');
           },
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
+            backgroundColor: AppColors.primary,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -362,13 +467,15 @@ class _CartScreenState extends State<CartScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
               Text(
-                '${_total.toStringAsFixed(0)} FCFA',
+                '${cartProvider.total.toStringAsFixed(0)} FCFA',
                 style: const TextStyle(
                   fontSize: 16,
+                  color: Colors.white,
                 ),
               ),
             ],

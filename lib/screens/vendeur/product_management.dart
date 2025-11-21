@@ -1,12 +1,13 @@
 // ===== lib/screens/vendeur/product_management.dart =====
 // Écran de gestion des produits pour vendeurs - SOCIAL BUSINESS Pro
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:social_business_pro/providers/auth_provider_firebase.dart';
 
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../../models/product_model.dart';
 import '../../services/product_service.dart';
 import '../../config/product_categories.dart';
@@ -20,7 +21,9 @@ class ProductManagement extends StatefulWidget {
 
 class _ProductManagementState extends State<ProductManagement> {
   final TextEditingController _searchController = TextEditingController();
-  
+  Timer? _refreshTimer;
+  final _refreshInterval = const Duration(seconds: 30);
+
   List<ProductModel> _products = [];
   List<ProductModel> _filteredProducts = [];
   bool _isLoading = true;
@@ -30,14 +33,28 @@ class _ProductManagementState extends State<ProductManagement> {
   @override
   void initState() {
     super.initState();
-    _loadProducts();
     _searchController.addListener(_filterProducts);
+    // Charger les produits après que le widget soit construit
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProducts();
+    });
+    _startAutoRefresh();
   }
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _startAutoRefresh() {
+    _refreshTimer = Timer.periodic(_refreshInterval, (timer) {
+      if (mounted) {
+        debugPrint('🔄 Auto-refresh products');
+        _loadProducts();
+      }
+    });
   }
 
   Future<void> _loadProducts() async {
@@ -55,19 +72,18 @@ class _ProductManagementState extends State<ProductManagement> {
       throw Exception('Utilisateur non connecté');
     }
     
-    // ✅ Option 1 : Charger depuis Firestore (À DÉCOMMENTER QUAND PRÊT)
-    /*
+    // ✅ Option 1 : Charger depuis Firestore
     final products = await ProductService().getVendorProducts(user.id);
-    
+
     if (mounted) {
       setState(() {
         _products = products;
         _filteredProducts = products;
       });
     }
-    */
-    
-    // ✅ Option 2 : Données MOCK pour les tests (TEMPORAIRE)
+
+    // ✅ Option 2 : Données MOCK pour les tests (DÉSACTIVÉ)
+    /*
     await Future.delayed(const Duration(seconds: 1));
     
     if (!mounted) return;
@@ -200,10 +216,11 @@ class _ProductManagementState extends State<ProductManagement> {
           updatedAt: DateTime.now(),
         ),
       ];
-      
+
       _filteredProducts = _products;
     });
-    
+    */
+
     debugPrint('✅ Produits chargés: ${_products.length}');
     
   } catch (e) {

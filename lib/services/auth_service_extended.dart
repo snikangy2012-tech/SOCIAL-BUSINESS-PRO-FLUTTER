@@ -1,13 +1,15 @@
 // ===== lib/services/auth_service_extended.dart =====
 // Service d'authentification étendu avec OTP et Google
 
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'firebase_service.dart';
-import '../config/constants.dart';
+import 'notification_service.dart';
+import 'package:social_business_pro/config/constants.dart';
 
 class AuthServiceExtended {
   static final firebase_auth.FirebaseAuth _auth = firebase_auth.FirebaseAuth.instance;
@@ -18,6 +20,13 @@ class AuthServiceExtended {
   // Variables pour OTP
   static firebase_auth.ConfirmationResult? _confirmationResult;
   static String? _verificationId;
+  static int? _resendToken;
+
+  // Stream pour notifier l'UI des événements OTP
+  static final StreamController<Map<String, dynamic>> _otpStatusController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  static Stream<Map<String, dynamic>> get otpStatusStream => _otpStatusController.stream;
 
   // ===== AUTHENTIFICATION EMAIL/PASSWORD (existant) =====
   
@@ -51,65 +60,61 @@ class AuthServiceExtended {
       
       // 3. Sauvegarder DIRECTEMENT dans Firestore (SIMPLE)
       debugPrint('📝 Sauvegarde Firestore...');
-      
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(credential.user!.uid)
-          .set({
+
+      final userData = {
         'uid': credential.user!.uid,
         'email': email,
         'displayName': username,
         'phoneNumber': phone,
         'userType': userType.name,
-        'isVerified': false,
+        'isActive': true, // Actif par défaut
         'createdAt': Timestamp.now(),
         'updatedAt': Timestamp.now(),
-      }, SetOptions(merge: true)); // ✅ Merge pour éviter les conflits
+      };
 
-        if (kIsWeb) {
+      if (kIsWeb) {
         // ✅ SUR WEB : Pas de timeout, attente infinie
         await FirebaseFirestore.instance
             .collection('users')
             .doc(credential.user!.uid)
-            .set({
-              'uid': credential.user!.uid,
-              'email': email,
-              'displayName': username,
-              'phoneNumber': phone,
-              'userType': userType.name,
-              'isVerified': false,
-              'createdAt': Timestamp.now(),
-              'updatedAt': Timestamp.now(),
-              }, SetOptions(merge: true));
+            .set(userData, SetOptions(merge: true));
       } else {
         // Mobile avec timeout
         await FirebaseFirestore.instance
             .collection('users')
             .doc(credential.user!.uid)
-            .set({
-              'uid': credential.user!.uid,
-              'email': email,
-              'displayName': username,
-              'phoneNumber': phone,
-              'userType': userType.name,
-              'isVerified': false,
-              'createdAt': Timestamp.now(),
-              'updatedAt': Timestamp.now(),
-            }, SetOptions(merge: true))
+            .set(userData, SetOptions(merge: true))
             .timeout(
               const Duration(seconds: 5),
               onTimeout: () {
-              // Créer un document vide si timeout
-              return FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(credential!.user!.uid)
-                  .get()
-                  .then((value) => value);
+                debugPrint('⚠️ Timeout sauvegarde Firestore (pas grave)');
+                return Future.value();
               },
             );
       }
 
       debugPrint('✅ Inscription directe réussie');
+
+      // 4. Notifier les admins pour vendeurs et livreurs
+      if (userType == UserType.vendeur || userType == UserType.livreur) {
+        try {
+          await NotificationService.notifyAllAdmins(
+            type: 'user_registration',
+            title: 'Nouvel utilisateur ${userType.label}',
+            body: '$username vient de s\'inscrire et attend validation',
+            data: {
+              'userId': credential.user!.uid,
+              'userType': userType.name,
+              'userName': username,
+              'userEmail': email,
+            },
+          );
+          debugPrint('✅ Admins notifiés de la nouvelle inscription');
+        } catch (e) {
+          debugPrint('⚠️ Erreur notification admins: $e');
+          // Ne pas bloquer l'inscription si la notification échoue
+        }
+      }
 
       return {
         'success': true,
@@ -319,19 +324,39 @@ class AuthServiceExtended {
         // Pour mobile
         await _auth.verifyPhoneNumber(
           phoneNumber: formattedPhone,
+          forceResendingToken: _resendToken,
           verificationCompleted: (firebase_auth.PhoneAuthCredential credential) async {
             // Auto-vérification (Android uniquement)
             await _auth.signInWithCredential(credential);
+            debugPrint('✅ Auto-vérification SMS réussie');
+            _otpStatusController.add({
+              'event': 'autoVerified',
+              'message': 'Code vérifié automatiquement',
+            });
           },
           verificationFailed: (firebase_auth.FirebaseAuthException e) {
             debugPrint('❌ Échec vérification: ${e.message}');
+            _otpStatusController.add({
+              'event': 'verificationFailed',
+              'message': e.message ?? 'Échec de vérification',
+            });
           },
           codeSent: (String verificationId, int? resendToken) {
             _verificationId = verificationId;
+            _resendToken = resendToken;
             debugPrint('✅ Code envoyé, ID: $verificationId');
+            _otpStatusController.add({
+              'event': 'codeSent',
+              'message': 'Code envoyé avec succès',
+            });
           },
           codeAutoRetrievalTimeout: (String verificationId) {
             _verificationId = verificationId;
+            debugPrint('⏱️ Timeout auto-retrieval - entrez le code manuellement');
+            _otpStatusController.add({
+              'event': 'autoRetrievalTimeout',
+              'message': 'Veuillez entrer le code manuellement',
+            });
           },
         );
 
@@ -399,23 +424,26 @@ class AuthServiceExtended {
 
   static Future<Map<String, dynamic>> signInWithGoogle() async {
     try {
-      
       debugPrint('🔍 Tentative connexion Google...');
 
+      GoogleSignInAccount? googleUser;
+
+      // ✅ Différenciation Web vs Mobile
       if (kIsWeb) {
-        // ✅ Configuration spéciale Web
-        final GoogleSignInAccount? googleUser = await _googleSignIn.signInSilently();
+        // Sur Web : signInSilently d'abord, puis signIn si nécessaire
+        googleUser = await _googleSignIn.signInSilently();
         if (googleUser == null) {
-          // Fallback si signInSilently échoue
-          return {'success': false, 'message': 'Utilisez signInSilently sur Web'};
+          debugPrint('⚠️ signInSilently échoué, tentative signIn normal...');
+          googleUser = await _googleSignIn.signIn();
         }
       } else {
+        // Sur Mobile : signIn directement pour ouvrir popup Google
+        googleUser = await _googleSignIn.signIn();
+      }
 
-
-      // Déclencher le flux d'authentification
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      
+      // Vérifier si l'utilisateur a annulé la connexion
       if (googleUser == null) {
+        debugPrint('⚠️ Connexion Google annulée par l\'utilisateur');
         return {'success': false, 'message': 'Connexion Google annulée'};
       }
 
@@ -430,47 +458,47 @@ class AuthServiceExtended {
         idToken: googleAuth.idToken,
       );
 
+      debugPrint('🔐 Connexion Firebase avec credentials Google...');
+
       // Connexion Firebase avec Google
       final userCredential = await _auth.signInWithCredential(credential);
-      
-      if (userCredential.user != null) {
-        final user = userCredential.user!;
 
-        // Vérifier si c'est un nouvel utilisateur
-        final isNewUser = userCredential.additionalUserInfo?.isNewUser ?? false;
-
-        // ✅ Toujours s'assurer que le document Firestore existe
-        await _ensureFirestoreDocument(user);
-
-        if (isNewUser) {
-          debugPrint('🆕 Nouvel utilisateur Google détecté');
-          // Le document a déjà été créé par _ensureFirestoreDocument
-        }
-
-        // Retourner l'utilisateur local
-        final localUser = await FirebaseService.getDocument(
-          collection: FirebaseCollections.users,
-          docId: user.uid,
-        );
-
-        return {
-          'success': true,
-          'user': _createLocalUser(user.uid, localUser ?? {}),
-          'isNewUser': isNewUser,
-        };
+      if (userCredential.user == null) {
+        return {'success': false, 'message': 'Échec de la connexion Firebase'};
       }
 
-      return {'success': false, 'message': 'Échec de la connexion Google'};
+      final user = userCredential.user!;
+      final isNewUser = userCredential.additionalUserInfo?.isNewUser ?? false;
+
+      debugPrint('✅ Connexion Firebase réussie pour: ${user.email}');
+
+      // ✅ Toujours s'assurer que le document Firestore existe
+      await _ensureFirestoreDocument(user);
+
+      if (isNewUser) {
+        debugPrint('🆕 Nouvel utilisateur Google créé dans Firestore');
+      } else {
+        debugPrint('👤 Utilisateur Google existant connecté');
       }
-    } 
-    catch (e) {
+
+      // Charger l'utilisateur depuis Firestore
+      final localUser = await FirebaseService.getDocument(
+        collection: FirebaseCollections.users,
+        docId: user.uid,
+      );
+
+      return {
+        'success': true,
+        'user': _createLocalUser(user.uid, localUser ?? {}),
+        'isNewUser': isNewUser,
+      };
+    } catch (e) {
       debugPrint('❌ Erreur Google Sign-In: $e');
       return {
         'success': false,
         'message': 'Erreur de connexion Google: ${e.toString()}',
       };
     }
-    return {'success': false, 'message': 'Erreur inconnue'};
   }
 
   // ===== MÉTHODES HELPER PRIVÉES =====
@@ -504,6 +532,26 @@ class AuthServiceExtended {
             'profile': _getDefaultProfile(userType),
           },
         );
+
+        // Notifier les admins pour vendeurs et livreurs
+        if (userType == UserType.vendeur || userType == UserType.livreur) {
+          try {
+            await NotificationService.notifyAllAdmins(
+              type: 'user_registration',
+              title: 'Nouvel utilisateur ${userType.label}',
+              body: '$name vient de s\'inscrire par téléphone et attend validation',
+              data: {
+                'userId': firebaseUser.uid,
+                'userType': userType.name,
+                'userName': name,
+                'userPhone': firebaseUser.phoneNumber ?? '',
+              },
+            );
+            debugPrint('✅ Admins notifiés de la nouvelle inscription (téléphone)');
+          } catch (e) {
+            debugPrint('⚠️ Erreur notification admins: $e');
+          }
+        }
       }
 
       final userData = await FirebaseService.getDocument(

@@ -6,10 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../../services/auth_service_extended.dart';
 import '../../widgets/custom_widgets.dart';
 import '../../services/auth_service_web.dart';
+import '../../utils/permissions_helper.dart';
 
 class RegisterScreenExtended extends StatefulWidget {
   const RegisterScreenExtended({super.key});
@@ -140,45 +141,43 @@ class _RegisterScreenExtendedState extends State<RegisterScreenExtended> {
       return;
     }
 
-    // ✅ VÉRIFIER SI WEB - BLOQUER SMS
-    if (kIsWeb) {
-      setState(() {
-        _errorMessage = 'L\'inscription par SMS n\'est pas disponible sur le Web. '
-            'Veuillez utiliser l\'inscription par Email.';
-      });
-      
-      // Changer automatiquement vers Email
-      setState(() {
-        _verificationMethod = 'email';
-      });
-      
-      return;
-    }
-
-    // ✅ MOBILE UNIQUEMENT - Continuer normalement
+    // ✅ SMS OTP ACTIVÉ pour Web et Mobile
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
+      // Sur Android, demander permissions SMS pour auto-vérification
+      if (!kIsWeb) {
+        await PermissionsHelper.requestSmsPermissions(context);
+      }
+
       final fullPhone = '$_selectedCountryCode${_phoneController.text.trim()}';
-      debugPrint('📱 Envoi SMS vers: $fullPhone');
-      
+      debugPrint('📱 Envoi SMS vers: $fullPhone (${kIsWeb ? "Web" : "Mobile"})');
+
       final result = await AuthServiceExtended.sendPhoneOTP(fullPhone);
 
       if (result['success']) {
         if (mounted) {
-          context.push('/verify-otp', extra: {
+          // Passer confirmationResult pour Web
+          final extra = {
             'verificationType': 'sms',
             'contact': fullPhone,
             'name': _nameController.text.trim(),
             'userType': _selectedUserType,
-          });
+          };
+
+          // Sur Web, ajouter le confirmationResult
+          if (kIsWeb && result['confirmationResult'] != null) {
+            extra['confirmationResult'] = result['confirmationResult'];
+          }
+
+          context.push('/verify-otp', extra: extra);
         }
       } else {
         setState(() {
-          _errorMessage = result['message'];
+          _errorMessage = result['message'] ?? 'Erreur d\'envoi du SMS';
         });
       }
       

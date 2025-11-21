@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class OrderModel {
   final String id;
   final String orderNumber;
+  final int displayNumber; // Numéro d'affichage incrémental (1, 2, 3...)
   final String vendeurId;
   final String buyerId;
   final String buyerName;
@@ -23,9 +24,28 @@ class OrderModel {
   final String? cancellationReason;
   final DateTime? cancelledAt;
 
+  // Coordonnées GPS pour la livraison
+  final double? pickupLatitude;
+  final double? pickupLongitude;
+  final double? deliveryLatitude;
+  final double? deliveryLongitude;
+  final String? livreurId; // ID du livreur assigné
+
+  // Champs pour les remboursements
+  final String? refundId; // ID du remboursement associé
+  final String? refundStatus; // Statut du remboursement
+  final String? paymentMethod; // Méthode de paiement utilisée
+
+  // Informations vendeur
+  final String? vendeurName; // Nom du vendeur
+  final String? vendeurShopName; // Nom de la boutique
+  final String? vendeurPhone; // Téléphone du vendeur
+  final String? vendeurLocation; // Localisation de la boutique (ex: "Cocody, Angré")
+
   OrderModel({
     required this.id,
     required this.orderNumber,
+    required this.displayNumber,
     required this.vendeurId,
     required this.buyerId,
     required this.buyerName,
@@ -33,7 +53,7 @@ class OrderModel {
     required this.items,
     required this.subtotal,
     required this.deliveryFee,
-    this.discount = 0, 
+    this.discount = 0,
     required this.totalAmount,
     required this.status,
     required this.deliveryAddress,
@@ -43,15 +63,28 @@ class OrderModel {
     this.deliveredAt,
     this.cancellationReason,
     this.cancelledAt,
+    this.pickupLatitude,
+    this.pickupLongitude,
+    this.deliveryLatitude,
+    this.deliveryLongitude,
+    this.livreurId,
+    this.refundId,
+    this.refundStatus,
+    this.paymentMethod,
+    this.vendeurName,
+    this.vendeurShopName,
+    this.vendeurPhone,
+    this.vendeurLocation,
   });
 
   // ✅ MÉTHODE À AJOUTER : Créer OrderModel depuis Firestore DocumentSnapshot
   factory OrderModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    
+
     return OrderModel(
       id: doc.id,
       orderNumber: data['orderNumber'] ?? '',
+      displayNumber: data['displayNumber'] ?? 0,
       vendeurId: data['vendeurId'] ?? '',
       buyerId: data['buyerId'] ?? '',
       buyerName: data['buyerName'] ?? 'Client',
@@ -71,6 +104,18 @@ class OrderModel {
       deliveredAt: _timestampToDateTime(data['deliveredAt']),
       cancellationReason: data['cancellationReason'],
       cancelledAt: _timestampToDateTime(data['cancelledAt']),
+      pickupLatitude: data['pickupLatitude']?.toDouble(),
+      pickupLongitude: data['pickupLongitude']?.toDouble(),
+      deliveryLatitude: data['deliveryLatitude']?.toDouble(),
+      deliveryLongitude: data['deliveryLongitude']?.toDouble(),
+      livreurId: data['livreurId'],
+      refundId: data['refundId'],
+      refundStatus: data['refundStatus'],
+      paymentMethod: data['paymentMethod'],
+      vendeurName: data['vendeurName'],
+      vendeurShopName: data['vendeurShopName'],
+      vendeurPhone: data['vendeurPhone'],
+      vendeurLocation: data['vendeurLocation'],
     );
   }
 
@@ -78,6 +123,7 @@ class OrderModel {
   Map<String, dynamic> toFirestore() {
     return {
       'orderNumber': orderNumber,
+      'displayNumber': displayNumber,
       'vendeurId': vendeurId,
       'buyerId': buyerId,
       'buyerName': buyerName,
@@ -95,6 +141,18 @@ class OrderModel {
       'deliveredAt': deliveredAt != null ? Timestamp.fromDate(deliveredAt!) : null,
       'cancellationReason': cancellationReason,
       'cancelledAt': cancelledAt != null ? Timestamp.fromDate(cancelledAt!) : null,
+      'pickupLatitude': pickupLatitude,
+      'pickupLongitude': pickupLongitude,
+      'deliveryLatitude': deliveryLatitude,
+      'deliveryLongitude': deliveryLongitude,
+      'livreurId': livreurId,
+      'refundId': refundId,
+      'refundStatus': refundStatus,
+      'paymentMethod': paymentMethod,
+      'vendeurName': vendeurName,
+      'vendeurShopName': vendeurShopName,
+      'vendeurPhone': vendeurPhone,
+      'vendeurLocation': vendeurLocation,
     };
   }
 
@@ -118,6 +176,7 @@ class OrderModel {
   OrderModel copyWith({
     String? id,
     String? orderNumber,
+    int? displayNumber,
     String? vendeurId,
     String? buyerId,
     String? buyerName,
@@ -134,10 +193,23 @@ class OrderModel {
     DateTime? deliveredAt,
     String? cancellationReason,
     DateTime? cancelledAt,
+    double? pickupLatitude,
+    double? pickupLongitude,
+    double? deliveryLatitude,
+    double? deliveryLongitude,
+    String? livreurId,
+    String? refundId,
+    String? refundStatus,
+    String? paymentMethod,
+    String? vendeurName,
+    String? vendeurShopName,
+    String? vendeurPhone,
+    String? vendeurLocation,
   }) {
     return OrderModel(
       id: id ?? this.id,
       orderNumber: orderNumber ?? this.orderNumber,
+      displayNumber: displayNumber ?? this.displayNumber,
       vendeurId: vendeurId ?? this.vendeurId,
       buyerId: buyerId ?? this.buyerId,
       buyerName: buyerName ?? this.buyerName,
@@ -154,7 +226,29 @@ class OrderModel {
       deliveredAt: deliveredAt ?? this.deliveredAt,
       cancellationReason: cancellationReason ?? this.cancellationReason,
       cancelledAt: cancelledAt ?? this.cancelledAt,
+      pickupLatitude: pickupLatitude ?? this.pickupLatitude,
+      pickupLongitude: pickupLongitude ?? this.pickupLongitude,
+      deliveryLatitude: deliveryLatitude ?? this.deliveryLatitude,
+      deliveryLongitude: deliveryLongitude ?? this.deliveryLongitude,
+      livreurId: livreurId ?? this.livreurId,
+      refundId: refundId ?? this.refundId,
+      refundStatus: refundStatus ?? this.refundStatus,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      vendeurName: vendeurName ?? this.vendeurName,
+      vendeurShopName: vendeurShopName ?? this.vendeurShopName,
+      vendeurPhone: vendeurPhone ?? this.vendeurPhone,
+      vendeurLocation: vendeurLocation ?? this.vendeurLocation,
     );
+  }
+
+  // Vérifier si la commande peut être retournée
+  bool get canBeReturned {
+    return (status == 'livree' || status == 'en_cours') && refundId == null;
+  }
+
+  // Vérifier si un remboursement est en cours
+  bool get hasRefundPending {
+    return refundId != null && refundStatus != 'rembourse' && refundStatus != 'refusee';
   }
 }
 

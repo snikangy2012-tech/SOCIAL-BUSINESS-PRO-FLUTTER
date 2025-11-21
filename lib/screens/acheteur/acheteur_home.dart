@@ -3,15 +3,21 @@
 // 🎨 VERSION COMPLÈTE ET CORRIGÉE
 
 import 'package:flutter/material.dart';
-
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'dart:async';
 
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
+import 'package:social_business_pro/config/product_categories.dart';
 
 import '../../models/product_model.dart';
 import '../../services/product_service.dart';
 import '../../services/analytics_service.dart';
+import '../../providers/cart_provider.dart';
+import '../../providers/favorite_provider.dart';
+import '../../providers/notification_provider.dart';
+import '../../widgets/custom_widgets.dart';
 
 class AcheteurHome extends StatefulWidget {
   const AcheteurHome({super.key});
@@ -71,9 +77,30 @@ class _AcheteurHomeState extends State<AcheteurHome> {
       if (!mounted) return; // ✅ Vérifier mounted après async
 
       setState(() {
-        _products = products;
+        // Séparer les produits spéciaux des produits généraux
         _flashSaleProducts = products.where((p) => p.isFlashSale).toList();
-        _newProducts = products.where((p) => p.isNew).toList();
+
+        // Nouveautés = produits créés dans les 7 derniers jours
+        final now = DateTime.now();
+        final sevenDaysAgo = now.subtract(const Duration(days: 7));
+        _newProducts = products.where((p) {
+          return p.createdAt.isAfter(sevenDaysAgo);
+        }).toList();
+
+        debugPrint('🆕 ${_newProducts.length} nouveautés (< 7 jours)');
+
+        // Filtrer la liste principale pour exclure les produits déjà affichés
+        // dans les sections spéciales (ventes flash et nouveautés)
+        final specialProductIds = {
+          ..._flashSaleProducts.map((p) => p.id),
+          ..._newProducts.map((p) => p.id),
+        };
+
+        _products = products
+            .where((p) => !specialProductIds.contains(p.id))
+            .toList();
+
+        debugPrint('📦 ${_flashSaleProducts.length} ventes flash, ${_newProducts.length} nouveautés, ${_products.length} autres produits');
       });
     } catch (e) {
       debugPrint('Erreur chargement produits: $e');
@@ -128,6 +155,90 @@ class _AcheteurHomeState extends State<AcheteurHome> {
               pinned: true,
               elevation: 0,
               backgroundColor: AppColors.primary,
+              actions: [
+                // Bouton panier avec badge
+                Consumer<CartProvider>(
+                  builder: (context, cartProvider, child) {
+                    final itemCount = cartProvider.totalQuantity;
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.shopping_cart_outlined),
+                          onPressed: () => context.push('/acheteur/cart'),
+                          tooltip: 'Panier',
+                        ),
+                        if (itemCount > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: AppColors.error,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 18,
+                                minHeight: 18,
+                              ),
+                              child: Text(
+                                itemCount > 99 ? '99+' : itemCount.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+                // Bouton notifications avec badge
+                Consumer<NotificationProvider>(
+                  builder: (context, notificationProvider, child) {
+                    final unreadCount = notificationProvider.unreadCount;
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.notifications_outlined),
+                          onPressed: () => context.push('/notifications'),
+                          tooltip: 'Notifications',
+                        ),
+                        if (unreadCount > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: AppColors.error,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 18,
+                                minHeight: 18,
+                              ),
+                              child: Text(
+                                unreadCount > 99 ? '99+' : unreadCount.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ],
               flexibleSpace: FlexibleSpaceBar(
                 background: Container(
                   decoration: BoxDecoration(
@@ -224,8 +335,14 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                                 ),
                               ),
                               onSubmitted: (value) {
-                                // TODO: Recherche
+                                // Navigation vers l'écran de recherche avec la query
+                                context.push('/acheteur/search');
                               },
+                              onTap: () {
+                                // Navigation vers l'écran de recherche au clic sur le champ
+                                context.push('/acheteur/search');
+                              },
+                              readOnly: true, // Empêche l'édition ici, force la navigation
                             ),
                           ),
                         ],
@@ -236,11 +353,168 @@ class _AcheteurHomeState extends State<AcheteurHome> {
               ),
             ),
 
+            // ✅ BARRE DE RECHERCHE ÉPINGLÉE
+            SliverAppBar(
+              pinned: true,
+              elevation: 2,
+              backgroundColor: Colors.white,
+              toolbarHeight: 80,
+              automaticallyImplyLeading: false,
+              flexibleSpace: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Rechercher un produit...',
+                      prefixIcon: const Icon(Icons.search, color: AppColors.primary),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.tune, color: AppColors.primary),
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Filtres')),
+                          );
+                        },
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 15,
+                      ),
+                    ),
+                    onSubmitted: (value) {
+                      context.push('/acheteur/search');
+                    },
+                    onTap: () {
+                      context.push('/acheteur/search');
+                    },
+                    readOnly: true,
+                  ),
+                ),
+              ),
+            ),
+
+            // ✅ GRILLE DE CATÉGORIES
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Catégories',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    GridView.count(
+                      crossAxisCount: 4,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 0.85,
+                      children: ProductCategories.allCategories.map((category) {
+                        return _buildCategoryCard(category);
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // ✅ VENDEURS PRÈS DE CHEZ VOUS
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 0, 16),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Vendeurs Près de Chez Vous',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              context.push('/acheteur/nearby-vendors');
+                            },
+                            child: const Text('Voir tout'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 220,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.only(left: 16),
+                        itemCount: 5, // Pour démo
+                        itemBuilder: (context, index) {
+                          // Données de démo
+                          final demoVendors = [
+                            {'name': 'Fashion House', 'rating': 4.8, 'reviews': 156, 'distance': 0.5},
+                            {'name': 'Tech Store CI', 'rating': 4.6, 'reviews': 89, 'distance': 1.2},
+                            {'name': 'Bio Market', 'rating': 4.9, 'reviews': 203, 'distance': 0.8},
+                            {'name': 'Électronique Pro', 'rating': 4.7, 'reviews': 134, 'distance': 1.5},
+                            {'name': 'Beauté Express', 'rating': 4.5, 'reviews': 67, 'distance': 1.8},
+                          ];
+
+                          final vendor = demoVendors[index % demoVendors.length];
+                          final badges = getVendorBadges(
+                            isVerified: true,
+                            rating: vendor['rating'] as double,
+                            totalSales: vendor['reviews'] as int,
+                            averageDeliveryTime: 25,
+                            distance: vendor['distance'] as double,
+                          );
+
+                          return NearbyVendorCard(
+                            vendorId: 'vendor_$index',
+                            vendorName: vendor['name'] as String,
+                            shopName: vendor['name'] as String,
+                            rating: vendor['rating'] as double,
+                            reviewsCount: vendor['reviews'] as int,
+                            distance: vendor['distance'] as double,
+                            badges: badges,
+                            onTap: () {
+                              context.push('/vendor/vendor_$index');
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
             // ✅ BANNIÈRE PROMOTIONNELLE
             SliverToBoxAdapter(
               child: Container(
                 margin: const EdgeInsets.all(16),
-                height: 200, // ✅ Augmenté à 200 pour éviter l'overflow définitivement
+                height: 210, // ✅ Augmenté à 210 pour éviter l'overflow de 6px
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -348,17 +622,19 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                     ),
                   ),
                   SizedBox(
-                    height: 100,
+                    height: 110, // ✅ Augmenté de 10px pour éviter l'overflow
                     child: ListView(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       children: [
-                        _buildQuickCategory('Électronique', Icons.devices, AppColors.primary),
-                        _buildQuickCategory('Mode', Icons.shopping_bag, AppColors.secondary),
-                        _buildQuickCategory('Maison', Icons.home, AppColors.success),
-                        _buildQuickCategory('Beauté', Icons.face, AppColors.warning),
-                        _buildQuickCategory('Sport', Icons.sports_soccer, AppColors.info),
-                        _buildQuickCategory('Livres', Icons.menu_book, AppColors.error),
+                        _buildQuickCategory('Mode & Style', 'mode', Icons.shopping_bag, AppColors.secondary),
+                        _buildQuickCategory('Électronique', 'electronique', Icons.smartphone, AppColors.primary),
+                        _buildQuickCategory('Alimentation', 'alimentation', Icons.restaurant, AppColors.success),
+                        _buildQuickCategory('Maison', 'maison', Icons.home, AppColors.warning),
+                        _buildQuickCategory('Beauté', 'beaute', Icons.face, AppColors.error),
+                        _buildQuickCategory('Sport', 'sport', Icons.sports_soccer, AppColors.info),
+                        _buildQuickCategory('Auto', 'auto', Icons.directions_car, AppColors.textPrimary),
+                        _buildQuickCategory('Services', 'services', Icons.build, AppColors.textSecondary),
                       ],
                     ),
                   ),
@@ -367,24 +643,27 @@ class _AcheteurHomeState extends State<AcheteurHome> {
             ),
 
             // ✅ TITRE PRODUITS
-            const SliverToBoxAdapter(
+            SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(16, 24, 16, 12),
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
+                    const Text(
                       'Produits recommandés',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text(
-                      'Voir tout',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
+                    InkWell(
+                      onTap: () => context.push('/categories'),
+                      child: const Text(
+                        'Voir tout',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -394,90 +673,102 @@ class _AcheteurHomeState extends State<AcheteurHome> {
 
             // ✅ SECTION FLASH SALE
             if (_flashSaleProducts.isNotEmpty) ...[
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              SliverToBoxAdapter(
+                child: Column(
                   children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.flash_on, color: AppColors.error, size: 24),
-                        SizedBox(width: 8),
-                        Text(
-                          'Ventes Flash',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                    const SizedBox(height: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.flash_on, color: AppColors.error, size: 24),
+                              SizedBox(width: 8),
+                              Text(
+                                'Ventes Flash',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                          TextButton(
+                            onPressed: () {
+                              // TODO: Navigation vers page flash sale
+                            },
+                            child: const Text('Voir tout'),
+                          ),
+                        ],
+                      ),
                     ),
-                    TextButton(
-                      onPressed: () {
-                        // TODO: Navigation vers page flash sale
-                      },
-                      child: const Text('Voir tout'),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 250, // ✅ Augmenté de 10px pour éviter l'overflow
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        itemCount: _flashSaleProducts.length,
+                        itemBuilder: (context, index) {
+                          final product = _flashSaleProducts[index];
+                          return _buildHorizontalProductCard(product);
+                        },
+                      ),
                     ),
                   ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 240,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: _flashSaleProducts.length,
-                  itemBuilder: (context, index) {
-                    final product = _flashSaleProducts[index];
-                    return _buildHorizontalProductCard(product);
-                  },
                 ),
               ),
             ],
 
             // ✅ SECTION NOUVEAUTÉS
             if (_newProducts.isNotEmpty) ...[
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              SliverToBoxAdapter(
+                child: Column(
                   children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.new_releases, color: AppColors.success, size: 24),
-                        SizedBox(width: 8),
-                        Text(
-                          'Nouveautés',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                    const SizedBox(height: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.new_releases, color: AppColors.success, size: 24),
+                              SizedBox(width: 8),
+                              Text(
+                                'Nouveautés',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                          TextButton(
+                            onPressed: () {
+                              // TODO: Navigation vers page nouveautés
+                            },
+                            child: const Text('Voir tout'),
+                          ),
+                        ],
+                      ),
                     ),
-                    TextButton(
-                      onPressed: () {
-                        // TODO: Navigation vers page nouveautés
-                      },
-                      child: const Text('Voir tout'),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 250, // ✅ Augmenté de 10px pour éviter l'overflow
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        itemCount: _newProducts.length,
+                        itemBuilder: (context, index) {
+                          final product = _newProducts[index];
+                          return _buildHorizontalProductCard(product);
+                        },
+                      ),
                     ),
                   ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 240,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: _newProducts.length,
-                  itemBuilder: (context, index) {
-                    final product = _newProducts[index];
-                    return _buildHorizontalProductCard(product);
-                  },
                 ),
               ),
             ],
@@ -546,30 +837,36 @@ class _AcheteurHomeState extends State<AcheteurHome> {
   }
 
   // Widget catégorie rapide
-  Widget _buildQuickCategory(String name, IconData icon, Color color) {
-    return Container(
-      width: 80,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      child: Column(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
+  Widget _buildQuickCategory(String name, String categoryId, IconData icon, Color color) {
+    return InkWell(
+      onTap: () {
+        context.push('/categories', extra: categoryId);
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: 80,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        child: Column(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(icon, color: color, size: 30),
             ),
-            child: Icon(icon, color: color, size: 30),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            name,
-            style: const TextStyle(fontSize: 12),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              name,
+              style: const TextStyle(fontSize: 12),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -588,7 +885,7 @@ class _AcheteurHomeState extends State<AcheteurHome> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              height: 140,
+              height: 150, // ✅ Augmenté de 10px pour éviter l'overflow
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(
@@ -622,10 +919,10 @@ class _AcheteurHomeState extends State<AcheteurHome> {
   }
 
   // Carte produit moderne
-  Widget _buildModernProductCard(dynamic product) {
+  Widget _buildModernProductCard(ProductModel product) {
     return InkWell(
       onTap: () {
-        // TODO: Navigation vers détail
+        context.push('/product/${product.id}');
       },
       borderRadius: BorderRadius.circular(16),
       child: Container(
@@ -648,7 +945,7 @@ class _AcheteurHomeState extends State<AcheteurHome> {
             Stack(
               children: [
                 Container(
-                  height: 140,
+                  height: 150, // ✅ Augmenté de 10px pour éviter l'overflow
                   decoration: BoxDecoration(
                     color: Colors.grey[100],
                     borderRadius: const BorderRadius.vertical(
@@ -664,51 +961,87 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                   ),
                 ),
                 
-                // Badge réduction
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.error,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      '-20%',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
+                // Badge réduction dynamique
+                if (product.isDiscountActive)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: DiscountBadge(
+                      discountPercentage: product.discountPercentage,
+                      isActive: product.isDiscountActive,
+                      size: 50,
                     ),
                   ),
-                ),
                 
                 // Bouton favori
                 Positioned(
                   top: 8,
                   right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 4,
+                  child: Consumer<FavoriteProvider>(
+                    builder: (context, favoriteProvider, _) {
+                      final isFavorite = favoriteProvider.isFavorite(product.id);
+
+                      return GestureDetector(
+                        onTap: () async {
+                          try {
+                            await favoriteProvider.toggleFavorite(product.id, product.name);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    isFavorite
+                                      ? 'Retiré des favoris'
+                                      : 'Ajouté aux favoris',
+                                  ),
+                                  duration: const Duration(seconds: 1),
+                                  backgroundColor: isFavorite ? AppColors.info : AppColors.success,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Erreur: $e'),
+                                  backgroundColor: AppColors.error,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            isFavorite ? Icons.favorite : Icons.favorite_border,
+                            size: 18,
+                            color: isFavorite ? AppColors.error : Colors.grey[600],
+                          ),
                         ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.favorite_border,
-                      size: 18,
-                      color: Colors.grey[600],
-                    ),
+                      );
+                    },
+                  ),
+                ),
+
+                // Bouton de partage viral
+                Positioned(
+                  bottom: 8,
+                  right: 8,
+                  child: ShareButton(
+                    compact: true,
+                    shareCount: product.shareCount,
+                    onPressed: () {
+                      _showShareDialog(product);
+                    },
                   ),
                 ),
               ],
@@ -721,8 +1054,34 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Nom du vendeur avec badge vérifié
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            product.vendeurName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        // Badge vérifié compact (pour démo - à remplacer par vraie logique)
+                        const VendorBadge(
+                          type: VendorBadgeType.verified,
+                          compact: true,
+                          iconSize: 12,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    // Nom du produit
                     Text(
-                      product['name'] ?? 'Produit',
+                      product.name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -746,13 +1105,75 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                       ],
                     ),
                     const Spacer(),
-                    const Text(
-                      '125 000 FCFA',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Prix actuel
+                            Text(
+                              '${product.price.toStringAsFixed(0)} FCFA',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            // Prix original barré si promo
+                            if (product.hasPromotion)
+                              Text(
+                                '${product.originalPrice!.toStringAsFixed(0)} FCFA',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[500],
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                          ],
+                        ),
+                        Consumer<CartProvider>(
+                          builder: (context, cartProvider, _) {
+                            return GestureDetector(
+                              onTap: () async {
+                                try {
+                                  await cartProvider.addProduct(product);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Ajouté au panier'),
+                                        duration: Duration(seconds: 1),
+                                        backgroundColor: AppColors.success,
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Erreur: $e'),
+                                        backgroundColor: AppColors.error,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.shopping_cart_outlined,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -770,9 +1191,7 @@ class _AcheteurHomeState extends State<AcheteurHome> {
       width: 160,
       margin: const EdgeInsets.symmetric(horizontal: 4),
       child: InkWell(
-        onTap: () {
-          // TODO: Navigation vers détail produit
-        },
+        onTap: () => context.push('/product/${product.id}'),
         borderRadius: BorderRadius.circular(12),
         child: Card(
           elevation: 2,
@@ -855,23 +1274,62 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                   Positioned(
                     top: 8,
                     right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 4,
+                    child: Consumer<FavoriteProvider>(
+                      builder: (context, favoriteProvider, _) {
+                        final isFavorite = favoriteProvider.isFavorite(product.id);
+                        return GestureDetector(
+                          onTap: () async {
+                            try {
+                              await favoriteProvider.toggleFavorite(
+                                product.id,
+                                product.name,
+                              );
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      isFavorite
+                                          ? 'Retiré des favoris'
+                                          : 'Ajouté aux favoris',
+                                    ),
+                                    duration: const Duration(seconds: 1),
+                                    backgroundColor: isFavorite
+                                        ? AppColors.textSecondary
+                                        : AppColors.success,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Erreur: $e'),
+                                    backgroundColor: AppColors.error,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              isFavorite ? Icons.favorite : Icons.favorite_border,
+                              size: 16,
+                              color: isFavorite ? AppColors.error : Colors.grey[600],
+                            ),
                           ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.favorite_border,
-                        size: 16,
-                        color: Colors.grey[600],
-                      ),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -917,6 +1375,213 @@ class _AcheteurHomeState extends State<AcheteurHome> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // Widget carte de catégorie
+  Widget _buildCategoryCard(ProductCategory category) {
+    // Définir les couleurs pour chaque catégorie
+    final Map<String, Color> categoryColors = {
+      'mode': const Color(0xFFE91E63),
+      'electronique': const Color(0xFF2196F3),
+      'alimentation': const Color(0xFF4CAF50),
+      'maison': const Color(0xFFFF9800),
+      'beaute': const Color(0xFF9C27B0),
+      'sport': const Color(0xFFFF5722),
+      'auto': const Color(0xFF607D8B),
+      'services': const Color(0xFF00BCD4),
+    };
+
+    final color = categoryColors[category.id] ?? AppColors.primary;
+
+    return InkWell(
+      onTap: () {
+        context.push('/acheteur/categories', extra: category.id);
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: color.withValues(alpha: 0.3),
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Icône emoji
+            Text(
+              category.icon,
+              style: const TextStyle(fontSize: 32),
+            ),
+            const SizedBox(height: 8),
+            // Nom de la catégorie
+            Text(
+              category.name,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: color,
+                height: 1.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Dialog de partage viral
+  void _showShareDialog(ProductModel product) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Barre de titre
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Titre
+            const Text(
+              'Partager ce produit',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              product.name,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Options de partage
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildShareOption(
+                  icon: Icons.message,
+                  label: 'WhatsApp',
+                  color: const Color(0xFF25D366),
+                  onTap: () {
+                    // TODO: Implémenter partage WhatsApp
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Partage WhatsApp à venir')),
+                    );
+                  },
+                ),
+                _buildShareOption(
+                  icon: Icons.camera_alt,
+                  label: 'TikTok',
+                  color: Colors.black,
+                  onTap: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Partage TikTok à venir')),
+                    );
+                  },
+                ),
+                _buildShareOption(
+                  icon: Icons.photo_camera,
+                  label: 'Instagram',
+                  color: const Color(0xFFE4405F),
+                  onTap: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Partage Instagram à venir')),
+                    );
+                  },
+                ),
+                _buildShareOption(
+                  icon: Icons.facebook,
+                  label: 'Facebook',
+                  color: const Color(0xFF1877F2),
+                  onTap: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Partage Facebook à venir')),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Bouton copier le lien
+            TextButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Lien copié !')),
+                );
+              },
+              icon: const Icon(Icons.link),
+              label: const Text('Copier le lien'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget option de partage
+  Widget _buildShareOption({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

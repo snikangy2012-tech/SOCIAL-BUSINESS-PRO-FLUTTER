@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/auth_provider_firebase.dart';
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 
 class VendeurProfileScreen extends StatefulWidget {
   const VendeurProfileScreen({super.key});
@@ -316,14 +316,14 @@ class _VendeurProfileScreenState extends State<VendeurProfileScreen> {
                       icon: Icons.storefront,
                       title: 'Ma Boutique',
                       subtitle: 'Gérer les informations de votre boutique',
-                      onTap: () => context.push('/vendeur/boutique'),
+                      onTap: () => context.push('vendeur/shop-setup'),
                     ),
 
                     _buildMenuTile(
                       icon: Icons.payment,
                       title: 'Paiements',
-                      subtitle: 'Configurer vos informations de paiement',
-                      onTap: () => context.push('/vendeur/payments'),
+                      subtitle: 'Voir l\'historique des paiements reçus',
+                      onTap: () => context.push('/vendeur/payment-history'),
                     ),
 
                     const SizedBox(height: 24),
@@ -337,6 +337,27 @@ class _VendeurProfileScreenState extends State<VendeurProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
+
+                    _buildMenuTile(
+                      icon: Icons.payment,
+                      title: 'Moyens de paiement',
+                      subtitle: 'Configurer les modes de paiement acceptés',
+                      onTap: () => context.push('/vendeur/payment-settings'),
+                    ),
+
+                    _buildMenuTile(
+                      icon: Icons.rate_review,
+                      title: 'Avis clients',
+                      subtitle: 'Gérer vos avis et répondre aux clients',
+                      onTap: () => context.push('/vendeur/reviews'),
+                    ),
+
+                    _buildMenuTile(
+                      icon: Icons.settings,
+                      title: 'Paramètres utilisateur',
+                      subtitle: 'Notifications, thème, langue',
+                      onTap: () => context.push('/user-settings'),
+                    ),
 
                     _buildMenuTile(
                       icon: Icons.lock,
@@ -379,7 +400,7 @@ class _VendeurProfileScreenState extends State<VendeurProfileScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: AppColors.primary.withOpacity(0.1),
+          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
           child: Icon(icon, color: AppColors.primary),
         ),
         title: Text(title),

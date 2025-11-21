@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/statistics_service.dart';
 import '../../models/statistics_model.dart';

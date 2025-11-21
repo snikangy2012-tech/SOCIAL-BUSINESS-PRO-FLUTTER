@@ -1,10 +1,14 @@
 // ===== lib/screens/livreur/livreur_dashboard.dart =====
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../../providers/auth_provider_firebase.dart' as auth;
+import '../../providers/notification_provider.dart';
+import '../../services/livreur_stats_service.dart';
+import '../../services/review_service.dart';
 
 class DeliveryDashboard extends StatefulWidget {
   const DeliveryDashboard({super.key});
@@ -16,78 +20,103 @@ class DeliveryDashboard extends StatefulWidget {
 class _DeliveryDashboardState extends State<DeliveryDashboard> {
   bool _isLoading = true;
   bool _isAvailable = true;
-  
-  // Stats mock
-  final Map<String, dynamic> _stats = {
-    'todayDeliveries': 12,
-    'todayEarnings': 24000,
-    'avgRating': 4.7,
-    'completionRate': 94.5,
-    'totalDistance': 87.5,
+  Timer? _refreshTimer;
+  final _refreshInterval = const Duration(minutes: 15); // ✅ Rafraîchir toutes les 15 minutes
+
+  // Stats réelles (initialisées vides)
+  Map<String, dynamic> _stats = {
+    'todayDeliveries': 0,
+    'todayEarnings': 0.0,
+    'avgRating': 0.0,
+    'totalDeliveries': 0,
+    'totalDistance': 0.0,
   };
-  
-  // Livraisons disponibles mock
-  final List<Map<String, dynamic>> _availableDeliveries = [
-    {
-      'id': '1',
-      'orderNumber': 'CMD-001',
-      'vendorName': 'Tech Store CI',
-      'clientName': 'Jean Kouassi',
-      'pickupAddress': 'Cocody Angré, Abidjan',
-      'deliveryAddress': 'Plateau, Abidjan',
-      'distance': 8.5,
-      'fee': 2000,
-      'estimatedTime': 25,
-      'priority': 'normal',
-    },
-    {
-      'id': '2',
-      'orderNumber': 'CMD-002',
-      'vendorName': 'Fashion Shop',
-      'clientName': 'Marie Koné',
-      'pickupAddress': 'Marcory Zone 4, Abidjan',
-      'deliveryAddress': 'Yopougon, Abidjan',
-      'distance': 12.3,
-      'fee': 2500,
-      'estimatedTime': 35,
-      'priority': 'express',
-    },
-  ];
+
+  // Livraisons récentes (chargées depuis Firestore)
+  List<RecentDeliveryData> _recentDeliveries = [];
 
   @override
   void initState() {
     super.initState();
     debugPrint('🚚 === DeliveryDashboard initState ===');
     _loadDashboard();
+
+    // 🔄 Démarrer le rafraîchissement automatique
+    _startAutoRefresh();
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startAutoRefresh() {
+    _refreshTimer = Timer.periodic(_refreshInterval, (timer) {
+      if (mounted) {
+        debugPrint('🔄 Auto-refresh livreur dashboard');
+        _loadDashboard();
+      }
+    });
   }
 
   Future<void> _loadDashboard() async {
     debugPrint('🔄 Chargement dashboard livreur');
-    
+
     if (!mounted) return;
-    
+
     setState(() => _isLoading = true);
-    
+
     try {
       // Vérifier l'utilisateur
       final authProvider = context.read<auth.AuthProvider>();
       final user = authProvider.user;
-      
+
       if (user == null || user.userType != UserType.livreur) {
         debugPrint('❌ User null ou pas livreur: ${user?.userType.value}');
         throw Exception('Accès non autorisé');
       }
-      
+
       debugPrint('✅ User validé: ${user.displayName} (livreur)');
-      
-      // Simuler chargement
-      await Future.delayed(const Duration(milliseconds: 800));
-      
-      debugPrint('✅ Dashboard livreur chargé');
-      
+
+      // ✅ Charger les statistiques réelles depuis Firestore
+      debugPrint('📊 Chargement statistiques livreur...');
+      final livreurStats = await LivreurStatsService.getLivreurStats(user.id);
+
+      // ✅ Charger les livraisons récentes
+      debugPrint('📋 Chargement livraisons récentes...');
+      final recentDeliveries = await LivreurStatsService.getRecentDeliveries(user.id, limit: 5);
+
+      // ✅ Charger la note moyenne
+      debugPrint('⭐ Chargement note moyenne...');
+      double avgRating = 0.0;
+      try {
+        final reviewService = ReviewService();
+        avgRating = await reviewService.getAverageRating(user.id, 'livreur');
+      } catch (e) {
+        debugPrint('⚠️ Erreur chargement note: $e');
+      }
+
+      // ✅ Mettre à jour l'état avec les vraies données
+      if (mounted) {
+        setState(() {
+          _stats = {
+            'todayDeliveries': livreurStats.deliveredDeliveries,
+            'todayEarnings': livreurStats.todayEarnings,
+            'avgRating': avgRating,
+            'totalDeliveries': livreurStats.totalDeliveries,
+            'totalDistance': 0.0, // TODO: Calculer distance totale
+          };
+          _recentDeliveries = recentDeliveries;
+        });
+      }
+
+      debugPrint('✅ Dashboard livreur chargé avec succès');
+      debugPrint('📊 Stats: ${_stats['todayDeliveries']} livraisons, ${_stats['todayEarnings']} FCFA, Note: ${_stats['avgRating']}');
+
     } catch (e) {
-      debugPrint('❌ Erreur: $e');
-      
+      debugPrint('❌ Erreur chargement dashboard: $e');
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -162,9 +191,46 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
             },
           ),
           
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () => context.push('/notifications'),
+          // Bouton notifications avec badge
+          Consumer<NotificationProvider>(
+            builder: (context, notificationProvider, child) {
+              final unreadCount = notificationProvider.unreadCount;
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined),
+                    onPressed: () => context.push('/notifications'),
+                    tooltip: 'Notifications',
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: AppColors.error,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+                        child: Text(
+                          unreadCount > 99 ? '99+' : unreadCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -245,6 +311,33 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
               ),
             ),
 
+            const SizedBox(height: 16),
+
+            // Bouton Commandes Disponibles
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => context.push('/livreur/available-orders'),
+                icon: const Icon(Icons.search, size: 28),
+                label: const Text(
+                  'Commandes disponibles',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.success,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 4,
+                ),
+              ),
+            ),
+
             const SizedBox(height: 24),
 
             // Statistiques du jour
@@ -262,9 +355,10 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: 2,
-              childAspectRatio: 1.5,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
+              childAspectRatio: 1.4,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              padding: EdgeInsets.zero,
               children: [
                 _buildStatCard(
                   'Livraisons',
@@ -295,32 +389,38 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
 
             const SizedBox(height: 24),
 
-            // Livraisons disponibles
+            // Livraisons récentes
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Livraisons disponibles',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                const Expanded(
+                  child: Text(
+                    'Livraisons récentes',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (_availableDeliveries.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.error,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${_availableDeliveries.length}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                if (_recentDeliveries.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${_recentDeliveries.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -362,31 +462,64 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                   ),
                 ),
               )
-            else if (_availableDeliveries.isEmpty)
+            else if (_recentDeliveries.isEmpty)
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(32),
                   child: Column(
                     children: [
                       Icon(
-                        Icons.inbox,
-                        size: 64,
+                        Icons.inbox_outlined,
+                        size: 80,
                         color: Colors.grey[300],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                       Text(
-                        'Aucune livraison disponible',
+                        'Aucune livraison récente',
                         style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[600],
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[700],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'De nouvelles demandes apparaîtront bientôt',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[500],
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'Dès que vous effectuerez des livraisons, elles apparaîtront ici.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                            height: 1.5,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.info.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: AppColors.info,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Restez disponible pour recevoir des commandes',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.info,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -394,8 +527,8 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                 ),
               )
             else
-              ..._availableDeliveries.map((delivery) {
-                return _buildDeliveryCard(delivery);
+              ..._recentDeliveries.map((delivery) {
+                return _buildRecentDeliveryCard(delivery);
               }),
           ],
         ),
@@ -449,256 +582,198 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
     );
   }
 
-  // Carte de livraison disponible
-  Widget _buildDeliveryCard(Map<String, dynamic> delivery) {
-    final bool isExpress = delivery['priority'] == 'express';
+  // Carte de livraison récente
+  Widget _buildRecentDeliveryCard(RecentDeliveryData delivery) {
+    // Déterminer la couleur selon le statut
+    Color statusColor;
+    IconData statusIcon;
+    String statusText;
+
+    switch (delivery.status.toLowerCase()) {
+      case 'pending':
+        statusColor = AppColors.warning;
+        statusIcon = Icons.hourglass_empty;
+        statusText = 'En attente';
+        break;
+      case 'picked_up':
+        statusColor = AppColors.info;
+        statusIcon = Icons.inventory;
+        statusText = 'Récupéré';
+        break;
+      case 'in_progress':
+        statusColor = AppColors.primary;
+        statusIcon = Icons.local_shipping;
+        statusText = 'En cours';
+        break;
+      case 'delivered':
+        statusColor = AppColors.success;
+        statusIcon = Icons.check_circle;
+        statusText = 'Livré';
+        break;
+      case 'cancelled':
+        statusColor = AppColors.error;
+        statusIcon = Icons.cancel;
+        statusText = 'Annulé';
+        break;
+      default:
+        statusColor = Colors.grey;
+        statusIcon = Icons.help_outline;
+        statusText = 'Inconnu';
+    }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: isExpress
-            ? const BorderSide(color: AppColors.error, width: 2)
-            : BorderSide.none,
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // En-tête avec badge
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha:0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.local_shipping,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          delivery['orderNumber'],
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+      child: InkWell(
+        onTap: () {
+          context.push('/livreur/delivery-detail/${delivery.id}');
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // En-tête avec badge statut
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        Text(
-                          '${delivery['distance']} km',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
+                        child: const Icon(
+                          Icons.delivery_dining,
+                          color: AppColors.primary,
+                          size: 20,
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-                if (isExpress)
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            delivery.orderNumber,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          Text(
+                            delivery.customerName,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.error,
+                      color: statusColor,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text(
-                      'EXPRESS',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-
-            const Divider(height: 24),
-
-            // Infos vendeur et client
-            _buildAddressRow(
-              Icons.store,
-              'Récupération',
-              delivery['vendorName'],
-              delivery['pickupAddress'],
-            ),
-            const SizedBox(height: 12),
-            _buildAddressRow(
-              Icons.person,
-              'Livraison',
-              delivery['clientName'],
-              delivery['deliveryAddress'],
-            ),
-
-            const Divider(height: 24),
-
-            // Détails et action
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.payments,
-                          size: 16,
-                          color: AppColors.success,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${delivery['fee']} FCFA',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.success,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          Icons.timer,
+                          statusIcon,
+                          color: Colors.white,
                           size: 14,
-                          color: Colors.grey[600],
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '~${delivery['estimatedTime']} min',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
+                          statusText,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    // Confirmation
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Accepter cette livraison ?'),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Distance: ${delivery['distance']} km'),
-                            Text('Frais: ${delivery['fee']} FCFA'),
-                            Text('Temps estimé: ${delivery['estimatedTime']} min'),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Annuler'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Livraison acceptée !'),
-                                  backgroundColor: AppColors.success,
-                                ),
-                              );
-                              // TODO: Navigation vers détail livraison
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.success,
-                            ),
-                            child: const Text('Accepter'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.check, size: 18),
-                  label: const Text('Accepter'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.success,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+                ],
+              ),
 
-  // Widget pour afficher une adresse
-  Widget _buildAddressRow(
-    IconData icon,
-    String label,
-    String name,
-    String address,
-  ) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 20, color: AppColors.primary),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                ),
+              const Divider(height: 24),
+
+              // Montant et date
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.payments,
+                        size: 16,
+                        color: AppColors.success,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${delivery.amount.toStringAsFixed(0)} FCFA',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.success,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        size: 14,
+                        color: Colors.grey[600],
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${delivery.date.day}/${delivery.date.month}/${delivery.date.year}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(height: 2),
-              Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                address,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[700],
+
+              const SizedBox(height: 8),
+
+              // Bouton voir détails
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () {
+                    context.push('/livreur/delivery-detail/${delivery.id}');
+                  },
+                  icon: const Icon(Icons.arrow_forward, size: 16),
+                  label: const Text('Voir détails'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                  ),
                 ),
               ),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
+
 }

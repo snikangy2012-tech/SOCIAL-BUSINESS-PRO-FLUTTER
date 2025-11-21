@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import '../../models/payment_method_model.dart';
 import '../../services/payment_service.dart';
 import '../../providers/auth_provider_firebase.dart';
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 
 class PaymentMethodsScreen extends StatefulWidget {
   const PaymentMethodsScreen({super.key});

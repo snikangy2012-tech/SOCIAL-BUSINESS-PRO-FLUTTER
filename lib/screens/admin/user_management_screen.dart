@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../../models/user_model.dart';
 
 class UserManagementScreen extends StatefulWidget {
@@ -52,6 +52,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
     });
 
     try {
+      // ✅ Tri côté serveur avec orderBy (index automatique sur champ unique)
       final snapshot = await FirebaseFirestore.instance
           .collection(FirebaseCollections.users)
           .orderBy('createdAt', descending: true)
@@ -142,6 +143,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Gestion des Utilisateurs'),
         centerTitle: true,
         backgroundColor: AppColors.primary,
@@ -658,7 +660,117 @@ class _UserManagementScreenState extends State<UserManagementScreen>
 
                       const SizedBox(height: AppSpacing.xl),
 
-                      // Actions admin
+                      // Gestion des rôles et permissions
+                      _buildDetailSection('Gestion des rôles', [
+                        const Text(
+                          'Type d\'utilisateur actuel',
+                          style: TextStyle(
+                            fontSize: AppFontSizes.sm,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          decoration: BoxDecoration(
+                            color: _getUserTypeColor(user.userType).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            border: Border.all(
+                              color: _getUserTypeColor(user.userType).withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(_getUserTypeIcon(user.userType),
+                                color: _getUserTypeColor(user.userType)),
+                              const SizedBox(width: AppSpacing.sm),
+                              Text(
+                                user.userType.label,
+                                style: TextStyle(
+                                  fontSize: AppFontSizes.md,
+                                  fontWeight: FontWeight.bold,
+                                  color: _getUserTypeColor(user.userType),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _showChangeUserTypeDialog(user);
+                            },
+                            icon: const Icon(Icons.swap_horiz),
+                            label: const Text('Changer le type d\'utilisateur'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                              side: const BorderSide(color: AppColors.primary),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ]),
+
+                      const SizedBox(height: AppSpacing.xl),
+
+                      // Actions de vérification et statut
+                      _buildDetailSection('Actions sur le compte', []),
+
+                      // Bouton vérification
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _toggleUserVerification(user);
+                          },
+                          icon: Icon(
+                            user.isVerified ? Icons.verified : Icons.verified_user,
+                          ),
+                          label: Text(
+                            user.isVerified
+                                ? 'Retirer la vérification'
+                                : 'Vérifier ce compte',
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: user.isVerified
+                                ? AppColors.warning
+                                : AppColors.info,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: AppSpacing.sm),
+
+                      // Bouton gestion abonnement (vendeur/livreur uniquement)
+                      if (user.userType.value == 'vendeur' || user.userType.value == 'livreur')
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              // Naviguer vers la page de gestion des abonnements
+                              Navigator.pushNamed(context, '/admin/subscription-management');
+                            },
+                            icon: const Icon(Icons.card_membership),
+                            label: const Text('Gérer les abonnements'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                          ),
+                        ),
+
+                      if (user.userType.value == 'vendeur' || user.userType.value == 'livreur')
+                        const SizedBox(height: AppSpacing.sm),
+
+                      // Bouton activation/suspension
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
@@ -891,6 +1003,256 @@ class _UserManagementScreenState extends State<UserManagementScreen>
       return 'Il y a ${difference.inDays} jours';
     } else {
       return DateFormat('dd/MM/yyyy').format(date);
+    }
+  }
+
+  // ===== GESTION DES RÔLES ET PERMISSIONS =====
+
+  Future<void> _showChangeUserTypeDialog(UserModel user) async {
+    UserType? selectedType = user.userType;
+
+    final result = await showDialog<UserType>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Changer le type d\'utilisateur'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Sélectionnez le nouveau type pour ${user.displayName}',
+                style: const TextStyle(fontSize: AppFontSizes.sm),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+
+              // Options de types d'utilisateur
+              ...UserType.values.map((type) {
+                final isSelected = selectedType == type;
+                final color = _getUserTypeColor(type);
+                final icon = _getUserTypeIcon(type);
+
+                return InkWell(
+                  onTap: () => setState(() => selectedType = type),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                        ? color.withValues(alpha: 0.15)
+                        : Colors.grey.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      border: Border.all(
+                        color: isSelected
+                          ? color
+                          : Colors.grey.withValues(alpha: 0.3),
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(icon, color: color),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                type.label,
+                                style: TextStyle(
+                                  fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                  color: isSelected ? color : AppColors.textPrimary,
+                                ),
+                              ),
+                              Text(
+                                _getUserTypeDescription(type),
+                                style: const TextStyle(
+                                  fontSize: AppFontSizes.xs,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (isSelected)
+                          Icon(Icons.check_circle, color: color),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: selectedType == user.userType
+                ? null
+                : () => Navigator.pop(context, selectedType),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
+              child: const Text('Modifier'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null && result != user.userType) {
+      await _changeUserType(user, result);
+    }
+  }
+
+  String _getUserTypeDescription(UserType type) {
+    switch (type) {
+      case UserType.acheteur:
+        return 'Peut acheter des produits et passer des commandes';
+      case UserType.vendeur:
+        return 'Peut vendre des produits et gérer son commerce';
+      case UserType.livreur:
+        return 'Peut effectuer des livraisons de commandes';
+      case UserType.admin:
+        return 'Accès complet à la gestion de la plateforme';
+    }
+  }
+
+  Future<void> _changeUserType(UserModel user, UserType newType) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmer le changement'),
+        content: Text(
+          'Voulez-vous vraiment changer le type de ${user.displayName} ?\n\n'
+          'De: ${user.userType.label}\n'
+          'Vers: ${newType.label}\n\n'
+          'Cette action modifiera les permissions et l\'accès de l\'utilisateur.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.warning,
+            ),
+            child: const Text('Confirmer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await FirebaseFirestore.instance
+            .collection(FirebaseCollections.users)
+            .doc(user.id)
+            .update({
+          'userType': newType.value,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Type d\'utilisateur changé : ${user.userType.label} → ${newType.label}',
+              ),
+              backgroundColor: AppColors.success,
+            ),
+          );
+
+          _loadUsers(); // Recharger la liste
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erreur lors du changement de type: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _toggleUserVerification(UserModel user) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(user.isVerified
+          ? 'Retirer la vérification'
+          : 'Vérifier l\'utilisateur'),
+        content: Text(
+          user.isVerified
+              ? 'Voulez-vous retirer la vérification de ${user.displayName} ?\n\n'
+                'L\'utilisateur perdra son badge vérifié.'
+              : 'Voulez-vous vérifier ${user.displayName} ?\n\n'
+                'L\'utilisateur obtiendra un badge vérifié.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: user.isVerified
+                ? AppColors.warning
+                : AppColors.info,
+            ),
+            child: Text(user.isVerified ? 'Retirer' : 'Vérifier'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await FirebaseFirestore.instance
+            .collection(FirebaseCollections.users)
+            .doc(user.id)
+            .update({
+          'isVerified': !user.isVerified,
+          'verificationStatus': !user.isVerified
+            ? 'verified'
+            : 'notVerified',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                user.isVerified
+                    ? 'Vérification retirée avec succès'
+                    : 'Utilisateur vérifié avec succès',
+              ),
+              backgroundColor: AppColors.success,
+            ),
+          );
+
+          _loadUsers(); // Recharger la liste
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erreur: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
     }
   }
 }

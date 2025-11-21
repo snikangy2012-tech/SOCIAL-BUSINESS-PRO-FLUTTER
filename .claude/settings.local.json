@@ -1,7 +1,36 @@
 {
   "permissions": {
     "allow": [
-      "Bash(flutter analyze:*)"
+      "Bash(flutter analyze:*)",
+      "Bash(systeminfo:*)",
+      "Bash(tasklist:*)",
+      "Bash(powershell \"Get-Process | Sort-Object -Property WS -Descending | Select-Object -First 15 Name, @{Name=''RAM (Mo)'';Expression={[math]::Round($_WS / 1MB, 2)}} | Format-Table -AutoSize\")",
+      "Bash(powershell \"Get-Process | Where-Object {$_ProcessName -like ''*studio*'' -or $_ProcessName -like ''*java*'' -or $_ProcessName -like ''*chrome*'' -or $_ProcessName -like ''*code*''} | Select-Object Name, @{Name=''RAM (Mo)'';Expression={[math]::Round($_WS / 1MB, 2)}} | Sort-Object ''RAM (Mo)'' -Descending\")",
+      "Bash(powershell \"Get-Process | Sort-Object WS -Descending | Select-Object -First 15 ProcessName,@{Name=''RAM_Mo'';Expression={[int]($_WS/1MB)}} | Format-Table\")",
+      "Bash(findstr:*)",
+      "Bash(cmd /c \"tasklist | findstr Tomcat\")",
+      "Bash(cmd /c \"tasklist | findstr dart\")",
+      "Bash(code --version:*)",
+      "Bash(code --list-extensions)",
+      "Bash(flutter doctor:*)",
+      "Bash(cmd /c \"if not exist .vscode mkdir .vscode\")",
+      "Bash(flutter devices:*)",
+      "Bash(flutter pub get:*)",
+      "Bash(flutter run:*)",
+      "Bash(timeout /t 30)",
+      "Bash(./gradlew.bat assembleDebug:*)",
+      "Bash(timeout /t 10)",
+      "Bash(find:*)",
+      "Bash(powershell:*)",
+      "Bash(cmd /c \"rmdir /s /q c:\\Users\\ALLAH-PC\\social_media_business_pro\\android\\build\" 2)",
+      "Bash(nul)",
+      "Bash(cmd /c \"rmdir /s /q c:\\Users\\ALLAH-PC\\social_media_business_pro\\build\" 2)",
+      "Bash(flutter build:*)",
+      "Bash(flutter clean:*)",
+      "Bash(adb:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

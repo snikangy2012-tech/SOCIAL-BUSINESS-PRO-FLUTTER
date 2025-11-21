@@ -1,15 +1,17 @@
 // ===== lib/screens/livreur/delivery_list_screen.dart =====
 // Liste des livraisons disponibles et en cours pour le livreur
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../../models/delivery_model.dart';
 import '../../services/delivery_service.dart';
 import '../../providers/auth_provider_firebase.dart';
+import '../../utils/number_formatter.dart';
 
 class DeliveryListScreen extends StatefulWidget {
   const DeliveryListScreen({super.key});
@@ -21,16 +23,18 @@ class DeliveryListScreen extends StatefulWidget {
 class _DeliveryListScreenState extends State<DeliveryListScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  Timer? _refreshTimer;
+  final _refreshInterval = const Duration(seconds: 20); // Plus fréquent pour les livraisons
 
   List<DeliveryModel> _allDeliveries = [];
   bool _isLoading = true;
   String? _errorMessage;
 
   final List<String> _statusFilters = [
-    'available', // Disponibles
-    'accepted', // Acceptées
+    'assigned', // Assignées (livraisons assignées au livreur)
     'in_progress', // En cours
     'completed', // Terminées
+    'cancelled', // Annulées
   ];
 
   @override
@@ -38,12 +42,23 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
     super.initState();
     _tabController = TabController(length: _statusFilters.length, vsync: this);
     _loadDeliveries();
+    _startAutoRefresh();
   }
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _startAutoRefresh() {
+    _refreshTimer = Timer.periodic(_refreshInterval, (timer) {
+      if (mounted) {
+        debugPrint('🔄 Auto-refresh deliveries');
+        _loadDeliveries();
+      }
+    });
   }
 
   Future<void> _loadDeliveries() async {
@@ -90,10 +105,8 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'available':
+      case 'assigned':
         return AppColors.info;
-      case 'accepted':
-        return AppColors.warning;
       case 'in_progress':
         return AppColors.primary;
       case 'completed':
@@ -107,10 +120,8 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
 
   String _getStatusLabel(String status) {
     switch (status.toLowerCase()) {
-      case 'available':
-        return 'Disponibles';
-      case 'accepted':
-        return 'Acceptées';
+      case 'assigned':
+        return 'Assignées';
       case 'in_progress':
         return 'En cours';
       case 'completed':
@@ -124,10 +135,8 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
 
   IconData _getStatusIcon(String status) {
     switch (status.toLowerCase()) {
-      case 'available':
-        return Icons.local_shipping_outlined;
-      case 'accepted':
-        return Icons.check_circle_outline;
+      case 'assigned':
+        return Icons.assignment;
       case 'in_progress':
         return Icons.directions_car;
       case 'completed':
@@ -341,7 +350,7 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.md),
-        onTap: () => context.push('/livreur/delivery/${delivery.id}'),
+        onTap: () => context.push('/livreur/delivery-detail/${delivery.id}'),
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
@@ -356,7 +365,7 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Livraison #${delivery.id.substring(0, 8)}',
+                          formatDeliveryNumber(delivery.id, allDeliveries: _allDeliveries),
                           style: const TextStyle(
                             fontSize: AppFontSizes.md,
                             fontWeight: FontWeight.bold,
@@ -549,7 +558,7 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
 
       case 'accepted':
         return ElevatedButton.icon(
-          onPressed: () => context.push('/livreur/delivery/${delivery.id}'),
+          onPressed: () => context.push('/livreur/delivery-detail/${delivery.id}'),
           icon: const Icon(Icons.directions_car, size: 18),
           label: const Text('Démarrer la livraison'),
           style: ElevatedButton.styleFrom(
@@ -560,7 +569,7 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
 
       case 'in_progress':
         return ElevatedButton.icon(
-          onPressed: () => context.push('/livreur/delivery/${delivery.id}'),
+          onPressed: () => context.push('/livreur/delivery-detail/${delivery.id}'),
           icon: const Icon(Icons.navigation, size: 18),
           label: const Text('Continuer'),
           style: ElevatedButton.styleFrom(
@@ -571,7 +580,7 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
 
       case 'completed':
         return OutlinedButton.icon(
-          onPressed: () => context.push('/livreur/delivery/${delivery.id}'),
+          onPressed: () => context.push('/livreur/delivery-detail/${delivery.id}'),
           icon: const Icon(Icons.visibility, size: 18),
           label: const Text('Voir les détails'),
           style: OutlinedButton.styleFrom(
@@ -591,7 +600,7 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
       builder: (context) => AlertDialog(
         title: const Text('Accepter la livraison'),
         content: Text(
-          'Voulez-vous accepter la livraison #${delivery.id.substring(0, 8)} ?\n\n'
+          'Voulez-vous accepter la livraison ${formatDeliveryNumber(delivery.id, allDeliveries: _allDeliveries)} ?\n\n'
           'Montant: ${delivery.deliveryFee.toStringAsFixed(0)} FCFA',
         ),
         actions: [

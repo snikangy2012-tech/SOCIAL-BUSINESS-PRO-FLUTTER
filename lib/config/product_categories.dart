@@ -15,7 +15,7 @@ class ProductCategory {
 
 class ProductCategories {
   static const List<ProductCategory> allCategories = [
-    ProductCategory(id: 'mode', name: 'Mode & Beauté', icon: '👗'),
+    ProductCategory(id: 'mode', name: 'Mode & Style', icon: '👗'),
     ProductCategory(id: 'electronique', name: 'Électronique', icon: '📱'),
     ProductCategory(id: 'alimentation', name: 'Alimentaire', icon: '🍽️'),
     ProductCategory(id: 'maison', name: 'Maison & Jardin', icon: '🏠'),

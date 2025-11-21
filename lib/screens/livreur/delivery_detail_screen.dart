@@ -9,7 +9,7 @@ import '../../models/delivery_model.dart';
 import '../../models/order_model.dart';
 import '../../services/delivery_service.dart';
 import '../../services/order_service.dart';
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 
 class DeliveryDetailScreen extends StatefulWidget {
   final String deliveryId;
@@ -203,27 +203,74 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
   }
 
   Future<void> _openGoogleMaps() async {
-    if (_delivery == null) return;
+    if (_delivery == null) {
+      _showErrorSnackBar('Aucune livraison chargée');
+      return;
+    }
 
     final lat = _delivery!.deliveryAddress['latitude'] as double?;
     final lng = _delivery!.deliveryAddress['longitude'] as double?;
 
-    if (lat == null || lng == null) return;
+    if (lat == null || lng == null) {
+      _showErrorSnackBar('Coordonnées GPS de livraison manquantes');
+      return;
+    }
 
-    final url = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng';
+    try {
+      // Construire l'URL avec position de départ si disponible
+      String url;
+      if (_currentPosition != null) {
+        // Avec point de départ (position actuelle du livreur)
+        url = 'https://www.google.com/maps/dir/?api=1&origin=${_currentPosition!.latitude},${_currentPosition!.longitude}&destination=$lat,$lng&travelmode=driving';
+      } else {
+        // Sans point de départ (Google Maps utilisera la position actuelle de l'appareil)
+        url = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving';
+      }
 
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      final uri = Uri.parse(url);
+
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        debugPrint('✅ Google Maps ouvert avec succès');
+      } else {
+        _showErrorSnackBar('Impossible d\'ouvrir Google Maps. Vérifiez que l\'application est installée.');
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur ouverture Google Maps: $e');
+      _showErrorSnackBar('Erreur lors de l\'ouverture de l\'itinéraire: $e');
     }
   }
 
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.error,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   Future<void> _callCustomer() async {
-    if (_order?.buyerPhone == null) return;
+    if (_order?.buyerPhone == null || _order!.buyerPhone.isEmpty) {
+      _showErrorSnackBar('Numéro de téléphone du client non disponible');
+      return;
+    }
 
-    final url = 'tel:${_order!.buyerPhone}';
+    try {
+      final url = 'tel:${_order!.buyerPhone}';
+      final uri = Uri.parse(url);
 
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url));
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+        debugPrint('✅ Appel téléphonique initié');
+      } else {
+        _showErrorSnackBar('Impossible de passer l\'appel. Vérifiez les permissions.');
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur lors de l\'appel: $e');
+      _showErrorSnackBar('Erreur lors de l\'appel: $e');
     }
   }
 

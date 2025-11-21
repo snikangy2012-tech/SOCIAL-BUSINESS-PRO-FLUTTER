@@ -7,7 +7,7 @@ import 'dart:async';
 import '../../models/delivery_model.dart';
 import '../../services/delivery_service.dart';
 import '../../services/order_service.dart';
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 
 class DeliveryTrackingScreen extends StatefulWidget {
   final String orderId;

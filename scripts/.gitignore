@@ -1,0 +1,11 @@
+# Clé de service Firebase - NE JAMAIS COMMITER !
+serviceAccountKey.json
+*serviceAccount*.json
+
+# Node modules
+node_modules/
+package-lock.json
+
+# Logs
+*.log
+npm-debug.log*

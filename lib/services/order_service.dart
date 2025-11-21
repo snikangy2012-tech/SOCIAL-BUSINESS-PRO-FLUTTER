@@ -3,7 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/order_model.dart';
-import '../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
+import 'stock_management_service.dart';
 
 class OrderService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -123,24 +124,24 @@ class OrderService {
         );
       }
 
-      // Calculer les statistiques
+      // Calculer les statistiques avec nouveaux statuts
       int totalOrders = allOrders.length;
-      int pendingOrders = allOrders.where((order) => 
-        order.status == OrderStatus.pending.value || 
-        order.status == OrderStatus.confirmed.value
+      int pendingOrders = allOrders.where((order) =>
+        order.status == OrderStatus.enAttente.value ||
+        order.status == OrderStatus.enCours.value
       ).length;
-      
-      int deliveredOrders = allOrders.where((order) => 
-        order.status == OrderStatus.delivered.value
+
+      int deliveredOrders = allOrders.where((order) =>
+        order.status == OrderStatus.livree.value
       ).length;
-      
-      int cancelledOrders = allOrders.where((order) => 
-        order.status == OrderStatus.cancelled.value
+
+      int cancelledOrders = allOrders.where((order) =>
+        order.status == OrderStatus.annulee.value
       ).length;
 
       // Calculer le revenu total (uniquement commandes livrées)
       double totalRevenue = allOrders
-          .where((order) => order.status == OrderStatus.delivered.value)
+          .where((order) => order.status == OrderStatus.livree.value)
           .fold(0.0, (sum, order) => sum + order.totalAmount);
 
       debugPrint('✅ Stats calculées - Total: $totalOrders, Revenu: $totalRevenue FCFA');
@@ -163,13 +164,48 @@ class OrderService {
   static Future<void> updateOrderStatus(String orderId, String newStatus) async {
     try {
       debugPrint('🔄 MAJ statut commande $orderId → $newStatus');
-      
+
+      // Si la commande passe en statut "livree", déduire le stock définitivement
+      if (newStatus == OrderStatus.livree.value) {
+        final order = await getOrderById(orderId);
+        if (order != null) {
+          // Déduire le stock et libérer la réservation
+          final productsQuantities = <String, int>{};
+          for (final item in order.items) {
+            productsQuantities[item.productId] = item.quantity;
+          }
+
+          await StockManagementService.deductStockBatch(
+            productsQuantities: productsQuantities,
+          );
+          debugPrint('✅ Stock déduit définitivement pour ${order.items.length} produit(s)');
+        }
+      }
+
+      // Si la commande est annulée, libérer le stock
+      if (newStatus == OrderStatus.annulee.value) {
+        final order = await getOrderById(orderId);
+        if (order != null) {
+          final productsQuantities = <String, int>{};
+          for (final item in order.items) {
+            productsQuantities[item.productId] = item.quantity;
+          }
+
+          await StockManagementService.releaseStockBatch(
+            productsQuantities: productsQuantities,
+          );
+          debugPrint('✅ Stock libéré pour ${order.items.length} produit(s)');
+        }
+      }
+
       await _firestore
           .collection(FirebaseCollections.orders)
           .doc(orderId)
           .update({
         'status': newStatus,
         'updatedAt': FieldValue.serverTimestamp(),
+        if (newStatus == OrderStatus.livree.value)
+          'deliveredAt': FieldValue.serverTimestamp(),
       });
 
       // Ajouter une entrée dans l'historique de statut
@@ -183,7 +219,7 @@ class OrderService {
       });
 
       debugPrint('✅ Statut mis à jour avec succès');
-      
+
     } catch (e) {
       debugPrint('❌ Erreur MAJ statut: $e');
       throw Exception('Impossible de mettre à jour le statut: $e');
@@ -194,12 +230,27 @@ class OrderService {
   static Future<void> cancelOrder(String orderId, String reason) async {
     try {
       debugPrint('❌ Annulation commande $orderId - Raison: $reason');
-      
+
+      // Récupérer la commande pour libérer le stock
+      final order = await getOrderById(orderId);
+      if (order != null) {
+        // Libérer le stock réservé
+        final productsQuantities = <String, int>{};
+        for (final item in order.items) {
+          productsQuantities[item.productId] = item.quantity;
+        }
+
+        await StockManagementService.releaseStockBatch(
+          productsQuantities: productsQuantities,
+        );
+        debugPrint('✅ Stock libéré pour ${order.items.length} produit(s)');
+      }
+
       await _firestore
           .collection(FirebaseCollections.orders)
           .doc(orderId)
           .update({
-        'status': OrderStatus.cancelled.value,
+        'status': OrderStatus.annulee.value,
         'cancellationReason': reason,
         'cancelledAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
@@ -211,13 +262,13 @@ class OrderService {
           .doc(orderId)
           .collection('statusHistory')
           .add({
-        'status': OrderStatus.cancelled.value,
+        'status': OrderStatus.annulee.value,
         'reason': reason,
         'changedAt': FieldValue.serverTimestamp(),
       });
 
       debugPrint('✅ Commande annulée avec succès');
-      
+
     } catch (e) {
       debugPrint('❌ Erreur annulation commande: $e');
       throw Exception('Impossible d\'annuler la commande: $e');

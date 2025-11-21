@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/analytics_service.dart';
 
@@ -314,36 +314,44 @@ class _BusinessProScreenState extends State<BusinessProScreen> {
             _buildMenuItem(
               icon: Icons.person_outline,
               title: 'Mon Profil',
-              subtitle: 'Gérer mes informations personnelles',
+              subtitle: 'Informations personnelles et paramètres',
               onTap: () => context.push('/acheteur/profile'),
             ),
 
             _buildMenuItem(
-              icon: Icons.location_on,
-              title: 'Mes adresses',
-              subtitle: 'Gérer mes adresses de livraison',
-              onTap: () => context.push('/acheteur/addresses'),
-            ),
-
-            _buildMenuItem(
-              icon: Icons.notifications,
-              title: 'Notifications',
-              subtitle: 'Gérer mes notifications',
-              onTap: () => context.push('/notifications'),
-            ),
-
-            _buildMenuItem(
-              icon: Icons.shopping_bag,
+              icon: Icons.shopping_bag_outlined,
               title: 'Mes commandes',
-              subtitle: 'Suivre mes achats',
+              subtitle: 'Historique et suivi de vos achats',
               onTap: () => context.push('/acheteur/orders'),
             ),
 
             _buildMenuItem(
-              icon: Icons.favorite,
+              icon: Icons.favorite_outline,
               title: 'Mes favoris',
-              subtitle: 'Produits sauvegardés',
+              subtitle: 'Produits que vous aimez',
               onTap: () => context.push('/favorites'),
+            ),
+
+            _buildMenuItem(
+              icon: Icons.history,
+              title: 'Historique de navigation',
+              subtitle: 'Produits récemment consultés',
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Fonctionnalité à venir')),
+                );
+              },
+            ),
+
+            _buildMenuItem(
+              icon: Icons.rate_review_outlined,
+              title: 'Mes avis',
+              subtitle: 'Évaluations et commentaires',
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Fonctionnalité à venir')),
+                );
+              },
             ),
 
             const SizedBox(height: AppSpacing.md),

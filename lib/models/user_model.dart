@@ -3,8 +3,49 @@
 // Équivalent de vos types TypeScript user.types.ts
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../config/constants.dart'; // ✅ Import pour utiliser le UserType des constants
+import 'package:social_business_pro/config/constants.dart'; // ✅ Import pour utiliser le UserType des constants
 
+// ===== HELPER FUNCTIONS =====
+/// Parse une date depuis Firestore - supporte Timestamp ET String
+DateTime? _parseDateField(dynamic value) {
+  if (value == null) return null;
+
+  // Cas 1: C'est déjà un Timestamp Firestore
+  if (value is Timestamp) {
+    return value.toDate();
+  }
+
+  // Cas 2: C'est une String (format ISO ou autre)
+  if (value is String) {
+    try {
+      return DateTime.parse(value);
+    } catch (e) {
+      // Si le parsing échoue, retourner null
+      return null;
+    }
+  }
+
+  // Cas 3: Type inconnu
+  return null;
+}
+
+/// Parse une liste de String depuis Firestore - protection contre String unique
+List<String> _parseStringList(dynamic value) {
+  if (value == null) return [];
+
+  // Cas 1: C'est déjà une List
+  if (value is List) {
+    return value.map((e) => e.toString()).toList();
+  }
+
+  // Cas 2: C'est une String unique (erreur de format)
+  if (value is String) {
+    return value.isEmpty ? [] : [value];
+  }
+
+  // Cas 3: Type inconnu
+  return [];
+}
 
 // ===== MODÈLE UTILISATEUR PRINCIPAL =====
 class UserModel {
@@ -59,12 +100,12 @@ class UserModel {
         orElse: () => VerificationStatus.notVerified,
       ),
       isActive: data['isActive'] ?? true,
-      deviceTokens: List<String>.from(data['deviceTokens'] ?? []),
+      deviceTokens: _parseStringList(data['deviceTokens']),
       preferences: UserPreferences.fromMap(data['preferences'] ?? {}),
       profile: Map<String, dynamic>.from(data['profile'] ?? {}),
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      lastLoginAt: (data['lastLoginAt'] as Timestamp?)?.toDate(),
+      createdAt: _parseDateField(data['createdAt']) ?? DateTime.now(),
+      updatedAt: _parseDateField(data['updatedAt']) ?? DateTime.now(),
+      lastLoginAt: _parseDateField(data['lastLoginAt']),
     );
   }
 
@@ -85,12 +126,12 @@ class UserModel {
         orElse: () => VerificationStatus.notVerified,
       ),
       isActive: data['isActive'] ?? true,
-      deviceTokens: List<String>.from(data['deviceTokens'] ?? []),
+      deviceTokens: _parseStringList(data['deviceTokens']),
       preferences: UserPreferences.fromMap(data['preferences'] ?? {}),
       profile: Map<String, dynamic>.from(data['profile'] ?? {}),
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      lastLoginAt: (data['lastLoginAt'] as Timestamp?)?.toDate(),
+      createdAt: _parseDateField(data['createdAt']) ?? DateTime.now(),
+      updatedAt: _parseDateField(data['updatedAt']) ?? DateTime.now(),
+      lastLoginAt: _parseDateField(data['lastLoginAt']),
     );
   }
 
@@ -241,7 +282,7 @@ class VendeurProfile {
       businessDescription: data['businessDescription'],
       businessCategory: data['businessCategory'] ?? '',
       businessAddress: data['businessAddress'],
-      deliveryZones: List<String>.from(data['deliveryZones'] ?? []),
+      deliveryZones: _parseStringList(data['deliveryZones']),
       deliveryPrice: (data['deliveryPrice'] ?? 0).toDouble(),
       freeDeliveryThreshold: data['freeDeliveryThreshold']?.toDouble(),
       acceptsCashOnDelivery: data['acceptsCashOnDelivery'] ?? true,
@@ -306,7 +347,7 @@ class AcheteurProfile {
       addresses: (data['addresses'] as List?)
           ?.map((addr) => Address.fromMap(addr))
           .toList() ?? [],
-      favorites: List<String>.from(data['favorites'] ?? []),
+      favorites: _parseStringList(data['favorites']),
       totalPurchases: data['totalPurchases'] ?? 0,
       totalSpent: (data['totalSpent'] ?? 0).toDouble(),
       totalOrders: data['totalOrders'] ?? 0,
@@ -375,12 +416,10 @@ class LivreurProfile {
       reviewsCount: data['reviewsCount'] ?? 0,
       totalDeliveries: data['totalDeliveries'] ?? 0,
       totalEarnings: (data['totalEarnings'] ?? 0).toDouble(),
-      currentLocation: data['currentLocation'] != null 
-          ? LocationCoords.fromMap(data['currentLocation']) 
+      currentLocation: data['currentLocation'] != null
+          ? LocationCoords.fromMap(data['currentLocation'])
           : null,
-      lastLocationUpdate: data['lastLocationUpdate'] != null
-          ? (data['lastLocationUpdate'] as Timestamp).toDate()
-          : null,
+      lastLocationUpdate: _parseDateField(data['lastLocationUpdate']),
       deliveryRates: DeliveryRates.fromMap(data['deliveryRates'] ?? {}),
       workingHours: WorkingHours.fromMap(data['workingHours'] ?? {}),
       documents: Map<String, String>.from(data['documents'] ?? {}),

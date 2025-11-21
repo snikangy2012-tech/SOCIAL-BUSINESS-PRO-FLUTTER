@@ -9,7 +9,9 @@ import '../../models/delivery_model.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/firebase_service.dart';
 import '../../services/delivery_service.dart';
-import '../../config/constants.dart';
+import '../../services/review_service.dart';
+import 'package:social_business_pro/config/constants.dart';
+import '../../utils/number_formatter.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 
@@ -73,9 +75,19 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
           }
 
           if (mounted) {
+            // Filtrer seulement les livraisons terminées pour l'historique
+            final completedDeliveries = deliveries.where((d) {
+              final status = d.status.toLowerCase();
+              return status == 'delivered' ||
+                     status == 'completed' ||
+                     status == 'cancelled';
+            }).toList();
+
+            debugPrint('📋 Historique: ${completedDeliveries.length} livraisons terminées sur ${deliveries.length} total');
+
             setState(() {
               _currentUser = user;
-              _deliveryHistory = deliveries;
+              _deliveryHistory = completedDeliveries;
               if (user.profile['isAvailable'] != null) {
                 _isAvailable = user.profile['isAvailable'] as bool;
               } else {
@@ -123,7 +135,7 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
     }
   }
 
-  void _calculateStatistics() {
+  void _calculateStatistics() async {
     _totalDeliveries = _deliveryHistory.length;
     _completedDeliveries = _deliveryHistory
         .where((d) => d.status.toLowerCase() == 'delivered')
@@ -133,9 +145,26 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
         .where((d) => d.status.toLowerCase() == 'delivered')
         .fold<double>(0, (sum, delivery) => sum + delivery.deliveryFee);
 
-    _averageRating = 0;
+    // Charger la note moyenne réelle depuis ReviewService
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userId = authProvider.user?.id;
 
-    setState(() {});
+    if (userId != null) {
+      try {
+        final reviewService = ReviewService();
+        _averageRating = await reviewService.getAverageRating(userId, 'livreur');
+        debugPrint('⭐ Note moyenne livreur chargée: $_averageRating');
+      } catch (e) {
+        debugPrint('⚠️ Erreur chargement note livreur: $e');
+        _averageRating = 0;
+      }
+    } else {
+      _averageRating = 0;
+    }
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _toggleAvailability() async {
@@ -409,7 +438,7 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
           child: Icon(Icons.local_shipping, color: color),
         ),
         title: Text(
-          delivery.id.substring(0, 8),
+          formatDeliveryNumber(delivery.id, allDeliveries: _deliveryHistory),
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
@@ -517,6 +546,12 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: _showEditProfileDialog,
+            tooltip: 'Modifier le profil',
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _showLogoutDialog,
+            tooltip: 'Se déconnecter',
           ),
         ],
       ),
@@ -673,6 +708,30 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
                 ),
               ),
 
+              // Section Documents
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Documents',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildMenuTile(
+                      icon: Icons.folder_outlined,
+                      title: 'Gérer mes documents',
+                      subtitle: 'Permis, assurance, carte grise, etc.',
+                      onTap: () => context.push('/livreur/documents'),
+                    ),
+                  ],
+                ),
+              ),
+
               // Section Paramètres
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
@@ -688,6 +747,18 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
                     ),
                     const SizedBox(height: 8),
                     _buildMenuTile(
+                      icon: Icons.rate_review,
+                      title: 'Mes avis clients',
+                      subtitle: 'Consulter vos avis et votre note',
+                      onTap: () => context.push('/livreur/reviews'),
+                    ),
+                    _buildMenuTile(
+                      icon: Icons.settings,
+                      title: 'Paramètres utilisateur',
+                      subtitle: 'Notifications, thème, langue',
+                      onTap: () => context.push('/user-settings'),
+                    ),
+                    _buildMenuTile(
                       icon: Icons.lock_outline,
                       title: 'Mot de passe',
                       subtitle: 'Changer votre mot de passe',
@@ -697,7 +768,7 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
                       icon: Icons.logout,
                       title: 'Se Déconnecter',
                       subtitle: 'Se déconnecter de l\'application',
-                      onTap: () => _showLogoutDialog(),
+                      onTap: _showLogoutDialog,
                     ),
                   ],
                 ),
@@ -798,7 +869,7 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
               else
                 ..._deliveryHistory.map((delivery) => _buildDeliveryHistoryItem(delivery)),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 32),
             ],
           ),
         ),

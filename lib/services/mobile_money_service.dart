@@ -4,6 +4,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 
 import '../../models/payment_model.dart';
 
@@ -69,6 +70,7 @@ class ProviderConfig {
   final int maxAmount;
   final double feeRate;
   final String color;
+  final String description;
 
   ProviderConfig({
     required this.name,
@@ -78,12 +80,13 @@ class ProviderConfig {
     required this.maxAmount,
     required this.feeRate,
     required this.color,
+    required this.description,
   });
 }
 
 // ===== SERVICE PRINCIPAL =====
 
-/// Service de paiement Mobile Money intégrant Orange Money, MTN MoMo et Wave
+/// Service de paiement Mobile Money intégrant Orange Money, MTN MoMo, Moov Money et Wave
 class MobileMoneyService {
   static const String _baseUrl = 'https://api.socialbusinesspro.ci/v1';
   
@@ -97,6 +100,7 @@ class MobileMoneyService {
       maxAmount: 1500000,
       feeRate: 0.02, // 2%
       color: '#FF6600',
+      description: 'Paiement rapide et sécurisé avec Orange Money',
     ),
     'mtn_momo': ProviderConfig(
       name: 'MTN Mobile Money',
@@ -106,6 +110,17 @@ class MobileMoneyService {
       maxAmount: 1000000,
       feeRate: 0.015, // 1.5%
       color: '#FFCC00',
+      description: 'Payez facilement avec MTN MoMo',
+    ),
+    'moov_money': ProviderConfig(
+      name: 'Moov Money',
+      code: 'MOOV',
+      prefixes: ['01', '02', '03'],
+      minAmount: 100,
+      maxAmount: 1000000,
+      feeRate: 0.015, // 1.5%
+      color: '#009FE3',
+      description: 'Transaction instantanée avec Moov Money',
     ),
     'wave': ProviderConfig(
       name: 'Wave',
@@ -115,6 +130,7 @@ class MobileMoneyService {
       maxAmount: 2000000,
       feeRate: 0.01, // 1%
       color: '#00D4AA',
+      description: 'Frais réduits avec Wave - 1% seulement',
     ),
   };
 
@@ -360,6 +376,32 @@ class MobileMoneyService {
     }
   }
 
+  /// Rafraîchir le token d'authentification (force le renouvellement)
+  /// Utile si l'API retourne une erreur 401 Unauthorized
+  static Future<String> refreshAuthToken() async {
+    try {
+      final currentUser = firebase_auth.FirebaseAuth.instance.currentUser;
+
+      if (currentUser == null) {
+        throw PaymentException('Utilisateur non authentifié');
+      }
+
+      // force: true = force le renouvellement du token même s'il n'est pas expiré
+      final newToken = await currentUser.getIdToken(true);
+
+      if (newToken == null) {
+        throw PaymentException('Impossible de rafraîchir le token');
+      }
+
+      debugPrint('✅ Token JWT rafraîchi avec succès');
+      return newToken;
+
+    } catch (e) {
+      debugPrint('❌ Erreur rafraîchissement token: $e');
+      throw PaymentException('Impossible de rafraîchir le token: ${e.toString()}');
+    }
+  }
+
   /// Obtenir l'historique des paiements
   static Future<List<PaymentModel>> getPaymentHistory({
     required String userId,
@@ -422,10 +464,44 @@ class MobileMoneyService {
     return cleanPhone;
   }
 
-  /// Obtenir le token d'authentification
+  /// Obtenir le token d'authentification JWT depuis Firebase Auth
   static Future<String> _getAuthToken() async {
-    // TODO: Implémenter la récupération du token JWT depuis le stockage local
-    // ou depuis votre AuthProvider
-    return 'mock-token-for-development';
+    try {
+      // Récupérer l'utilisateur Firebase actuellement connecté
+      final currentUser = firebase_auth.FirebaseAuth.instance.currentUser;
+
+      if (currentUser == null) {
+        debugPrint('⚠️ Mobile Money: Aucun utilisateur connecté');
+        // En développement, retourner un mock token
+        if (kDebugMode) {
+          debugPrint('🔧 Mode développement: Utilisation d\'un mock token');
+          return 'dev-mock-token-${DateTime.now().millisecondsSinceEpoch}';
+        }
+        throw PaymentException('Utilisateur non authentifié');
+      }
+
+      // Obtenir le token JWT de Firebase Auth
+      // force: false = utilise le cache si le token n'est pas expiré
+      final idToken = await currentUser.getIdToken(false);
+
+      if (idToken == null) {
+        debugPrint('❌ Impossible de récupérer le token JWT');
+        throw PaymentException('Erreur d\'authentification');
+      }
+
+      debugPrint('✅ Token JWT récupéré pour Mobile Money API');
+      return idToken;
+
+    } catch (e) {
+      debugPrint('❌ Erreur récupération token: $e');
+
+      // En mode développement, retourner un mock token pour permettre les tests
+      if (kDebugMode) {
+        debugPrint('🔧 Fallback: Mock token pour développement');
+        return 'dev-mock-token-${DateTime.now().millisecondsSinceEpoch}';
+      }
+
+      throw PaymentException('Impossible de récupérer le token d\'authentification');
+    }
   }
 }

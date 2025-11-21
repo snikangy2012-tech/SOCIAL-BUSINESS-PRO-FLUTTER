@@ -15,6 +15,7 @@ class ProductModel {
   final String? brand;
   final List<String> images;
   final int stock;
+  final int reservedStock; // Stock réservé par commandes en cours
   final String? sku; // Référence produit
   final List<String> tags;
   final bool isActive;
@@ -26,6 +27,9 @@ class ProductModel {
   final DateTime updatedAt;
   final bool isFlashSale; // ✅ AJOUT : Produit en promotion flash
   final bool isNew; // ✅ AJOUT : Produit nouveau
+  final int shareCount; // Nombre de partages (viralité)
+  final int viewCount; // Nombre de vues
+  final DateTime? discountEndDate; // Date de fin de la promotion
 
   ProductModel({
     required this.id,
@@ -38,6 +42,7 @@ class ProductModel {
     this.brand,
     required this.images,
     required this.stock,
+    this.reservedStock = 0,
     this.sku,
     this.tags = const [],
     required this.isActive,
@@ -49,6 +54,9 @@ class ProductModel {
     required this.updatedAt,
     required this.isFlashSale, // ✅ AJOUT : Initialisation
     required this.isNew, // ✅ AJOUT : Initialisation
+    this.shareCount = 0,
+    this.viewCount = 0,
+    this.discountEndDate,
   });
 
   /// Créer depuis Firestore
@@ -64,6 +72,7 @@ class ProductModel {
       brand: data['brand'],
       images: List<String>.from(data['images'] ?? []),
       stock: data['stock'] ?? 0,
+      reservedStock: data['reservedStock'] ?? 0,
       sku: data['sku'],
       tags: List<String>.from(data['tags'] ?? []),
       isActive: data['isActive'] ?? true,
@@ -77,6 +86,9 @@ class ProductModel {
       updatedAt: data['updatedAt']?.toDate() ?? DateTime.now(),
       isFlashSale: data['isFlashSale'] ?? false, // ✅ AJOUT : Initialisation
       isNew: data['isNew'] ?? false, // ✅ AJOUT : Initialisation
+      shareCount: data['shareCount'] ?? 0,
+      viewCount: data['viewCount'] ?? 0,
+      discountEndDate: data['discountEndDate']?.toDate(),
     );
   }
 
@@ -93,6 +105,7 @@ class ProductModel {
       'brand': brand,
       'images': images,
       'stock': stock,
+      'reservedStock': reservedStock,
       'sku': sku,
       'tags': tags,
       'isActive': isActive,
@@ -104,6 +117,9 @@ class ProductModel {
       'updatedAt': Timestamp.fromDate(updatedAt),
       'isFlashSale': isFlashSale,
       'isNew': isNew,
+      'shareCount': shareCount,
+      'viewCount': viewCount,
+      'discountEndDate': discountEndDate != null ? Timestamp.fromDate(discountEndDate!) : null,
     };
   }
 
@@ -119,6 +135,7 @@ class ProductModel {
     String? brand,
     List<String>? images,
     int? stock,
+    int? reservedStock,
     String? sku,
     List<String>? tags,
     bool? isActive,
@@ -130,6 +147,9 @@ class ProductModel {
     DateTime? updatedAt,
     bool? isFlashSale,
     bool? isNew,
+    int? shareCount,
+    int? viewCount,
+    DateTime? discountEndDate,
   }) {
     return ProductModel(
       id: id ?? this.id,
@@ -142,6 +162,7 @@ class ProductModel {
       brand: brand ?? this.brand,
       images: images ?? this.images,
       stock: stock ?? this.stock,
+      reservedStock: reservedStock ?? this.reservedStock,
       sku: sku ?? this.sku,
       tags: tags ?? this.tags,
       isActive: isActive ?? this.isActive,
@@ -153,6 +174,9 @@ class ProductModel {
       updatedAt: updatedAt ?? this.updatedAt,
       isFlashSale: isFlashSale ?? this.isFlashSale,
       isNew: isNew ?? this.isNew,
+      shareCount: shareCount ?? this.shareCount,
+      viewCount: viewCount ?? this.viewCount,
+      discountEndDate: discountEndDate ?? this.discountEndDate,
     );
   }
 
@@ -167,21 +191,33 @@ class ProductModel {
     return (((originalPrice! - price) / originalPrice!) * 100).round();
   }
 
+  /// Vérifier si la promotion est encore valide
+  bool get isDiscountActive {
+    if (!hasPromotion) return false;
+    if (discountEndDate == null) return true; // Promo sans limite de temps
+    return DateTime.now().isBefore(discountEndDate!);
+  }
+
+  /// Stock disponible (stock total - stock réservé)
+  int get availableStock {
+    return stock - reservedStock;
+  }
+
   /// Vérifier si le produit est en rupture de stock
   bool get isOutOfStock {
-    return stock <= 0;
+    return availableStock <= 0;
   }
 
   /// Vérifier si le stock est faible
   bool get isLowStock {
-    return stock > 0 && stock <= 5;
+    return availableStock > 0 && availableStock <= 5;
   }
 
   /// Obtenir le statut du stock en texte
   String get stockStatus {
     if (isOutOfStock) return 'Rupture de stock';
-    if (isLowStock) return 'Stock faible ($stock)';
-    return 'En stock ($stock)';
+    if (isLowStock) return 'Stock faible ($availableStock disponibles)';
+    return 'En stock ($availableStock disponibles)';
   }
 
   /// Obtenir la couleur du statut du stock

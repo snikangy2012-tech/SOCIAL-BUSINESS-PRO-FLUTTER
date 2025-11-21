@@ -4,7 +4,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
-import '../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 
 /// Service d'analytics
 class AnalyticsService {

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/review_model.dart';
 import '../../services/review_service.dart';
-import '../../config/constants.dart';
+import 'package:social_business_pro/config/constants.dart';
 
 class ReviewsScreen extends StatefulWidget {
   final String targetId; // Product ID, Vendor ID, or Livreur ID

@@ -8,7 +8,8 @@ import '../../models/order_model.dart';
 import '../../services/firebase_service.dart';
 import '../../services/product_service.dart';
 import '../../services/order_service.dart';
-import '../../config/constants.dart';
+import '../../services/review_service.dart';
+import 'package:social_business_pro/config/constants.dart';
 
 class VendorManagementScreen extends StatefulWidget {
   const VendorManagementScreen({super.key});
@@ -20,11 +21,14 @@ class VendorManagementScreen extends StatefulWidget {
 class _VendorManagementScreenState extends State<VendorManagementScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
+  final ReviewService _reviewService = ReviewService();
 
   List<UserModel> _allVendors = [];
   List<UserModel> _filteredVendors = [];
+  Map<String, double> _vendorRatings = {}; // Map vendorId -> rating
   bool _isLoading = false;
   String _selectedStatus = 'all'; // all, pending, approved, suspended
+  String _sortBy = 'date'; // 'date', 'rating'
 
   @override
   void initState() {
@@ -77,8 +81,21 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> with Si
           .map((doc) => UserModel.fromFirestore(doc))
           .toList();
 
+      // Charger les notes de chaque vendeur
+      final ratings = <String, double>{};
+      for (final vendor in vendors) {
+        try {
+          final rating = await _reviewService.getAverageRating(vendor.id, 'vendor');
+          ratings[vendor.id] = rating;
+        } catch (e) {
+          debugPrint('⚠️ Erreur chargement note vendeur ${vendor.id}: $e');
+          ratings[vendor.id] = 0.0;
+        }
+      }
+
       setState(() {
         _allVendors = vendors;
+        _vendorRatings = ratings;
         _isLoading = false;
       });
 
@@ -112,8 +129,16 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> with Si
         return matchesQuery && matchesStatus;
       }).toList();
 
-      // Sort by creation date (newest first)
-      _filteredVendors.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      // Trier selon le critère sélectionné
+      if (_sortBy == 'rating') {
+        _filteredVendors.sort((a, b) {
+          final ratingA = _vendorRatings[a.id] ?? 0.0;
+          final ratingB = _vendorRatings[b.id] ?? 0.0;
+          return ratingB.compareTo(ratingA); // Décroissant
+        });
+      } else {
+        _filteredVendors.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      }
     });
   }
 
@@ -282,7 +307,10 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> with Si
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              // Affichage de la note
+              _buildRatingRow(vendor.id),
+              const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -347,6 +375,65 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> with Si
     return '${date.day}/${date.month}/${date.year}';
   }
 
+  Widget _buildRatingRow(String vendorId) {
+    final rating = _vendorRatings[vendorId] ?? 0.0;
+    final hasRating = rating > 0;
+
+    Color ratingColor;
+    String ratingLabel;
+    if (rating >= 4.5) {
+      ratingColor = AppColors.success;
+      ratingLabel = 'Excellent';
+    } else if (rating >= 4.0) {
+      ratingColor = AppColors.info;
+      ratingLabel = 'Bon';
+    } else if (rating >= 3.5) {
+      ratingColor = AppColors.warning;
+      ratingLabel = 'Correct';
+    } else if (rating >= 3.0) {
+      ratingColor = Colors.orange;
+      ratingLabel = 'À améliorer';
+    } else if (hasRating) {
+      ratingColor = AppColors.error;
+      ratingLabel = 'Non recommandé';
+    } else {
+      ratingColor = AppColors.textSecondary;
+      ratingLabel = 'Aucun avis';
+    }
+
+    return Row(
+      children: [
+        Icon(Icons.star, size: 16, color: ratingColor),
+        const SizedBox(width: 8),
+        Text(
+          hasRating ? '${rating.toStringAsFixed(1)}/5.0' : 'Aucune note',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: ratingColor,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: ratingColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: ratingColor.withValues(alpha: 0.3)),
+          ),
+          child: Text(
+            ratingLabel,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              color: ratingColor,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final pendingCount = _allVendors.where((v) {
@@ -366,6 +453,44 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> with Si
       appBar: AppBar(
         title: const Text('Gestion Vendeurs'),
         actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.sort),
+            tooltip: 'Trier par',
+            onSelected: (value) {
+              setState(() => _sortBy = value);
+              _filterVendors();
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'date',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      size: 20,
+                      color: _sortBy == 'date' ? AppColors.primary : Colors.grey,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('Date d\'inscription'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'rating',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.star,
+                      size: 20,
+                      color: _sortBy == 'rating' ? AppColors.primary : Colors.grey,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('Note moyenne'),
+                  ],
+                ),
+              ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadVendors,

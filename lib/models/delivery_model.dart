@@ -100,6 +100,11 @@ class DeliveryModel {
     );
   }
 
+  factory DeliveryModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return DeliveryModel.fromMap({...data, 'id': doc.id});
+  }
+
   /// Convertir en Map pour Firestore
   Map<String, dynamic> toMap() {
     return {
