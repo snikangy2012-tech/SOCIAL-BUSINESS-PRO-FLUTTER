@@ -124,6 +124,45 @@ class DeliveryService {
 
       final db = FirebaseFirestore.instance;
 
+      // ✅ VÉRIFICATION: Vérifier si une livraison existe déjà pour cette commande
+      final existingDeliverySnapshot = await db
+          .collection(FirebaseCollections.deliveries)
+          .where('orderId', isEqualTo: orderId)
+          .limit(1)
+          .get();
+
+      if (existingDeliverySnapshot.docs.isNotEmpty) {
+        debugPrint('⚠️ Une livraison existe déjà pour la commande $orderId');
+        final existingDelivery = DeliveryModel.fromFirestore(existingDeliverySnapshot.docs.first);
+
+        // Si la livraison existante est assignée à un autre livreur, erreur
+        if (existingDelivery.livreurId != null && existingDelivery.livreurId != livreurId) {
+          throw Exception('Cette commande est déjà assignée à un autre livreur');
+        }
+
+        // Si c'est le même livreur, mettre à jour au lieu de créer
+        if (existingDelivery.livreurId == livreurId) {
+          debugPrint('✅ Livraison déjà existante pour ce livreur, retour de la livraison existante');
+          return existingDelivery;
+        }
+
+        // Sinon, mettre à jour avec le nouveau livreur
+        await existingDeliverySnapshot.docs.first.reference.update({
+          'livreurId': livreurId,
+          'status': 'assigned',
+          'assignedAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        debugPrint('✅ Livraison existante mise à jour avec le nouveau livreur');
+        return existingDelivery.copyWith(
+          livreurId: livreurId,
+          status: 'assigned',
+          assignedAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+      }
+
       // Récupérer les détails de la commande
       final orderDoc = await db
           .collection(FirebaseCollections.orders)
