@@ -10,8 +10,10 @@ import 'package:intl/intl.dart';
 import 'package:social_business_pro/config/constants.dart';
 import '../../models/delivery_model.dart';
 import '../../services/delivery_service.dart';
+import '../../services/delivery_grouping_service.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../utils/number_formatter.dart';
+import 'grouped_deliveries_screen.dart';
 
 class DeliveryListScreen extends StatefulWidget {
   const DeliveryListScreen({super.key});
@@ -150,6 +152,10 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Détecter les opportunités de tournées groupées dans les livraisons assignées
+    final assignedDeliveries = _getFilteredDeliveries('assigned');
+    final groupedOpportunities = DeliveryGroupingService.findMultiDeliveryVendors(assignedDeliveries);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mes Livraisons'),
@@ -207,7 +213,309 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
           ? _buildLoadingState()
           : _errorMessage != null
               ? _buildErrorState()
-              : _buildContent(),
+              : Column(
+                  children: [
+                    // Indicateur de tournées groupées disponibles
+                    if (groupedOpportunities.isNotEmpty)
+                      _buildGroupedOpportunitiesBanner(context, groupedOpportunities),
+                    // Contenu principal
+                    Expanded(child: _buildContent()),
+                  ],
+                ),
+    );
+  }
+
+  Widget _buildGroupedOpportunitiesBanner(
+    BuildContext context,
+    Map<String, List<DeliveryModel>> opportunities,
+  ) {
+    // Compter le nombre total de livraisons groupables
+    final totalGroupedDeliveries = opportunities.values.fold<int>(
+      0,
+      (sum, list) => sum + list.length,
+    );
+
+    return Container(
+      margin: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.success,
+            AppColors.success.withValues(alpha: 0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.success.withValues(alpha: 0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          onTap: () => _showGroupedOpportunitiesSheet(context, opportunities),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.local_shipping,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Tournées groupées disponibles !',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$totalGroupedDeliveries livraisons · ${opportunities.length} vendeur(s)',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showGroupedOpportunitiesSheet(
+    BuildContext context,
+    Map<String, List<DeliveryModel>> opportunities,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(AppRadius.lg),
+            topRight: Radius.circular(AppRadius.lg),
+          ),
+        ),
+        child: Column(
+          children: [
+            // Handle
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+
+            // Titre
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Row(
+                children: [
+                  const Icon(Icons.route, color: AppColors.primary),
+                  const SizedBox(width: AppSpacing.sm),
+                  const Expanded(
+                    child: Text(
+                      'Tournées groupées disponibles',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+
+            const Divider(height: 1),
+
+            // Liste des opportunités
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                itemCount: opportunities.length,
+                itemBuilder: (context, index) {
+                  final vendeurId = opportunities.keys.elementAt(index);
+                  final deliveries = opportunities[vendeurId]!;
+                  final stats = DeliveryGroupingService.calculateGroupStats(deliveries);
+                  final timeSaved = DeliveryGroupingService.estimateTimeSaved(deliveries);
+
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => GroupedDeliveriesScreen(
+                              deliveries: deliveries,
+                              vendeurId: vendeurId,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Nom du vendeur
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                                  ),
+                                  child: const Icon(
+                                    Icons.store,
+                                    color: AppColors.primary,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: Text(
+                                    stats.vendeurName,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: AppSpacing.md),
+
+                            // Statistiques
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildStatChip(
+                                    '${stats.totalDeliveries}',
+                                    'livraisons',
+                                    Icons.inventory_2,
+                                    AppColors.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: _buildStatChip(
+                                    '$timeSaved min',
+                                    'économisées',
+                                    Icons.timer,
+                                    AppColors.success,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: _buildStatChip(
+                                    '${stats.totalFee.toStringAsFixed(0)} F',
+                                    'à gagner',
+                                    Icons.monetization_on,
+                                    AppColors.warning,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatChip(String value, String label, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 8,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 9,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 
@@ -556,6 +864,7 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
           ),
         );
 
+      case 'assigned': // ✅ Ajouté: livraisons assignées au livreur
       case 'accepted':
         return ElevatedButton.icon(
           onPressed: () => context.push('/livreur/delivery-detail/${delivery.id}'),
