@@ -8,6 +8,7 @@ import 'package:social_business_pro/screens/admin/admin_dashboard.dart';
 import 'package:social_business_pro/screens/admin/user_management_screen.dart';
 import 'package:social_business_pro/screens/admin/global_statistics_screen.dart';
 import 'package:social_business_pro/screens/admin/admin_profile_screen.dart';
+import 'package:social_business_pro/screens/admin/super_admin_finance_screen.dart';
 
 import 'package:social_business_pro/config/constants.dart';
 import '../../providers/auth_provider_firebase.dart' as auth;
@@ -21,13 +22,6 @@ class AdminMainScreen extends StatefulWidget {
 }
 
 class _AdminMainScreenState extends State<AdminMainScreen> {
-  // Liste des écrans admin
-  final List<Widget> _screens = const [
-    AdminDashboard(),           // Index 0: Dashboard
-    UserManagementScreen(),     // Index 1: Gestion utilisateurs
-    GlobalStatisticsScreen(),   // Index 2: Statistiques globales
-    AdminProfileScreen(),       // Index 3: Profil admin
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +38,77 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
+
+    // Vérifier si l'utilisateur est super admin
+    final isSuperAdmin = user.isSuperAdmin;
+
+    // Liste des écrans - ajouter Finance seulement pour super admin
+    final List<Widget> screens = isSuperAdmin
+        ? const [
+            AdminDashboard(),              // Index 0: Dashboard
+            UserManagementScreen(),        // Index 1: Gestion utilisateurs
+            GlobalStatisticsScreen(),      // Index 2: Statistiques globales
+            SuperAdminFinanceScreen(),     // Index 3: Finances (SUPER ADMIN ONLY)
+            AdminProfileScreen(),          // Index 4: Profil admin
+          ]
+        : const [
+            AdminDashboard(),              // Index 0: Dashboard
+            UserManagementScreen(),        // Index 1: Gestion utilisateurs
+            GlobalStatisticsScreen(),      // Index 2: Statistiques globales
+            AdminProfileScreen(),          // Index 3: Profil admin
+          ];
+
+    // Items de navigation - ajouter Finance seulement pour super admin
+    final List<BottomNavigationBarItem> navItems = isSuperAdmin
+        ? const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.dashboard),
+              activeIcon: Icon(Icons.dashboard, size: 28),
+              label: 'Dashboard',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.people),
+              activeIcon: Icon(Icons.people, size: 28),
+              label: 'Utilisateurs',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.analytics),
+              activeIcon: Icon(Icons.analytics, size: 28),
+              label: 'Statistiques',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.account_balance_wallet),
+              activeIcon: Icon(Icons.account_balance_wallet, size: 28),
+              label: 'Finance',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person),
+              activeIcon: Icon(Icons.person, size: 28),
+              label: 'Profil',
+            ),
+          ]
+        : const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.dashboard),
+              activeIcon: Icon(Icons.dashboard, size: 28),
+              label: 'Dashboard',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.people),
+              activeIcon: Icon(Icons.people, size: 28),
+              label: 'Utilisateurs',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.analytics),
+              activeIcon: Icon(Icons.analytics, size: 28),
+              label: 'Statistiques',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person),
+              activeIcon: Icon(Icons.person, size: 28),
+              label: 'Profil',
+            ),
+          ];
 
     return PopScope(
       canPop: true, // ✅ Permet la navigation retour (go_router gère les sous-pages)
@@ -81,15 +146,25 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
       },
       child: AnnotatedRegion<SystemUiOverlayStyle>(
         value: const SystemUiOverlayStyle(
-          systemNavigationBarColor: Color(0xFF000000),
-          systemNavigationBarIconBrightness: Brightness.light,
-          systemNavigationBarDividerColor: Color(0xFF000000),
+          // ✅ Barres système : fond BLANC OPAQUE avec icônes noires
+          systemNavigationBarColor: Color(0xFFFFFFFF), // Blanc opaque
+          systemNavigationBarIconBrightness: Brightness.dark, // Icônes noires
+          systemNavigationBarDividerColor: Colors.transparent,
+          systemNavigationBarContrastEnforced: true, // Force le contraste
+          // Status bar pour écrans sans AppBar
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark, // Icônes noires
+          statusBarBrightness: Brightness.light, // Pour iOS
         ),
         child: Scaffold(
-          extendBody: false,
-          body: IndexedStack(
-            index: navProvider.currentIndex,
-            children: _screens,
+          extendBody: false, // ✅ CRITIQUE: Empêche le contenu de passer sous la barre de navigation
+          body: SafeArea(
+            top: false, // AppBar gère le top
+            bottom: true, // ✅ FORCE le respect de la barre système en bas
+            child: IndexedStack(
+              index: navProvider.currentIndex,
+              children: screens,
+            ),
           ),
           bottomNavigationBar: BottomNavigationBar(
             currentIndex: navProvider.currentIndex,
@@ -99,28 +174,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
             unselectedItemColor: Colors.grey,
             selectedFontSize: 12,
             unselectedFontSize: 12,
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.dashboard),
-                activeIcon: Icon(Icons.dashboard, size: 28),
-                label: 'Dashboard',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.people),
-                activeIcon: Icon(Icons.people, size: 28),
-                label: 'Utilisateurs',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.analytics),
-                activeIcon: Icon(Icons.analytics, size: 28),
-                label: 'Statistiques',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person),
-                activeIcon: Icon(Icons.person, size: 28),
-                label: 'Profil',
-              ),
-            ],
+            items: navItems,
           ),
         ),
       ),

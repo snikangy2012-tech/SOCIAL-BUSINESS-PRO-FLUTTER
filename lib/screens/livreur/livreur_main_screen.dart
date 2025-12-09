@@ -77,16 +77,25 @@ class _LivreurMainScreenState extends State<LivreurMainScreen> {
       },
       child: AnnotatedRegion<SystemUiOverlayStyle>(
         value: const SystemUiOverlayStyle(
-          // ✅ Force les boutons système Android à rester OPAQUES (non transparents)
-          systemNavigationBarColor: Color(0xFF000000), // Fond noir opaque
-          systemNavigationBarIconBrightness: Brightness.light, // Icônes blanches
-          systemNavigationBarDividerColor: Color(0xFF000000), // Diviseur noir
+          // ✅ Barres système : fond BLANC OPAQUE avec icônes noires
+          systemNavigationBarColor: Color(0xFFFFFFFF), // Blanc opaque
+          systemNavigationBarIconBrightness: Brightness.dark, // Icônes noires
+          systemNavigationBarDividerColor: Colors.transparent,
+          systemNavigationBarContrastEnforced: true, // Force le contraste
+          // Status bar pour écrans sans AppBar
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark, // Icônes noires
+          statusBarBrightness: Brightness.light, // Pour iOS
         ),
         child: Scaffold(
-          extendBody: false, // ✅ Empêche le body de passer sous les boutons Android
-          body: IndexedStack(
-            index: _currentIndex,
-            children: _screens,
+          extendBody: false, // ✅ CRITIQUE: Empêche le contenu de passer sous la barre de navigation
+          body: SafeArea(
+            top: false, // AppBar gère le top
+            bottom: true, // ✅ FORCE le respect de la barre système en bas
+            child: IndexedStack(
+              index: _currentIndex,
+              children: _screens,
+            ),
           ),
           bottomNavigationBar: BottomNavigationBar(
             currentIndex: _currentIndex,

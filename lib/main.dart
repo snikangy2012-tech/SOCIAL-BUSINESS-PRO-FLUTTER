@@ -214,6 +214,18 @@ class SocialBusinessProApp extends StatelessWidget {
                 elevation: 0,
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
+                // ✅ CRITIQUE: Configuration globale pour TOUTES les AppBar
+                systemOverlayStyle: SystemUiOverlayStyle(
+                  // Status bar (en haut) - Transparente, icônes blanches pour AppBar colorée
+                  statusBarColor: Colors.transparent,
+                  statusBarIconBrightness: Brightness.light, // Icônes blanches
+                  statusBarBrightness: Brightness.dark, // Pour iOS
+                  // Navigation bar (en bas) - BLANC OPAQUE, icônes noires
+                  systemNavigationBarColor: Color(0xFFFFFFFF), // Blanc opaque
+                  systemNavigationBarIconBrightness: Brightness.dark, // Icônes noires
+                  systemNavigationBarDividerColor: Colors.transparent,
+                  systemNavigationBarContrastEnforced: true, // Force le contraste
+                ),
               ),
               bottomNavigationBarTheme: const BottomNavigationBarThemeData(
                 selectedItemColor: AppColors.primary,
