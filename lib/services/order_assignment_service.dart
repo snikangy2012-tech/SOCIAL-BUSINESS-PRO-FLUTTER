@@ -48,7 +48,7 @@ class OrderAssignmentService {
 
     return _firestore
         .collection(FirebaseCollections.orders)
-        .where('status', whereIn: ['ready', 'confirmed']) // Commandes prêtes ou confirmées
+        .where('status', isEqualTo: 'ready') // ✅ SEULEMENT les commandes ready (préparées)
         .snapshots()
         .map((snapshot) {
           final allOrders = snapshot.docs
@@ -60,7 +60,7 @@ class OrderAssignmentService {
               .where((order) => order.livreurId == null || order.livreurId!.isEmpty)
               .toList();
 
-          debugPrint('📦 ${orders.length} commandes disponibles dans le stream (statuts: ready/confirmed, sans livreur)');
+          debugPrint('📦 ${orders.length} commandes disponibles dans le stream (statut: ready, sans livreur)');
           return orders;
         });
   }
@@ -241,19 +241,39 @@ class OrderAssignmentService {
         throw Exception('Cette commande a déjà été assignée à un autre livreur');
       }
 
-      // Vérifier que le statut est "ready" ou "confirmed"
-      if (order.status != 'ready' && order.status != 'confirmed') {
-        debugPrint('❌ Commande pas disponible (statut: ${order.status})');
-        throw Exception('Cette commande n\'est pas disponible pour la livraison');
+      // ✅ SÉCURITÉ CRITIQUE: N'autoriser QUE le statut "ready"
+      // Le vendeur DOIT avoir confirmé ET préparé avant qu'un livreur puisse accepter
+      // Workflow: pending → confirmed → preparing → ready → en_cours
+      if (order.status != 'ready') {
+        debugPrint('❌ Commande pas prête (statut: ${order.status})');
+        debugPrint('   Le vendeur doit marquer la commande comme "ready" après préparation');
+        throw Exception('Cette commande n\'est pas encore prête pour la livraison.\nLe vendeur doit la préparer.');
       }
 
-      // Assigner le livreur et changer le statut
+      // Récupérer les infos du livreur
+      final livreurDoc = await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(livreurId)
+          .get();
+
+      String? livreurName;
+      String? livreurPhone;
+
+      if (livreurDoc.exists) {
+        final livreurData = livreurDoc.data();
+        livreurName = livreurData?['displayName'] ?? livreurData?['username'];
+        livreurPhone = livreurData?['phone'];
+      }
+
+      // Assigner le livreur et changer le statut à 'en_cours'
       await _firestore
           .collection(FirebaseCollections.orders)
           .doc(orderId)
           .update({
         'livreurId': livreurId,
-        'status': 'in_delivery',
+        'livreurName': livreurName,
+        'livreurPhone': livreurPhone,
+        'status': 'en_cours', // ✅ CORRIGÉ: utilise 'en_cours' au lieu de 'in_delivery'
         'updatedAt': FieldValue.serverTimestamp(),
       });
 

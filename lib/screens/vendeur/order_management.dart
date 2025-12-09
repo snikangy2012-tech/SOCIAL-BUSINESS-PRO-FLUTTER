@@ -4,11 +4,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:social_business_pro/config/constants.dart';
 import '../../models/order_model.dart';
 import '../../services/order_service.dart';
 import '../../providers/auth_provider_firebase.dart';
+import '../../utils/order_status_helper.dart';
 import 'assign_livreur_screen.dart';
 
 class OrderManagement extends StatefulWidget {
@@ -39,6 +41,7 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
     'en_attente',
     'en_cours',
     'livree',
+    'retourne',
     'annulee'
   ];
 
@@ -108,8 +111,44 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
       if (_selectedStatus == 'all') {
         _filteredOrders = _allOrders;
       } else {
-        _filteredOrders = _allOrders.where((order) => 
-            order.status.toLowerCase() == _selectedStatus).toList();
+        _filteredOrders = _allOrders.where((order) {
+          final status = order.status.toLowerCase();
+
+          switch (_selectedStatus) {
+            case 'en_attente':
+              // Commandes en attente = pending
+              return status == 'pending' || status == 'en_attente';
+
+            case 'en_cours':
+              // Commandes en cours = confirmed, ready, preparing, in_delivery
+              return status == 'confirmed' ||
+                     status == 'ready' ||
+                     status == 'preparing' ||
+                     status == 'in_delivery' ||
+                     status == 'in delivery' ||
+                     status == 'processing' ||
+                     status == 'en_cours';
+
+            case 'livree':
+              // Commandes livrées = delivered, completed, livree
+              return status == 'delivered' ||
+                     status == 'completed' ||
+                     status == 'livree';
+
+            case 'retourne':
+              // Commandes retournées (avec demande de remboursement)
+              return order.refundId != null;
+
+            case 'annulee':
+              // Commandes annulées = cancelled, canceled, annulee
+              return status == 'cancelled' ||
+                     status == 'canceled' ||
+                     status == 'annulee';
+
+            default:
+              return status == _selectedStatus;
+          }
+        }).toList();
       }
     });
   }
@@ -142,6 +181,20 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
         ),
       );
     }
+  }
+
+  // Vérifier s'il y a des commandes en cours
+  bool _hasOrdersInProgress() {
+    return _allOrders.any((order) {
+      final status = order.status.toLowerCase();
+      return status == 'confirmed' ||
+             status == 'ready' ||
+             status == 'preparing' ||
+             status == 'in_delivery' ||
+             status == 'in delivery' ||
+             status == 'processing' ||
+             status == 'en_cours';
+    });
   }
 
   // Activer/désactiver le mode sélection
@@ -237,6 +290,11 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
     }
   }
 
+  // Naviguer vers le détail de la commande
+  void _goToOrderDetail(String orderId) {
+    context.push('/vendeur/order-detail/$orderId');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -260,7 +318,8 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
               icon: const Icon(Icons.delivery_dining),
               tooltip: 'Assigner un livreur',
             ),
-          if (!_isSelectionMode && (_selectedStatus == 'ready' || _selectedStatus == 'confirmed' || _selectedStatus == 'all'))
+          // Afficher le bouton de sélection seulement s'il y a des commandes "en_cours"
+          if (!_isSelectionMode && _hasOrdersInProgress())
             IconButton(
               onPressed: _toggleSelectionMode,
               icon: const Icon(Icons.checklist),
@@ -401,7 +460,9 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
         side: isSelected ? const BorderSide(color: AppColors.primary, width: 2) : BorderSide.none,
       ),
       child: InkWell(
-        onTap: canBeSelected ? () => _toggleOrderSelection(order.id) : null,
+        onTap: canBeSelected
+            ? () => _toggleOrderSelection(order.id)
+            : () => _goToOrderDetail(order.id),
         borderRadius: BorderRadius.circular(AppRadius.lg),
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
@@ -595,66 +656,63 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
 
   // Badge de statut
   Widget _buildStatusBadge(String status) {
-    final statusInfo = _getStatusInfo(status);
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: statusInfo.color.withValues(alpha:0.1),
-        borderRadius: BorderRadius.circular(AppRadius.full),
-        border: Border.all(color: statusInfo.color.withValues(alpha:0.3)),
-      ),
-      child: Text(
-        statusInfo.label,
-        style: TextStyle(
-          fontSize: AppFontSizes.xs,
-          color: statusInfo.color,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
+    return OrderStatusHelper.statusBadge(status, compact: true);
   }
 
   // Actions selon le statut (SIMPLIFIÉ)
   Widget _buildStatusAction(OrderModel order) {
     switch (order.status.toLowerCase()) {
       case 'en_attente':
+      case 'pending':
+        // ✅ NOUVEAU: Afficher le bouton de confirmation pour le vendeur
         return Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            ElevatedButton(
-              onPressed: () => _updateOrderStatus(order.id, OrderStatus.enCours.value),
-              style: ElevatedButton.styleFrom(
+            TextButton(
+              onPressed: () => _goToOrderDetail(order.id),
+              style: TextButton.styleFrom(
                 backgroundColor: AppColors.success,
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                  vertical: AppSpacing.xs,
+                  horizontal: 12,
+                  vertical: 6,
                 ),
               ),
-              child: const Text('Confirmer'),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.check_circle, size: 16),
+                  SizedBox(width: 4),
+                  Text('Confirmer', style: TextStyle(fontSize: 13)),
+                ],
+              ),
             ),
-            const SizedBox(width: AppSpacing.xs),
+            const SizedBox(width: 8),
             TextButton(
               onPressed: () => _cancelOrder(order),
-              child: const Text('Refuser', style: TextStyle(color: AppColors.error)),
+              child: const Text('Annuler', style: TextStyle(color: AppColors.error, fontSize: 13)),
             ),
           ],
         );
 
       case 'en_cours':
-        return ElevatedButton(
-          onPressed: () => _assignLivreur(order),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.info,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.sm,
-              vertical: AppSpacing.xs,
+      case 'confirmed':
+      case 'preparing':
+        // Si aucun livreur n'est assigné, permettre l'assignation manuelle
+        if (order.livreurId == null || order.livreurId!.isEmpty) {
+          return ElevatedButton(
+            onPressed: () => _assignLivreur(order),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.info,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.xs,
+              ),
             ),
-          ),
-          child: const Text('Assigner livreur'),
-        );
+            child: const Text('Assigner livreur'),
+          );
+        }
+        return const SizedBox.shrink();
 
       case 'livree':
       case 'annulee':
@@ -937,21 +995,6 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
     );
   }
 
-  // Obtenir les informations de statut (SIMPLIFIÉ)
-  StatusInfo _getStatusInfo(String status) {
-    switch (status.toLowerCase()) {
-      case 'en_attente':
-        return StatusInfo('En attente', AppColors.warning);
-      case 'en_cours':
-        return StatusInfo('En cours', AppColors.info);
-      case 'livree':
-        return StatusInfo('Livrée', AppColors.success);
-      case 'annulee':
-        return StatusInfo('Annulée', AppColors.error);
-      default:
-        return StatusInfo(status, AppColors.textSecondary);
-    }
-  }
 
   // Obtenir le label du statut pour les onglets (SIMPLIFIÉ)
   String _getStatusLabel(String status) {
@@ -964,6 +1007,8 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
         return 'En cours';
       case 'livree':
         return 'Livrées';
+      case 'retourne':
+        return 'Retournées';
       case 'annulee':
         return 'Annulées';
       default:
@@ -991,13 +1036,5 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} à ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
-}
-
-// Classe pour les informations de statut
-class StatusInfo {
-  final String label;
-  final Color color;
-
-  StatusInfo(this.label, this.color);
 }
 

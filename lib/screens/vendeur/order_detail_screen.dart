@@ -15,6 +15,9 @@ import '../../services/delivery_service.dart';
 import '../../services/review_service.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../widgets/review_dialog.dart';
+import '../../utils/order_status_helper.dart';
+import '../../utils/number_formatter.dart';
+import 'assign_livreur_screen.dart';
 
 class OrderDetail extends StatefulWidget {
   final String orderId;
@@ -102,6 +105,24 @@ class _OrderDetailState extends State<OrderDetail> {
         newStatus,
       );
 
+      // 🚴 Si le nouveau statut est "ready", déclencher l'auto-assignment du livreur
+      if (newStatus == 'ready') {
+        debugPrint('🚀 Déclenchement auto-assignment livreur pour commande ${widget.orderId}');
+
+        // Lancer l'auto-assignment en arrière-plan (ne pas bloquer l'UI)
+        DeliveryService().autoAssignDeliveryToOrder(widget.orderId).then((success) {
+          if (success) {
+            debugPrint('✅ Auto-assignment livreur réussi');
+            // Recharger la commande pour afficher les infos du livreur
+            _loadOrder();
+          } else {
+            debugPrint('⚠️ Auto-assignment livreur échoué ou aucun livreur disponible');
+          }
+        }).catchError((error) {
+          debugPrint('❌ Erreur auto-assignment: $error');
+        });
+      }
+
       // ✅ Recharger complètement la commande depuis Firestore pour avoir les données à jour
       await _loadOrder();
 
@@ -167,6 +188,25 @@ class _OrderDetailState extends State<OrderDetail> {
     );
   }
 
+  // Naviguer vers l'écran d'assignation manuelle de livreur
+  Future<void> _navigateToAssignLivreur() async {
+    if (_order == null) return;
+
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AssignLivreurScreen(
+          orderIds: [widget.orderId],
+        ),
+      ),
+    );
+
+    // Si l'assignation a réussi, recharger la commande
+    if (result == true && mounted) {
+      _loadOrder();
+    }
+  }
+
   // Confirmer le changement de statut
   void _confirmStatusChange(String newStatus) {
     final statusInfo = _getStatusInfo(newStatus);
@@ -218,24 +258,10 @@ class _OrderDetailState extends State<OrderDetail> {
 
   // Obtenir les informations de statut
   StatusInfo _getStatusInfo(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return StatusInfo('En attente', AppColors.warning);
-      case 'confirmed':
-        return StatusInfo('Confirmée', AppColors.info);
-      case 'preparing':
-        return StatusInfo('En préparation', AppColors.primary);
-      case 'ready':
-        return StatusInfo('Prêt', AppColors.success);
-      case 'in_delivery':
-        return StatusInfo('En livraison', AppColors.secondary);
-      case 'delivered':
-        return StatusInfo('Livrée', AppColors.success);
-      case 'cancelled':
-        return StatusInfo('Annulée', AppColors.error);
-      default:
-        return StatusInfo(status, AppColors.textSecondary);
-    }
+    return StatusInfo(
+      OrderStatusHelper.getStatusLabel(status),
+      OrderStatusHelper.getStatusColor(status),
+    );
   }
 
   // Appeler le client
@@ -468,6 +494,13 @@ class _OrderDetailState extends State<OrderDetail> {
 
             const SizedBox(height: AppSpacing.md),
 
+            // Informations livreur (si livreur assigné)
+            if (_order!.livreurId != null)
+              _buildLivreurSection(),
+
+            if (_order!.livreurId != null)
+              const SizedBox(height: AppSpacing.md),
+
             // Noter le livreur (si commande livrée et livreur assigné)
             if (_order!.status.toLowerCase() == 'delivered' &&
                 _delivery != null &&
@@ -507,12 +540,17 @@ class _OrderDetailState extends State<OrderDetail> {
                                 child: const Icon(Icons.image),
                               ),
                         title: Text(item.productName),
-                        subtitle: Text('${item.quantity} x ${_formatPrice(item.price)}'),
-                        trailing: Text(
-                          _formatPrice(item.price * item.quantity),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: AppFontSizes.lg,
+                        subtitle: Text('${item.quantity} x ${formatPriceWithCurrency(item.price, currency: 'FCFA')}'),
+                        trailing: Flexible(
+                          child: Text(
+                            formatPriceWithCurrency(item.price * item.quantity, currency: 'FCFA'),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: AppFontSizes.lg,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
                           ),
                         ),
                       ),
@@ -530,12 +568,12 @@ class _OrderDetailState extends State<OrderDetail> {
               'Résumé',
               Column(
                 children: [
-                  _buildSummaryRow('Sous-total', _formatPrice(_order!.subtotal)),
-                  _buildSummaryRow('Frais de livraison', _formatPrice(_order!.deliveryFee)),
+                  _buildSummaryRow('Sous-total', formatPriceWithCurrency(_order!.subtotal, currency: 'FCFA')),
+                  _buildSummaryRow('Frais de livraison', formatPriceWithCurrency(_order!.deliveryFee, currency: 'FCFA')),
                   const Divider(thickness: 2),
                   _buildSummaryRow(
                     'Total',
-                    _formatPrice(_order!.totalAmount),
+                    formatPriceWithCurrency(_order!.totalAmount, currency: 'FCFA'),
                     isTotal: true,
                   ),
                 ],
@@ -558,7 +596,75 @@ class _OrderDetailState extends State<OrderDetail> {
     );
   }
 
-  // Section
+  // Section informations livreur
+  Widget _buildLivreurSection() {
+    return _buildSection(
+      'Informations livreur',
+      Column(
+        children: [
+          _buildInfoRow(
+            Icons.delivery_dining,
+            'Livreur',
+            _order!.livreurName ?? 'Non disponible',
+          ),
+          if (_order!.livreurPhone != null) ...[
+            const Divider(),
+            _buildInfoRow(
+              Icons.phone,
+              'Téléphone',
+              _order!.livreurPhone!,
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.phone, color: AppColors.primary),
+                    onPressed: () async {
+                      final uri = Uri.parse('tel:${_order!.livreurPhone}');
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri);
+                      }
+                    },
+                    tooltip: 'Appeler',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chat, color: AppColors.success),
+                    onPressed: () async {
+                      final phone = _order!.livreurPhone!.replaceAll(RegExp(r'\s+'), '');
+                      final uri = Uri.parse(
+                        'https://wa.me/$phone?text=Bonjour, concernant la livraison de la commande ${_order!.displayNumber}',
+                      );
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri);
+                      }
+                    },
+                    tooltip: 'WhatsApp',
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const Divider(),
+          _buildInfoRow(
+            Icons.badge,
+            'Statut livraison',
+            _getDeliveryStatusLabel(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getDeliveryStatusLabel() {
+    if (_delivery == null) return 'En préparation';
+    switch (_delivery!.status.toLowerCase()) {
+      case 'assigned': return 'Assignée';
+      case 'picked_up': return 'Récupérée';
+      case 'in_transit': return 'En cours';
+      case 'delivered': return 'Livrée';
+      default: return _delivery!.status;
+    }
+  }
+
   // Section pour noter le livreur
   Widget _buildRateLivreurSection() {
     return Container(
@@ -706,16 +812,305 @@ class _OrderDetailState extends State<OrderDetail> {
     );
   }
 
+  // Boutons d'action rapide selon le statut
+  Widget _buildQuickActionButtons(String status) {
+    switch (status) {
+      case 'pending':
+      case 'en_attente':
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // GROS bouton vert "Confirmer la commande"
+            ElevatedButton.icon(
+              onPressed: _isUpdating ? null : () => _updateStatus('confirmed'),
+              icon: _isUpdating
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.check_circle, size: 28),
+              label: const Text(
+                '✅ Confirmer la commande',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.success,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 60),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Bouton secondaire "Refuser"
+            OutlinedButton.icon(
+              onPressed: _isUpdating ? null : () => _updateStatus('cancelled'),
+              icon: const Icon(Icons.cancel_outlined),
+              label: const Text('Refuser la commande'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.error,
+                side: const BorderSide(color: AppColors.error),
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+              ),
+            ),
+          ],
+        );
+
+      case 'confirmed':
+        return ElevatedButton.icon(
+          onPressed: _isUpdating ? null : () => _updateStatus('preparing'),
+          icon: _isUpdating
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : const Icon(Icons.inventory_2, size: 28),
+          label: const Text(
+            '📦 Commencer la préparation',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.info,
+            foregroundColor: Colors.white,
+            minimumSize: const Size(double.infinity, 60),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+          ),
+        );
+
+      case 'preparing':
+        return ElevatedButton.icon(
+          onPressed: _isUpdating ? null : () => _updateStatus('ready'),
+          icon: _isUpdating
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : const Icon(Icons.done_all, size: 28),
+          label: const Text(
+            '✓ Produit prêt pour livraison',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.warning,
+            foregroundColor: Colors.white,
+            minimumSize: const Size(double.infinity, 60),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+          ),
+        );
+
+      case 'ready':
+        // Commande prête, en attente d'assignation livreur
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.warning.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.warning),
+          ),
+          child: Column(
+            children: [
+              const Icon(Icons.delivery_dining, size: 48, color: AppColors.warning),
+              const SizedBox(height: 12),
+              const Text(
+                '🚴 Recherche d\'un livreur en cours...',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Votre commande est prête et sera assignée automatiquement au livreur le plus proche',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              // Bouton pour assignation manuelle
+              OutlinedButton.icon(
+                onPressed: () => _navigateToAssignLivreur(),
+                icon: const Icon(Icons.person_add, size: 20),
+                label: const Text('Assigner manuellement'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.warning,
+                  side: const BorderSide(color: AppColors.warning),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+              ),
+            ],
+          ),
+        );
+
+      case 'en_cours':
+      case 'in_delivery':
+        // Commande en livraison
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.info.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.info),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.local_shipping, size: 40, color: AppColors.info),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '🚚 Commande en cours de livraison',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Le livreur est en route',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+
+      case 'livree':
+      case 'delivered':
+        // Commande livrée
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.success.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.success),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.check_circle, size: 40, color: AppColors.success),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '✅ Commande livrée avec succès',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.success,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Cette commande a été livrée au client',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+
+      case 'cancelled':
+      case 'annulee':
+        // Commande annulée
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.error.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.error),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.cancel, size: 40, color: AppColors.error),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '❌ Commande annulée',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.error,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Cette commande a été annulée',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+
+      default:
+        // Autres statuts ou fallback
+        return ElevatedButton.icon(
+          onPressed: _isUpdating ? null : _showStatusChangeDialog,
+          icon: const Icon(Icons.edit),
+          label: const Text('Modifier le statut'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            minimumSize: const Size(double.infinity, 50),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+          ),
+        );
+    }
+  }
+
   // Actions du bas
   Widget _buildBottomActions() {
-    final availableStatuses = _getAvailableStatuses();
+    if (_order == null) return const SizedBox.shrink();
 
-    if (availableStatuses.isEmpty) {
-      return const SizedBox.shrink();
-    }
+    final status = _order!.status.toLowerCase();
 
+    // Actions rapides selon le statut
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.md,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -728,37 +1123,11 @@ class _OrderDetailState extends State<OrderDetail> {
       ),
       child: SafeArea(
         top: false,
-        child: ElevatedButton.icon(
-          onPressed: _isUpdating ? null : _showStatusChangeDialog,
-          icon: _isUpdating
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.edit),
-          label: const Text('Modifier le statut'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 50),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-          ),
-        ),
+        bottom: true, // ✅ Force le respect de la barre système en bas
+        minimum: const EdgeInsets.only(bottom: 16), // ✅ Minimum 16px en bas
+        child: _buildQuickActionButtons(status),
       ),
     );
-  }
-
-  // Formater le prix
-  String _formatPrice(num price) {
-    final formatter = NumberFormat.currency(
-      locale: 'fr_FR',
-      symbol: 'FCFA',
-      decimalDigits: 0,
-    );
-    return formatter.format(price);
   }
 
   // Formater la date
