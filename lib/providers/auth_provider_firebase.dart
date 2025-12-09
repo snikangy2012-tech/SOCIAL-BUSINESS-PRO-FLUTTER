@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:social_business_pro/config/constants.dart'; // ✅ Import complet - plus de conflit
 import '../models/user_model.dart';
 import '../services/firebase_service.dart';
+import '../services/audit_service.dart';
+import '../models/audit_log_model.dart';
 import '../config/user_type_config.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
@@ -95,6 +97,8 @@ class AuthProvider extends ChangeNotifier {
           orElse: () => UserType.acheteur,
         ),
         isVerified: userData['isVerified'] ?? false,
+        isActive: userData['isActive'] ?? true,
+        isSuperAdmin: userData['isSuperAdmin'] ?? false,
         preferences: UserPreferences.fromMap(userData['preferences'] ?? {}),
         profile: Map<String, dynamic>.from(userData['profile'] ?? {}),
         createdAt: _parseDateField(userData['createdAt']) ?? DateTime.now(),
@@ -241,12 +245,50 @@ class AuthProvider extends ChangeNotifier {
         );
 
         debugPrint('✅ Connexion réussie: ${_user?.displayName}');
+
+        // 📊 Logger la connexion réussie
+        await AuditService.logSecurityEvent(
+          userId: _user!.id,
+          userEmail: _user!.email,
+          userName: _user!.displayName,
+          action: AuditActions.loginSuccess,
+          actionLabel: 'Connexion réussie',
+          description: 'Connexion réussie pour ${_user!.displayName} (${_user!.userType.value})',
+          metadata: {
+            'userType': _user!.userType.value,
+            'method': 'email',
+          },
+          severity: AuditSeverity.low,
+          requiresReview: false,
+        );
+
         return true;
       }
 
       return false;
     } catch (e) {
       debugPrint('❌ Erreur connexion: $e');
+
+      // 📊 Logger l'échec de connexion
+      try {
+        await AuditService.logSecurityEvent(
+          userId: identifier,
+          userEmail: identifier,
+          action: AuditActions.loginFailed,
+          actionLabel: 'Échec de connexion',
+          description: 'Tentative de connexion échouée pour $identifier',
+          metadata: {
+            'error': e.toString(),
+            'identifier': identifier,
+          },
+          severity: AuditSeverity.medium,
+          requiresReview: true,
+          isSuccessful: false,
+        );
+      } catch (logError) {
+        debugPrint('⚠️ Erreur logging échec connexion: $logError');
+      }
+
       _setError(e.toString());
       return false;
     } finally {
@@ -391,11 +433,38 @@ class AuthProvider extends ChangeNotifier {
     try {
       debugPrint('🚪 Déconnexion...');
 
+      // Sauvegarder les infos de l'utilisateur avant de le déconnecter
+      final userId = _user?.id;
+      final userEmail = _user?.email;
+      final userName = _user?.displayName;
+      final userType = _user?.userType.value;
+
       await FirebaseService.signOut();
       _user = null;
       _clearError();
       notifyListeners();
       debugPrint('✅ Déconnexion réussie');
+
+      // 📊 Logger la déconnexion
+      if (userId != null && userEmail != null) {
+        try {
+          await AuditService.logSecurityEvent(
+            userId: userId,
+            userEmail: userEmail,
+            userName: userName,
+            action: AuditActions.logout,
+            actionLabel: 'Déconnexion',
+            description: 'Déconnexion de ${userName ?? userEmail}',
+            metadata: {
+              'userType': userType,
+            },
+            severity: AuditSeverity.low,
+            requiresReview: false,
+          );
+        } catch (logError) {
+          debugPrint('⚠️ Erreur logging déconnexion: $logError');
+        }
+      }
 
     } catch (e) {
       debugPrint('❌ Erreur déconnexion: $e');
