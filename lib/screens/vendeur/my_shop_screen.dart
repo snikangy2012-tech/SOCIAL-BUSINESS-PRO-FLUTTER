@@ -13,6 +13,7 @@ import '../../config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../models/user_model.dart';
 import '../../utils/number_formatter.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class MyShopScreen extends StatefulWidget {
   const MyShopScreen({super.key});
@@ -199,7 +200,7 @@ class _MyShopScreenState extends State<MyShopScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
+      return SystemUIScaffold(
         appBar: AppBar(
           title: const Text('Ma Boutique'),
           backgroundColor: AppColors.primary,
@@ -210,7 +211,7 @@ class _MyShopScreenState extends State<MyShopScreen> {
     }
 
     if (_error != null) {
-      return Scaffold(
+      return SystemUIScaffold(
         appBar: AppBar(
           title: const Text('Ma Boutique'),
           backgroundColor: AppColors.primary,
@@ -235,12 +236,12 @@ class _MyShopScreenState extends State<MyShopScreen> {
     }
 
     if (_vendeurProfile == null) {
-      return const Scaffold(
+      return SystemUIScaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Ma Boutique'),
         backgroundColor: AppColors.primary,

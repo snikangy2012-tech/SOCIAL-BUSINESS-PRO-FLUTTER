@@ -12,8 +12,11 @@ import 'package:social_business_pro/config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../providers/vendeur_navigation_provider.dart';
 import '../../services/product_service.dart';
+import '../../services/audit_service.dart';
+import '../../models/audit_log_model.dart';
 import '../../config/product_categories.dart';
 import '../../config/product_subcategories.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class AddProduct extends StatefulWidget {
   const AddProduct({super.key});
@@ -64,7 +67,7 @@ class _AddProductState extends State<AddProduct> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
         title: const Text('Ajouter un produit'),
@@ -1198,6 +1201,32 @@ class _AddProductState extends State<AddProduct> {
       // Appeler le service pour créer le produit
       final productService = ProductService();
       final productId = await productService.createProduct(productData);
+
+      // Logger la création du produit
+      await AuditService.log(
+        userId: authProvider.user!.id,
+        userType: authProvider.user!.userType.value,
+        userEmail: authProvider.user!.email,
+        userName: authProvider.user!.displayName,
+        action: 'product_created',
+        actionLabel: 'Création de produit',
+        category: AuditCategory.userAction,
+        severity: AuditSeverity.low,
+        description: 'Création du produit "${_nameController.text.trim()}"',
+        targetType: 'product',
+        targetId: productId,
+        targetLabel: _nameController.text.trim(),
+        metadata: {
+          'productId': productId,
+          'productName': _nameController.text.trim(),
+          'category': _selectedCategory,
+          'subCategory': _selectedSubcategory == 'Autre (à préciser)'
+              ? _otherSubcategory.trim()
+              : _selectedSubcategory,
+          'price': double.parse(_priceController.text),
+          'stock': int.parse(_stockController.text),
+        },
+      );
 
       if (!mounted) return;
 

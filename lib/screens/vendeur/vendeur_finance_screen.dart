@@ -10,6 +10,9 @@ import 'package:intl/intl.dart';
 import '../../config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../models/order_model.dart';
+import '../../utils/order_status_helper.dart';
+import '../../utils/number_formatter.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class VendeurFinanceScreen extends StatefulWidget {
   const VendeurFinanceScreen({super.key});
@@ -156,21 +159,32 @@ class _VendeurFinanceScreenState extends State<VendeurFinanceScreen> with Single
       case 'all':
         return filtered;
       case 'pending':
-        return filtered.where((s) => s.status == 'pending').toList();
+        return filtered.where((s) {
+          final st = s.status.toLowerCase();
+          return st == 'pending' || st == 'en_attente';
+        }).toList();
       case 'processing':
         // En cours: confirmée, en préparation, prête, ou en livraison
-        return filtered.where((s) =>
-          s.status == 'confirmed' ||
-          s.status == 'preparing' ||
-          s.status == 'ready' ||
-          s.status == 'in_delivery'
-        ).toList();
+        return filtered.where((s) {
+          final st = s.status.toLowerCase();
+          return st == 'confirmed' ||
+                 st == 'preparing' ||
+                 st == 'ready' ||
+                 st == 'in_delivery' ||
+                 st == 'in delivery' ||
+                 st == 'processing' ||
+                 st == 'en_cours';
+        }).toList();
       case 'completed':
-        return filtered.where((s) =>
-          s.status == 'delivered' || s.status == 'completed'
-        ).toList();
+        return filtered.where((s) {
+          final st = s.status.toLowerCase();
+          return st == 'delivered' || st == 'completed' || st == 'livree';
+        }).toList();
       case 'cancelled':
-        return filtered.where((s) => s.status == 'cancelled').toList();
+        return filtered.where((s) {
+          final st = s.status.toLowerCase();
+          return st == 'cancelled' || st == 'canceled' || st == 'annulee';
+        }).toList();
       default:
         return filtered;
     }
@@ -178,7 +192,7 @@ class _VendeurFinanceScreenState extends State<VendeurFinanceScreen> with Single
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Finances & Ventes'),
         backgroundColor: AppColors.primary,
@@ -283,7 +297,7 @@ class _VendeurFinanceScreenState extends State<VendeurFinanceScreen> with Single
               Expanded(
                 child: _buildStatCard(
                   'Revenu Total',
-                  '${_totalRevenue.toStringAsFixed(0)} FCFA',
+                  formatPriceWithCurrency(_totalRevenue, currency: 'FCFA'),
                   Icons.account_balance_wallet,
                   AppColors.success,
                 ),
@@ -292,7 +306,7 @@ class _VendeurFinanceScreenState extends State<VendeurFinanceScreen> with Single
               Expanded(
                 child: _buildStatCard(
                   'Ce Mois',
-                  '${_monthRevenue.toStringAsFixed(0)} FCFA',
+                  formatPriceWithCurrency(_monthRevenue, currency: 'FCFA'),
                   Icons.calendar_today,
                   AppColors.primary,
                 ),
@@ -367,6 +381,8 @@ class _VendeurFinanceScreenState extends State<VendeurFinanceScreen> with Single
               fontWeight: FontWeight.bold,
               color: color,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -483,7 +499,7 @@ class _VendeurFinanceScreenState extends State<VendeurFinanceScreen> with Single
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Commande #${sale.id.substring(0, 8)}',
+                          'Commande ${sale.displayNumber}',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -544,12 +560,18 @@ class _VendeurFinanceScreenState extends State<VendeurFinanceScreen> with Single
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  Text(
-                    '${sale.totalAmount.toStringAsFixed(0)} FCFA',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      formatPriceWithCurrency(sale.totalAmount, currency: 'FCFA'),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
                     ),
                   ),
                 ],
@@ -562,52 +584,7 @@ class _VendeurFinanceScreenState extends State<VendeurFinanceScreen> with Single
   }
 
   Widget _buildStatusBadge(String status) {
-    Color color;
-    String label;
-
-    switch (status.toLowerCase()) {
-      case 'pending':
-        color = AppColors.warning;
-        label = 'En attente';
-        break;
-      case 'processing':
-      case 'confirmed':
-        color = AppColors.info;
-        label = 'En cours';
-        break;
-      case 'shipped':
-        color = Colors.blue;
-        label = 'Expédiée';
-        break;
-      case 'delivered':
-      case 'completed':
-        color = AppColors.success;
-        label = 'Livrée';
-        break;
-      case 'cancelled':
-        color = AppColors.error;
-        label = 'Annulée';
-        break;
-      default:
-        color = Colors.grey;
-        label = status;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    );
+    // ✅ Utiliser le helper centralisé pour les statuts
+    return OrderStatusHelper.statusBadge(status, compact: true);
   }
 }

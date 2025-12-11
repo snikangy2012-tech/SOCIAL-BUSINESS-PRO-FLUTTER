@@ -11,6 +11,7 @@ import 'dart:async';
 import 'package:social_business_pro/config/constants.dart';
 import '../../services/auth_service_extended.dart';
 import '../../widgets/custom_widgets.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
   final String verificationType; // 'sms' ou 'email'
@@ -273,7 +274,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
         title: const Text('Vérification'),

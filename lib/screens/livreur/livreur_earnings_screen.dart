@@ -10,6 +10,7 @@ import '../../providers/auth_provider_firebase.dart' as auth;
 import '../../providers/subscription_provider.dart';
 import '../../services/delivery_service.dart';
 import '../../models/delivery_model.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class LivreurEarningsScreen extends StatefulWidget {
   const LivreurEarningsScreen({super.key});
@@ -126,7 +127,7 @@ class _LivreurEarningsScreenState extends State<LivreurEarningsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('💰 Mes Gains'),
         backgroundColor: AppColors.primary,

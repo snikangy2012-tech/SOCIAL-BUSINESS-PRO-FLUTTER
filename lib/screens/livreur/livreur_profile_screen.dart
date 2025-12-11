@@ -14,6 +14,7 @@ import 'package:social_business_pro/config/constants.dart';
 import '../../utils/number_formatter.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class LivreurProfileScreen extends StatefulWidget {
   const LivreurProfileScreen({super.key});
@@ -534,12 +535,12 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading || _currentUser == null) {
-      return const Scaffold(
+      return SystemUIScaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Mon Profil'),
         actions: [
@@ -701,8 +702,14 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
                     _buildMenuTile(
                       icon: Icons.subscriptions,
                       title: 'Mon Abonnement',
-                      subtitle: 'Gérer votre plan et voir vos avantages',
+                      subtitle: 'Voir votre plan actuel et historique',
                       onTap: () => context.push('/livreur/subscription'),
+                    ),
+                    _buildMenuTile(
+                      icon: Icons.card_membership,
+                      title: 'Plans et tarifs',
+                      subtitle: 'Découvrir et changer d\'abonnement',
+                      onTap: () => context.push('/subscription/plans'),
                     ),
                   ],
                 ),

@@ -8,6 +8,9 @@ import 'package:intl/intl.dart';
 
 import '../../config/constants.dart';
 import '../../models/order_model.dart';
+import '../../utils/order_status_helper.dart';
+import '../../utils/number_formatter.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class SaleDetailScreen extends StatefulWidget {
   final String saleId;
@@ -67,7 +70,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Détails de la vente'),
         backgroundColor: AppColors.primary,
@@ -199,7 +202,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       child: Column(
         children: [
           Text(
-            'Commande #${_sale!.orderNumber}',
+            'Commande ${_sale!.displayNumber}',
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -344,11 +347,13 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${item.price.toStringAsFixed(0)} FCFA × ${item.quantity}',
+                  '${formatPriceWithCurrency(item.price, currency: 'FCFA')} × ${item.quantity}',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -356,12 +361,14 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
 
           // Prix total
           Text(
-            '${(item.price * item.quantity).toStringAsFixed(0)} FCFA',
+            formatPriceWithCurrency(item.price * item.quantity, currency: 'FCFA'),
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
               color: AppColors.primary,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -416,12 +423,17 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
             color: color ?? AppColors.textPrimary,
           ),
         ),
-        Text(
-          '${amount.toStringAsFixed(0)} FCFA',
-          style: TextStyle(
-            fontSize: isLarge ? 18 : 14,
-            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-            color: color ?? (isBold ? AppColors.primary : AppColors.textPrimary),
+        Flexible(
+          child: Text(
+            formatPriceWithCurrency(amount, currency: 'FCFA'),
+            style: TextStyle(
+              fontSize: isLarge ? 18 : 14,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+              color: color ?? (isBold ? AppColors.primary : AppColors.textPrimary),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
           ),
         ),
       ],
@@ -543,52 +555,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
   }
 
   Widget _buildStatusBadge(String status) {
-    Color color;
-    String label;
-
-    switch (status.toLowerCase()) {
-      case 'pending':
-        color = AppColors.warning;
-        label = 'En attente';
-        break;
-      case 'processing':
-      case 'confirmed':
-        color = AppColors.info;
-        label = 'En cours';
-        break;
-      case 'shipped':
-        color = Colors.blue;
-        label = 'Expédiée';
-        break;
-      case 'delivered':
-      case 'completed':
-        color = AppColors.success;
-        label = 'Livrée';
-        break;
-      case 'cancelled':
-        color = AppColors.error;
-        label = 'Annulée';
-        break;
-      default:
-        color = Colors.grey;
-        label = status;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: color,
-        ),
-      ),
-    );
+    // ✅ Utiliser le helper centralisé pour les statuts
+    return OrderStatusHelper.statusBadge(status);
   }
 }

@@ -5,6 +5,7 @@ import 'package:social_business_pro/config/constants.dart';
 import 'package:social_business_pro/models/user_model.dart';
 import 'package:social_business_pro/providers/auth_provider_firebase.dart' as auth;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class UserSettingsScreen extends StatefulWidget {
   const UserSettingsScreen({super.key});
@@ -100,7 +101,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Paramètres'),
         backgroundColor: AppColors.primary,

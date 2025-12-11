@@ -10,6 +10,7 @@ import '../../services/mobile_money_service.dart';
 import '../../models/order_model.dart';
 // Import nécessaire pour Timer
 import 'dart:async';
+import '../widgets/system_ui_scaffold.dart';
 
 class PaymentScreen extends StatefulWidget {
   final OrderModel order;
@@ -262,7 +263,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
         title: const Text('Paiement'),

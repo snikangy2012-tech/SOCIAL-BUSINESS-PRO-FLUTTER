@@ -8,6 +8,7 @@ import '../../models/delivery_model.dart';
 import '../../services/delivery_service.dart';
 import '../../services/order_service.dart';
 import 'package:social_business_pro/config/constants.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class DeliveryTrackingScreen extends StatefulWidget {
   final String orderId;
@@ -537,7 +538,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Suivi de livraison'),
         actions: [

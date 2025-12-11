@@ -42,8 +42,9 @@ class _MainScaffoldState extends State<MainScaffold> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: true, // ✅ Permet la navigation retour (go_router gère les sous-pages)
+      canPop: false, // ✅ CRITIQUE: Intercepter AVANT le pop pour gérer la navigation
       onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        // ✅ Avec canPop: false, didPop sera toujours false
         if (didPop) return;
 
         // Si on n'est pas sur l'accueil (index 0), revenir à l'accueil

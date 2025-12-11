@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import 'package:social_business_pro/config/constants.dart';
 import '../../models/user_model.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
@@ -141,9 +142,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false,
         title: const Text('Gestion des Utilisateurs'),
         centerTitle: true,
         backgroundColor: AppColors.primary,

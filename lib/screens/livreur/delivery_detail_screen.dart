@@ -7,9 +7,15 @@ import 'dart:async';
 
 import '../../models/delivery_model.dart';
 import '../../models/order_model.dart';
+import '../../models/audit_log_model.dart';
 import '../../services/delivery_service.dart';
 import '../../services/order_service.dart';
+import '../../services/audit_service.dart';
 import 'package:social_business_pro/config/constants.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider_firebase.dart';
+import '../../utils/number_formatter.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class DeliveryDetailScreen extends StatefulWidget {
   final String deliveryId;
@@ -208,30 +214,70 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
       return;
     }
 
-    final lat = _delivery!.deliveryAddress['latitude'] as double?;
-    final lng = _delivery!.deliveryAddress['longitude'] as double?;
+    // Déterminer la destination selon le statut de la livraison
+    double? lat;
+    double? lng;
+    String? street;
+    String destination;
 
-    if (lat == null || lng == null) {
-      _showErrorSnackBar('Coordonnées GPS de livraison manquantes');
-      return;
+    if (_delivery!.status == 'assigned') {
+      // Livraison assignée mais pas encore récupérée → aller chez le vendeur (pickup)
+      lat = _delivery!.pickupAddress['latitude'] as double?;
+      lng = _delivery!.pickupAddress['longitude'] as double?;
+      street = _delivery!.pickupAddress['street'] as String?;
+      destination = 'vendeur';
+      debugPrint('📍 Itinéraire vers le VENDEUR (pickup) - Statut: assigned');
+    } else if (_delivery!.status == 'picked_up' || _delivery!.status == 'in_transit') {
+      // Colis récupéré → aller chez le client (delivery)
+      lat = _delivery!.deliveryAddress['latitude'] as double?;
+      lng = _delivery!.deliveryAddress['longitude'] as double?;
+      street = _delivery!.deliveryAddress['street'] as String?;
+      destination = 'client';
+      debugPrint('📍 Itinéraire vers le CLIENT (delivery) - Statut: ${_delivery!.status}');
+    } else {
+      // Par défaut (delivered, cancelled, etc.) → client
+      lat = _delivery!.deliveryAddress['latitude'] as double?;
+      lng = _delivery!.deliveryAddress['longitude'] as double?;
+      street = _delivery!.deliveryAddress['street'] as String?;
+      destination = 'client';
+      debugPrint('📍 Itinéraire vers le CLIENT (par défaut) - Statut: ${_delivery!.status}');
     }
 
     try {
       // Construire l'URL avec position de départ si disponible
       String url;
-      if (_currentPosition != null) {
-        // Avec point de départ (position actuelle du livreur)
-        url = 'https://www.google.com/maps/dir/?api=1&origin=${_currentPosition!.latitude},${_currentPosition!.longitude}&destination=$lat,$lng&travelmode=driving';
-      } else {
-        // Sans point de départ (Google Maps utilisera la position actuelle de l'appareil)
-        url = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving';
+
+      // Cas 1: Coordonnées GPS disponibles (recommandé)
+      if (lat != null && lng != null) {
+        if (_currentPosition != null) {
+          // Avec point de départ (position actuelle du livreur)
+          url = 'https://www.google.com/maps/dir/?api=1&origin=${_currentPosition!.latitude},${_currentPosition!.longitude}&destination=$lat,$lng&travelmode=driving';
+        } else {
+          // Sans point de départ (Google Maps utilisera la position actuelle de l'appareil)
+          url = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving';
+        }
+      }
+      // Cas 2: Coordonnées GPS manquantes → utiliser l'adresse textuelle
+      else if (street != null && street.isNotEmpty) {
+        debugPrint('⚠️ Coordonnées GPS manquantes, utilisation de l\'adresse textuelle pour $destination');
+        final encodedAddress = Uri.encodeComponent(street);
+        if (_currentPosition != null) {
+          url = 'https://www.google.com/maps/dir/?api=1&origin=${_currentPosition!.latitude},${_currentPosition!.longitude}&destination=$encodedAddress&travelmode=driving';
+        } else {
+          url = 'https://www.google.com/maps/dir/?api=1&destination=$encodedAddress&travelmode=driving';
+        }
+      }
+      // Cas 3: Ni GPS ni adresse → erreur
+      else {
+        _showErrorSnackBar('Aucune information de localisation disponible pour le $destination');
+        return;
       }
 
       final uri = Uri.parse(url);
 
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
-        debugPrint('✅ Google Maps ouvert avec succès');
+        debugPrint('✅ Google Maps ouvert avec succès vers $destination');
       } else {
         _showErrorSnackBar('Impossible d\'ouvrir Google Maps. Vérifiez que l\'application est installée.');
       }
@@ -253,18 +299,21 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
   }
 
   Future<void> _callCustomer() async {
-    if (_order?.buyerPhone == null || _order!.buyerPhone.isEmpty) {
+    // Récupérer le numéro depuis la livraison en priorité, puis depuis la commande
+    final phoneNumber = _delivery?.deliveryAddress['phone'] as String? ?? _order?.buyerPhone;
+
+    if (phoneNumber == null || phoneNumber.isEmpty) {
       _showErrorSnackBar('Numéro de téléphone du client non disponible');
       return;
     }
 
     try {
-      final url = 'tel:${_order!.buyerPhone}';
+      final url = 'tel:$phoneNumber';
       final uri = Uri.parse(url);
 
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
-        debugPrint('✅ Appel téléphonique initié');
+        debugPrint('✅ Appel téléphonique initié vers $phoneNumber');
       } else {
         _showErrorSnackBar('Impossible de passer l\'appel. Vérifiez les permissions.');
       }
@@ -276,12 +325,44 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
 
   Future<void> _updateDeliveryStatus(String newStatus) async {
     final messenger = ScaffoldMessenger.of(context);
+    final authProvider = context.read<AuthProvider>();
 
     try {
       await _deliveryService.updateDeliveryStatus(
         deliveryId: widget.deliveryId,
         status: newStatus,
       );
+
+      // Logger la mise à jour du statut de livraison
+      if (authProvider.user != null && _delivery != null) {
+        final statusLabels = {
+          'picked_up': 'Colis récupéré',
+          'in_transit': 'En cours de livraison',
+          'delivered': 'Livré',
+        };
+
+        await AuditService.log(
+          userId: authProvider.user!.id,
+          userType: authProvider.user!.userType.value,
+          userEmail: authProvider.user!.email,
+          userName: authProvider.user!.displayName,
+          action: 'delivery_status_updated',
+          actionLabel: 'Mise à jour statut livraison',
+          category: AuditCategory.userAction,
+          severity: newStatus == 'delivered' ? AuditSeverity.medium : AuditSeverity.low,
+          description: 'Statut de livraison changé vers "${statusLabels[newStatus] ?? newStatus}"',
+          targetType: 'delivery',
+          targetId: widget.deliveryId,
+          targetLabel: 'Livraison #${widget.deliveryId.substring(0, 8)}',
+          metadata: {
+            'deliveryId': widget.deliveryId,
+            'orderId': _delivery!.orderId,
+            'newStatus': newStatus,
+            'statusLabel': statusLabels[newStatus] ?? newStatus,
+            'deliveryFee': _delivery!.deliveryFee,
+          },
+        );
+      }
 
       if (mounted) {
         messenger.showSnackBar(
@@ -358,6 +439,10 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
         statusColor = Colors.orange;
         statusText = 'En attente';
         break;
+      case 'assigned':
+        statusColor = AppColors.info;
+        statusText = 'Assignée';
+        break;
       case 'picked_up':
         statusColor = Colors.blue;
         statusText = 'Récupéré';
@@ -412,7 +497,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
     );
   }
 
-  Widget _buildInfoCard(String title, String value, IconData icon) {
+  Widget _buildInfoCard(String title, String value, IconData icon, {bool hasLongValue = false}) {
     return Card(
       child: ListTile(
         leading: Icon(icon, color: AppColors.primary),
@@ -423,6 +508,8 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
         subtitle: Text(
           value,
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          maxLines: hasLongValue ? 1 : 2,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
@@ -463,7 +550,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
         const SizedBox(height: 16),
 
         // Boutons de changement de statut
-        if (_delivery!.status == 'pending')
+        if (_delivery!.status == 'pending' || _delivery!.status == 'assigned')
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -507,7 +594,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Détails Livraison'),
         actions: [
@@ -535,79 +622,104 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
                     ],
                   ),
                 )
-              : RefreshIndicator(
-                  onRefresh: _loadDeliveryData,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Statut de la livraison
-                        _buildStatusCard(),
-                        const SizedBox(height: 16),
+              : Column(
+                  children: [
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: _loadDeliveryData,
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Statut de la livraison
+                              _buildStatusCard(),
+                              const SizedBox(height: 16),
 
-                        // Carte
-                        _buildMapSection(),
-                        const SizedBox(height: 16),
+                              // Carte
+                              _buildMapSection(),
+                              const SizedBox(height: 16),
 
-                        // Informations client
-                        const Text(
-                          'Informations Client',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                              // Informations client
+                              const Text(
+                                'Informations Client',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              _buildInfoCard(
+                                'Nom',
+                                _order?.buyerName ?? 'N/A',
+                                Icons.person,
+                              ),
+                              _buildInfoCard(
+                                'Téléphone',
+                                _delivery?.deliveryAddress['phone'] as String? ?? _order?.buyerPhone ?? 'N/A',
+                                Icons.phone,
+                              ),
+                              _buildInfoCard(
+                                'Adresse',
+                                _delivery?.deliveryAddress['address'] as String? ?? _order?.deliveryAddress ?? 'N/A',
+                                Icons.location_on,
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Informations commande
+                              const Text(
+                                'Informations Commande',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              _buildInfoCard(
+                                'N° Commande',
+                                _order?.id.substring(0, 8) ?? 'N/A',
+                                Icons.receipt_long,
+                              ),
+                              _buildInfoCard(
+                                'Montant',
+                                formatPriceWithCurrency(_order?.totalAmount ?? 0, currency: 'FCFA'),
+                                Icons.attach_money,
+                                hasLongValue: true,
+                              ),
+                              _buildInfoCard(
+                                'Frais de livraison',
+                                formatPriceWithCurrency(_delivery?.deliveryFee ?? 0, currency: 'FCFA'),
+                                Icons.local_shipping,
+                                hasLongValue: true,
+                              ),
+                              const SizedBox(height: 100), // Espace pour les boutons fixes
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        _buildInfoCard(
-                          'Nom',
-                          _order?.buyerName ?? 'N/A',
-                          Icons.person,
-                        ),
-                        _buildInfoCard(
-                          'Téléphone',
-                          _order?.buyerPhone ?? 'N/A',
-                          Icons.phone,
-                        ),
-                        _buildInfoCard(
-                          'Adresse',
-                          _delivery?.deliveryAddress['address'] as String? ?? _order?.deliveryAddress ?? 'N/A',
-                          Icons.location_on,
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Informations commande
-                        const Text(
-                          'Informations Commande',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        _buildInfoCard(
-                          'N° Commande',
-                          _order?.id.substring(0, 8) ?? 'N/A',
-                          Icons.receipt_long,
-                        ),
-                        _buildInfoCard(
-                          'Montant',
-                          '${_order?.totalAmount.toStringAsFixed(0) ?? '0'} FCFA',
-                          Icons.attach_money,
-                        ),
-                        _buildInfoCard(
-                          'Frais de livraison',
-                          '${_delivery?.deliveryFee.toStringAsFixed(0) ?? '0'} FCFA',
-                          Icons.local_shipping,
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Boutons d'action
-                        _buildActionButtons(),
-                      ],
+                      ),
                     ),
-                  ),
+
+                    // Boutons d'action fixes en bas avec SafeArea
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, -2),
+                          ),
+                        ],
+                      ),
+                      child: SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: _buildActionButtons(),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
     );
   }

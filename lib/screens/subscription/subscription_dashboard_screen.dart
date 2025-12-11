@@ -6,6 +6,7 @@ import '../../models/subscription_model.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../providers/subscription_provider.dart';
 import 'package:intl/intl.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 /// Écran Mon Abonnement - Tableau de bord vendeur
 class SubscriptionDashboardScreen extends StatefulWidget {
@@ -61,19 +62,19 @@ class _SubscriptionDashboardScreenState extends State<SubscriptionDashboardScree
         : subscriptionProvider.isLoadingSubscription;
 
     if (isLoading) {
-      return const Scaffold(
+      return SystemUIScaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     if (subscription == null) {
-      return Scaffold(
+      return SystemUIScaffold(
         appBar: AppBar(title: const Text('Mon Abonnement')),
         body: const Center(child: Text('Aucun abonnement trouvé')),
       );
     }
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Mon Abonnement'),
         centerTitle: true,
@@ -811,21 +812,132 @@ class _SubscriptionDashboardScreenState extends State<SubscriptionDashboardScree
 
   void _showCancelSubscriptionDialog() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final subscriptionProvider = Provider.of<SubscriptionProvider>(context, listen: false);
     final isLivreur = authProvider.user?.userType == UserType.livreur;
 
-    // ✅ Message adapté selon le type d'utilisateur
+    // ✅ VÉRIFICATION: Empêcher l'annulation si l'abonnement est encore payé et actif
+    DateTime? endDate;
+    int? daysRemaining;
+    bool isPaidTier = false;
+    String currentTierName = '';
+
+    if (isLivreur) {
+      endDate = subscriptionProvider.livreurSubscription?.endDate;
+      daysRemaining = subscriptionProvider.livreurSubscription?.daysRemaining;
+      isPaidTier = subscriptionProvider.livreurSubscription?.tier != LivreurTier.starter;
+      currentTierName = subscriptionProvider.livreurTierName;
+    } else {
+      endDate = subscriptionProvider.vendeurSubscription?.endDate;
+      daysRemaining = subscriptionProvider.vendeurSubscription?.daysRemaining;
+      isPaidTier = subscriptionProvider.vendeurSubscription?.tier != VendeurSubscriptionTier.basique;
+      currentTierName = subscriptionProvider.currentTierName;
+    }
+
+    // ❌ BLOQUER: Si l'abonnement est payant ET qu'il reste du temps
+    if (isPaidTier && endDate != null && daysRemaining != null && daysRemaining > 0) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.info_outline, color: AppColors.warning),
+              const SizedBox(width: 8),
+              const Expanded(child: Text('Abonnement actif')),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Votre abonnement $currentTierName est actif et payé.',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.calendar_today, size: 16, color: AppColors.warning),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Temps restant: $daysRemaining jour${daysRemaining! > 1 ? 's' : ''}',
+                            style: const TextStyle(
+                              color: AppColors.warning,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Expire le: ${DateFormat('dd/MM/yyyy').format(endDate!)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '❌ Vous ne pouvez pas annuler un abonnement payé en cours.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Vos avantages resteront actifs jusqu\'à la date d\'expiration. '
+                  'Vous retournerez automatiquement au plan ${isLivreur ? 'STARTER' : 'BASIQUE'} gratuit après cette date.',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
+              child: const Text('J\'ai compris'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // ✅ AUTORISER: L'abonnement est gratuit ou expiré
     final freePlanName = isLivreur ? 'STARTER' : 'BASIQUE';
     final message = isLivreur
-        ? 'Êtes-vous sûr de vouloir annuler votre abonnement ?\n\n'
-            'Vous reviendrez automatiquement au plan $freePlanName gratuit avec une commission de 25%.'
-        : 'Êtes-vous sûr de vouloir annuler votre abonnement ?\n\n'
-            'Votre plan actuel restera actif jusqu\'à la fin de la période de facturation. '
-            'Vous reviendrez ensuite automatiquement au plan $freePlanName gratuit.';
+        ? 'Êtes-vous sûr de vouloir retourner au plan $freePlanName gratuit ?\n\n'
+            'Commission: 25%'
+        : 'Êtes-vous sûr de vouloir retourner au plan $freePlanName gratuit ?\n\n'
+            'Vous perdrez les avantages de votre plan actuel.';
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Annuler l\'abonnement'),
+        title: const Text('Confirmer le retour au plan gratuit'),
         content: Text(message),
         actions: [
           TextButton(
@@ -854,8 +966,8 @@ class _SubscriptionDashboardScreenState extends State<SubscriptionDashboardScree
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(success
-                          ? '✅ Abonnement annulé. Vous passez au plan $freePlanName.'
-                          : '❌ Erreur lors de l\'annulation'),
+                          ? '✅ Retour au plan $freePlanName effectué.'
+                          : '❌ Erreur lors du changement de plan'),
                       backgroundColor: success ? Colors.green : Colors.red,
                     ),
                   );
@@ -866,8 +978,8 @@ class _SubscriptionDashboardScreenState extends State<SubscriptionDashboardScree
                 }
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Confirmer l\'annulation'),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.warning),
+            child: const Text('Confirmer'),
           ),
         ],
       ),

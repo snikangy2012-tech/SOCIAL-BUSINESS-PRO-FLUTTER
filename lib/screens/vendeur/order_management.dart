@@ -12,6 +12,7 @@ import '../../services/order_service.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../utils/order_status_helper.dart';
 import 'assign_livreur_screen.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class OrderManagement extends StatefulWidget {
   const OrderManagement({super.key, required String orderId});
@@ -297,7 +298,7 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
         title: _isSelectionMode

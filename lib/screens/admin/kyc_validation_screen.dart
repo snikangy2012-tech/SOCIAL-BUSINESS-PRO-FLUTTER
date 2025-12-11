@@ -9,6 +9,7 @@ import '../../models/user_model.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/kyc_verification_service.dart';
 import '../../widgets/custom_widgets.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class KYCValidationScreen extends StatefulWidget {
   const KYCValidationScreen({super.key});
@@ -59,7 +60,7 @@ class _KYCValidationScreenState extends State<KYCValidationScreen> {
 
     // Vérifier que l'utilisateur est admin
     if (currentUser?.userType != UserType.admin) {
-      return Scaffold(
+      return SystemUIScaffold(
         appBar: AppBar(
           title: const Text('Accès refusé'),
           backgroundColor: AppColors.error,
@@ -70,7 +71,7 @@ class _KYCValidationScreenState extends State<KYCValidationScreen> {
       );
     }
 
-    return Scaffold(
+    return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
         title: const Text('Validations KYC'),

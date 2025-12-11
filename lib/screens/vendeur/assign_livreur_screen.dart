@@ -11,6 +11,7 @@ import '../../models/order_model.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/livreur_selection_service.dart';
 import '../../services/order_assignment_service.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class AssignLivreurScreen extends StatefulWidget {
   final List<String> orderIds; // Liste des commandes à assigner
@@ -218,7 +219,7 @@ class _AssignLivreurScreenState extends State<AssignLivreurScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: Text(
           widget.orderIds.length == 1

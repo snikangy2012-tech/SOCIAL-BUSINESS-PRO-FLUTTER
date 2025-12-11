@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:social_business_pro/config/constants.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 // Écran générique temporaire (équivalent à PlaceholderComponent.tsx)
 class TempScreen extends StatelessWidget {
@@ -26,7 +27,7 @@ class TempScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: Text(title),
         centerTitle: true,
@@ -279,7 +280,7 @@ class _SplashScreenTempState extends State<SplashScreenTemp> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return SystemUIScaffold(
       backgroundColor: AppColors.primary,
       body: Center(
         child: Column(

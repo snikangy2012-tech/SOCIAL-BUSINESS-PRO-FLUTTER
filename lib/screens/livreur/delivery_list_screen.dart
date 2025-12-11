@@ -9,11 +9,14 @@ import 'package:intl/intl.dart';
 
 import 'package:social_business_pro/config/constants.dart';
 import '../../models/delivery_model.dart';
+import '../../models/audit_log_model.dart';
 import '../../services/delivery_service.dart';
 import '../../services/delivery_grouping_service.dart';
+import '../../services/audit_service.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../utils/number_formatter.dart';
 import 'grouped_deliveries_screen.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class DeliveryListScreen extends StatefulWidget {
   const DeliveryListScreen({super.key});
@@ -34,8 +37,8 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
 
   final List<String> _statusFilters = [
     'assigned', // Assignées (livraisons assignées au livreur)
-    'in_progress', // En cours
-    'completed', // Terminées
+    'in_progress', // En cours (picked_up + in_transit)
+    'delivered', // Terminées
     'cancelled', // Annulées
   ];
 
@@ -100,6 +103,15 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
   }
 
   List<DeliveryModel> _getFilteredDeliveries(String status) {
+    if (status == 'in_progress') {
+      // "En cours" regroupe picked_up et in_transit
+      return _allDeliveries
+          .where((delivery) =>
+              delivery.status.toLowerCase() == 'picked_up' ||
+              delivery.status.toLowerCase() == 'in_transit')
+          .toList();
+    }
+
     return _allDeliveries
         .where((delivery) => delivery.status.toLowerCase() == status.toLowerCase())
         .toList();
@@ -110,8 +122,10 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
       case 'assigned':
         return AppColors.info;
       case 'in_progress':
+      case 'picked_up':
+      case 'in_transit':
         return AppColors.primary;
-      case 'completed':
+      case 'delivered':
         return AppColors.success;
       case 'cancelled':
         return AppColors.error;
@@ -125,8 +139,10 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
       case 'assigned':
         return 'Assignées';
       case 'in_progress':
+      case 'picked_up':
+      case 'in_transit':
         return 'En cours';
-      case 'completed':
+      case 'delivered':
         return 'Terminées';
       case 'cancelled':
         return 'Annulées';
@@ -140,8 +156,10 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
       case 'assigned':
         return Icons.assignment;
       case 'in_progress':
+      case 'picked_up':
+      case 'in_transit':
         return Icons.directions_car;
-      case 'completed':
+      case 'delivered':
         return Icons.done_all;
       case 'cancelled':
         return Icons.cancel;
@@ -156,7 +174,7 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
     final assignedDeliveries = _getFilteredDeliveries('assigned');
     final groupedOpportunities = DeliveryGroupingService.findMultiDeliveryVendors(assignedDeliveries);
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Mes Livraisons'),
         centerTitle: true,
@@ -796,12 +814,14 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '${delivery.deliveryFee.toStringAsFixed(0)} FCFA',
+                          formatPriceWithCurrency(delivery.deliveryFee, currency: 'FCFA'),
                           style: const TextStyle(
                             color: AppColors.success,
                             fontSize: AppFontSizes.sm,
                             fontWeight: FontWeight.bold,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -910,7 +930,9 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
         title: const Text('Accepter la livraison'),
         content: Text(
           'Voulez-vous accepter la livraison ${formatDeliveryNumber(delivery.id, allDeliveries: _allDeliveries)} ?\n\n'
-          'Montant: ${delivery.deliveryFee.toStringAsFixed(0)} FCFA',
+          'Montant: ${formatPriceWithCurrency(delivery.deliveryFee, currency: 'FCFA')}',
+          maxLines: 5,
+          overflow: TextOverflow.ellipsis,
         ),
         actions: [
           TextButton(
@@ -943,6 +965,29 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
           livreurId: livreurId,
           estimatedPickup: DateTime.now().add(const Duration(minutes: 15)),
           estimatedDelivery: DateTime.now().add(Duration(minutes: delivery.estimatedDuration)),
+        );
+
+        // Logger l'acceptation de livraison
+        await AuditService.log(
+          userId: livreurId,
+          userType: authProvider.user!.userType.value,
+          userEmail: authProvider.user!.email,
+          userName: authProvider.user!.displayName,
+          action: 'delivery_accepted',
+          actionLabel: 'Acceptation de livraison',
+          category: AuditCategory.userAction,
+          severity: AuditSeverity.low,
+          description: 'Acceptation de la livraison ${formatDeliveryNumber(delivery.id, allDeliveries: _allDeliveries)}',
+          targetType: 'delivery',
+          targetId: delivery.id,
+          targetLabel: 'Livraison ${formatDeliveryNumber(delivery.id, allDeliveries: _allDeliveries)}',
+          metadata: {
+            'deliveryId': delivery.id,
+            'orderId': delivery.orderId,
+            'deliveryFee': delivery.deliveryFee,
+            'pickupAddress': delivery.pickupAddress,
+            'deliveryAddress': delivery.deliveryAddress,
+          },
         );
 
         if (mounted) {

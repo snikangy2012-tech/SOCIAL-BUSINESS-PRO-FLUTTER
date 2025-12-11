@@ -10,6 +10,7 @@ import '../../providers/auth_provider_firebase.dart';
 import '../../services/review_service.dart';
 import '../../widgets/rating_stars.dart';
 import '../../widgets/review_list.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class VendeurReviewsScreen extends StatefulWidget {
   const VendeurReviewsScreen({super.key});
@@ -228,7 +229,7 @@ class _VendeurReviewsScreenState extends State<VendeurReviewsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Avis clients'),
         backgroundColor: AppColors.primary,

@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:social_business_pro/config/constants.dart';
 import '../../config/product_categories.dart';
@@ -10,6 +11,12 @@ import '../../config/product_subcategories.dart';
 import '../../models/product_model.dart';
 import '../../services/product_service.dart';
 import '../../services/analytics_service.dart';
+import '../../providers/cart_provider.dart';
+import '../../providers/favorite_provider.dart';
+import '../../widgets/custom_widgets.dart';
+import '../../utils/image_helper.dart';
+import '../../utils/number_formatter.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class CategoriesScreen extends StatefulWidget {
   final String? initialCategory;
@@ -102,7 +109,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       key: _scaffoldKey,
       appBar: _buildAppBar(),
       drawer: _buildCategoryDrawer(),
@@ -295,7 +302,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                       crossAxisCount: 2,
                       crossAxisSpacing: AppSpacing.md,
                       mainAxisSpacing: AppSpacing.md,
-                      childAspectRatio: 0.7,
+                      childAspectRatio: 0.55, // ✅ CORRECTION: 0.55 pour carte complète avec tous les éléments
                     ),
                     delegate: SliverChildBuilderDelegate(
                       (context, index) =>
@@ -474,12 +481,15 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   // ===== CARTE PRODUIT =====
   Widget _buildProductCard(ProductModel product) {
-    return GestureDetector(
-      onTap: () => context.push('/product/${product.id}'),
+    return InkWell(
+      onTap: () {
+        context.push('/product/${product.id}');
+      },
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.05),
@@ -491,85 +501,309 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image du produit
-            Expanded(
-              child: Stack(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(AppRadius.md),
-                      ),
-                      color: AppColors.backgroundSecondary,
-                      image: product.images.isNotEmpty
-                          ? DecorationImage(
-                              image: NetworkImage(product.images.first),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
+            // Image avec badges
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  child: Image.network(
+                    ImageHelper.getValidImageUrl(
+                      imageUrl: product.images.isNotEmpty ? product.images.first : null,
+                      category: product.category,
+                      index: product.hashCode % 4,
                     ),
-                    child: product.images.isEmpty
-                        ? const Center(
-                            child: Icon(
-                              Icons.image_not_supported,
-                              size: 40,
-                              color: AppColors.textSecondary,
-                            ),
-                          )
-                        : null,
-                  ),
-                  // Badge stock faible
-                  if (product.stock < 10)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.warning,
-                          borderRadius: BorderRadius.circular(AppRadius.sm),
-                        ),
-                        child: Text(
-                          'Stock: ${product.stock}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                    height: 150,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        height: 150,
+                        color: Colors.grey[200],
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
                           ),
                         ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: 150,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(16),
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.image_outlined,
+                            size: 50,
+                            color: Colors.grey[300],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                // Badge réduction dynamique
+                if (product.isDiscountActive)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: DiscountBadge(
+                      discountPercentage: product.discountPercentage,
+                      isActive: product.isDiscountActive,
+                      size: 50,
+                    ),
+                  ),
+
+                // Bouton favori
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Consumer<FavoriteProvider>(
+                    builder: (context, favoriteProvider, _) {
+                      final isFavorite = favoriteProvider.isFavorite(product.id);
+
+                      return GestureDetector(
+                        onTap: () async {
+                          try {
+                            await favoriteProvider.toggleFavorite(product.id, product.name);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    isFavorite
+                                      ? 'Retiré des favoris'
+                                      : 'Ajouté aux favoris',
+                                  ),
+                                  duration: const Duration(seconds: 1),
+                                  backgroundColor: isFavorite ? AppColors.info : AppColors.success,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Erreur: $e'),
+                                  backgroundColor: AppColors.error,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            isFavorite ? Icons.favorite : Icons.favorite_border,
+                            size: 18,
+                            color: isFavorite ? AppColors.error : Colors.grey[600],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+
+            // Infos produit
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Nom du vendeur avec badge vérifié
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            product.vendeurName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const VendorBadge(
+                          type: VendorBadgeType.verified,
+                          compact: true,
+                          iconSize: 12,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    // Nom du produit
+                    Text(
+                      product.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
                       ),
                     ),
-                ],
-              ),
-            ),
-            // Infos produit
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.sm),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.star, size: 14, color: AppColors.warning),
+                        const SizedBox(width: 4),
+                        Text(
+                          '4.5 (89)',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${product.price.toStringAsFixed(0)} FCFA',
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
+                    const SizedBox(height: 4),
+                    // Badge de stock
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: product.isOutOfStock
+                                ? AppColors.error.withValues(alpha: 0.1)
+                                : product.isLowStock
+                                    ? AppColors.warning.withValues(alpha: 0.1)
+                                    : AppColors.success.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                product.isOutOfStock
+                                    ? Icons.cancel_outlined
+                                    : product.isLowStock
+                                        ? Icons.warning_amber_outlined
+                                        : Icons.check_circle_outlined,
+                                size: 12,
+                                color: product.isOutOfStock
+                                    ? AppColors.error
+                                    : product.isLowStock
+                                        ? AppColors.warning
+                                        : AppColors.success,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                product.isOutOfStock
+                                    ? 'Rupture'
+                                    : product.isLowStock
+                                        ? 'Stock faible (${product.availableStock})'
+                                        : '${product.availableStock} en stock',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  color: product.isOutOfStock
+                                      ? AppColors.error
+                                      : product.isLowStock
+                                          ? AppColors.warning
+                                          : AppColors.success,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                    const Spacer(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Prix actuel
+                            Text(
+                              formatPriceWithCurrency(product.price, currency: 'FCFA'),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            // Prix original barré si promo
+                            if (product.hasPromotion)
+                              Text(
+                                formatPriceWithCurrency(product.originalPrice!, currency: 'FCFA'),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[500],
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                          ],
+                        ),
+                        Consumer<CartProvider>(
+                          builder: (context, cartProvider, _) {
+                            return GestureDetector(
+                              onTap: () async {
+                                try {
+                                  await cartProvider.addProduct(product);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Ajouté au panier'),
+                                        duration: Duration(seconds: 1),
+                                        backgroundColor: AppColors.success,
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Erreur: $e'),
+                                        backgroundColor: AppColors.error,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.shopping_cart_outlined,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

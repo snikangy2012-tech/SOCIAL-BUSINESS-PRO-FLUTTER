@@ -111,7 +111,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
           ];
 
     return PopScope(
-      canPop: true, // ✅ Permet la navigation retour (go_router gère les sous-pages)
+      canPop: false, // ✅ Permet la navigation retour (go_router gère les sous-pages)
       onPopInvokedWithResult: (bool didPop, dynamic result) async {
         if (didPop) return;
 

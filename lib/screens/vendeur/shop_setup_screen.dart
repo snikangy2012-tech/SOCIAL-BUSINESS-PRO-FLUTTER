@@ -11,6 +11,7 @@ import '../../config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../models/user_model.dart';
 import '../../services/geolocation_service.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class ShopSetupScreen extends StatefulWidget {
   const ShopSetupScreen({super.key});
@@ -30,7 +31,6 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
   final _businessNameController = TextEditingController();
   final _businessDescriptionController = TextEditingController();
   final _businessAddressController = TextEditingController();
-  final _deliveryPriceController = TextEditingController();
   final _freeDeliveryThresholdController = TextEditingController();
 
   // Valeurs du formulaire
@@ -44,6 +44,7 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
   LocationCoords? _shopLocation;
   GoogleMapController? _mapController;
   bool _isLoadingLocation = false;
+  bool _hasClickedMap = false; // Pour masquer le message après premier clic
 
   // Données existantes
   VendeurProfile? _existingProfile;
@@ -59,7 +60,6 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
     _businessNameController.dispose();
     _businessDescriptionController.dispose();
     _businessAddressController.dispose();
-    _deliveryPriceController.dispose();
     _freeDeliveryThresholdController.dispose();
     _pageController.dispose();
     _mapController?.dispose();
@@ -116,20 +116,27 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
                 ? _existingProfile!.businessCategory
                 : 'Alimentation'; // Valeur par défaut si invalide
             _selectedZones = List.from(_existingProfile!.deliveryZones);
-            _deliveryPriceController.text =
-                _existingProfile!.deliveryPrice.toString();
             _freeDeliveryThresholdController.text =
                 _existingProfile!.freeDeliveryThreshold?.toString() ?? '';
             _acceptsCashOnDelivery = _existingProfile!.acceptsCashOnDelivery;
             _acceptsOnlinePayment = _existingProfile!.acceptsOnlinePayment;
 
             // Charger la position GPS de la boutique si elle existe
-            if (vendeurProfileData['shopLocation'] != null) {
+            // Priorité 1: businessLatitude/businessLongitude (nouveau système)
+            // Priorité 2: shopLocation (ancien système pour compatibilité)
+            if (_existingProfile!.businessLatitude != null && _existingProfile!.businessLongitude != null) {
+              _shopLocation = LocationCoords(
+                latitude: _existingProfile!.businessLatitude!,
+                longitude: _existingProfile!.businessLongitude!,
+              );
+              debugPrint('✅ GPS chargé depuis businessLatitude/businessLongitude');
+            } else if (vendeurProfileData['shopLocation'] != null) {
               final shopLocationData = vendeurProfileData['shopLocation'] as Map<String, dynamic>;
               _shopLocation = LocationCoords(
                 latitude: (shopLocationData['latitude'] ?? 0).toDouble(),
                 longitude: (shopLocationData['longitude'] ?? 0).toDouble(),
               );
+              debugPrint('✅ GPS chargé depuis shopLocation (ancien système)');
             }
 
             debugPrint('✅ Profil existant chargé avec GPS: ${_shopLocation != null}');
@@ -241,28 +248,36 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
             ? null
             : _businessAddressController.text.trim(),
         deliveryZones: _selectedZones,
-        deliveryPrice: double.parse(_deliveryPriceController.text),
+        // Prix par défaut: 1000 FCFA (minimum du delivery_service)
+        // Le service calculera automatiquement selon la distance
+        deliveryPrice: 1000.0,
         freeDeliveryThreshold: _freeDeliveryThresholdController.text.isEmpty
             ? null
             : double.parse(_freeDeliveryThresholdController.text),
         acceptsCashOnDelivery: _acceptsCashOnDelivery,
         acceptsOnlinePayment: _acceptsOnlinePayment,
+        // ✅ Coordonnées GPS de la boutique (pour le système hybride de pickup)
+        businessLatitude: _shopLocation!.latitude,
+        businessLongitude: _shopLocation!.longitude,
         // Utiliser les valeurs existantes ou créer des valeurs par défaut
         paymentInfo: _existingProfile?.paymentInfo ?? PaymentInfo(),
         stats: _existingProfile?.stats ?? BusinessStats(),
         deliverySettings: _existingProfile?.deliverySettings ?? DeliverySettings(),
       );
 
-      // Mettre à jour Firestore avec le profil vendeur ET la position GPS
+      // Créer la map du profil et ajouter shopLocation
+      final profileMap = profile.toMap();
+      profileMap['shopLocation'] = {
+        'latitude': _shopLocation!.latitude,
+        'longitude': _shopLocation!.longitude,
+      };
+
+      // Mettre à jour Firestore avec le profil vendeur complet (avec shopLocation)
       await FirebaseFirestore.instance
           .collection(FirebaseCollections.users)
           .doc(user.id)
           .update({
-        'profile.vendeurProfile': profile.toMap(),
-        'profile.vendeurProfile.shopLocation': {
-          'latitude': _shopLocation!.latitude,
-          'longitude': _shopLocation!.longitude,
-        },
+        'profile.vendeurProfile': profileMap,
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
@@ -276,8 +291,10 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
           ),
         );
 
-        // Retour au dashboard
-        context.pop();
+        // Redirection vers le dashboard vendeur
+        // Utiliser context.go() au lieu de context.pop() car la route shop-setup
+        // est souvent une redirection initiale (pas un push)
+        context.go('/vendeur-dashboard');
       }
     } catch (e) {
       debugPrint('❌ Erreur sauvegarde profil: $e');
@@ -327,7 +344,7 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
+      return SystemUIScaffold(
         appBar: AppBar(
           title: const Text('Configuration Boutique'),
           backgroundColor: AppColors.primary,
@@ -338,7 +355,7 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
       );
     }
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: Text(_existingProfile != null
             ? 'Modifier ma Boutique'
@@ -700,6 +717,7 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
                       onTap: (LatLng position) {
                         setState(() {
                           _shopLocation = LocationCoords(latitude: position.latitude, longitude: position.longitude);
+                          _hasClickedMap = true; // Masquer le message après premier clic
                         });
                         debugPrint('📍 Nouvelle position: ${position.latitude}, ${position.longitude}');
                       },
@@ -716,24 +734,26 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
                       zoomControlsEnabled: false,
                       mapToolbarEnabled: false,
                     ),
-                    Positioned(
-                      top: 16,
-                      left: 16,
-                      right: 16,
-                      child: Card(
-                        elevation: 4,
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
-                            children: const [
-                              Icon(Icons.info_outline, color: AppColors.primary, size: 20),
-                              SizedBox(width: 8),
-                              Expanded(child: Text('Cliquez sur la carte pour changer la position', style: TextStyle(fontSize: 12))),
-                            ],
+                    // Message d'instruction - affiché uniquement si pas encore cliqué
+                    if (!_hasClickedMap)
+                      Positioned(
+                        top: 16,
+                        left: 16,
+                        right: 16,
+                        child: Card(
+                          elevation: 4,
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              children: const [
+                                Icon(Icons.info_outline, color: AppColors.primary, size: 20),
+                                SizedBox(width: 8),
+                                Expanded(child: Text('Cliquez sur la carte pour changer la position', style: TextStyle(fontSize: 12))),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
                   ],
                 ),
         ),
@@ -797,6 +817,7 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
   Widget _buildStep4Delivery() {
     final availableZones = [
       'Abidjan - Cocody',
+      'Abidjan - Bingerville',
       'Abidjan - Yopougon',
       'Abidjan - Abobo',
       'Abidjan - Adjamé',
@@ -805,10 +826,16 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
       'Abidjan - Treichville',
       'Abidjan - Koumassi',
       'Abidjan - Port-Bouët',
+      'Abidjan - Anyama',
+      'Abidjan - Attécoubé',
+      'Grand-Bassam',
+      'Jacqueville',
+      'Agboville',
       'Bouaké',
       'Daloa',
       'San-Pedro',
       'Yamoussoukro',
+      'Autre', // Option pour zones non listées - calcul auto basé sur distance
     ];
 
     return SingleChildScrollView(
@@ -863,28 +890,28 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
               }).toList(),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
 
-          // Prix de livraison
-          TextFormField(
-            controller: _deliveryPriceController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Prix de livraison (FCFA) *',
-              hintText: 'Ex: 1000',
-              prefixIcon: Icon(Icons.delivery_dining),
-              border: OutlineInputBorder(),
+          // Infobulle explicative sur les frais de livraison
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.info.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.info),
             ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Le prix de livraison est requis';
-              }
-              final price = double.tryParse(value);
-              if (price == null || price < 0) {
-                return 'Prix invalide';
-              }
-              return null;
-            },
+            child: Row(
+              children: const [
+                Icon(Icons.info, color: AppColors.info, size: 20),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Les frais de livraison seront calculés automatiquement selon la distance entre votre boutique et le lieu de livraison (à partir de 1000 FCFA)',
+                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -1018,10 +1045,7 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
                 _buildSummaryRow(
                     'Zones', '${_selectedZones.length} zone(s)'),
                 _buildSummaryRow(
-                    'Prix livraison',
-                    _deliveryPriceController.text.isEmpty
-                        ? '-'
-                        : '${_deliveryPriceController.text} FCFA'),
+                    'Prix livraison', 'Calcul automatique selon distance'),
                 if (_shopLocation == null)
                   const Padding(
                     padding: EdgeInsets.only(top: 8),

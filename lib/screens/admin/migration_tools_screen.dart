@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:social_business_pro/config/constants.dart';
 import 'package:social_business_pro/services/subscription_service.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class MigrationToolsScreen extends StatefulWidget {
   const MigrationToolsScreen({super.key});
@@ -85,7 +86,7 @@ class _MigrationToolsScreenState extends State<MigrationToolsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('🛠️ Outils de Migration'),
         backgroundColor: AppColors.warning,

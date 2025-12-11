@@ -11,6 +11,7 @@ import '../../services/auth_service_extended.dart';
 import '../../widgets/custom_widgets.dart';
 import '../../services/auth_service_web.dart';
 import '../../utils/permissions_helper.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class RegisterScreenExtended extends StatefulWidget {
   const RegisterScreenExtended({super.key});
@@ -239,7 +240,7 @@ class _RegisterScreenExtendedState extends State<RegisterScreenExtended> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
         title: const Text('Créer un compte'),

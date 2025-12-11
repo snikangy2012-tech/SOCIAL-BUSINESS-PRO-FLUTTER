@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../widgets/custom_widgets.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class VerificationRequiredScreen extends StatelessWidget {
   final UserType userType;
@@ -22,7 +23,7 @@ class VerificationRequiredScreen extends StatelessWidget {
     final user = context.watch<AuthProvider>().user;
 
     if (user == null) {
-      return const Scaffold(
+      return SystemUIScaffold(
         body: Center(child: Text('Utilisateur non connecté')),
       );
     }
@@ -31,7 +32,7 @@ class VerificationRequiredScreen extends StatelessWidget {
     final userTypeLabel = isVendeur ? 'vendeur' : 'livreur';
     final actionLabel = isVendeur ? 'vendre' : 'effectuer des livraisons';
 
-    return Scaffold(
+    return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
         title: const Text('Vérification requise'),

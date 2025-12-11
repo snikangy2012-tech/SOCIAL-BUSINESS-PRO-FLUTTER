@@ -7,6 +7,7 @@ import '../../config/constants.dart';
 import '../../models/user_model.dart';
 import '../../services/firebase_service.dart';
 import '../../services/review_service.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class AdminLivreurDetailScreen extends StatefulWidget {
   final String livreurId;
@@ -152,7 +153,7 @@ class _AdminLivreurDetailScreenState extends State<AdminLivreurDetailScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
+      return SystemUIScaffold(
         appBar: AppBar(
           title: const Text('Détails Livreur'),
           backgroundColor: AppColors.primary,
@@ -162,7 +163,7 @@ class _AdminLivreurDetailScreenState extends State<AdminLivreurDetailScreen> {
     }
 
     if (_livreur == null) {
-      return Scaffold(
+      return SystemUIScaffold(
         appBar: AppBar(
           title: const Text('Détails Livreur'),
           backgroundColor: AppColors.primary,
@@ -177,7 +178,7 @@ class _AdminLivreurDetailScreenState extends State<AdminLivreurDetailScreen> {
     final vehicleType = _livreur!.profile['vehicleType'] as String? ?? 'Non spécifié';
     final vehicleNumber = _livreur!.profile['vehicleNumber'] as String? ?? 'Non spécifié';
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Détails Livreur'),
         backgroundColor: AppColors.primary,

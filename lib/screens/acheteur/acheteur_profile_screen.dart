@@ -8,6 +8,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/firebase_service.dart';
 import 'package:social_business_pro/config/constants.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class AcheteurProfileScreen extends StatefulWidget {
   const AcheteurProfileScreen({super.key});
@@ -196,12 +197,12 @@ class _AcheteurProfileScreenState extends State<AcheteurProfileScreen> {
     final user = authProvider.user;
 
     if (user == null) {
-      return const Scaffold(
+      return SystemUIScaffold(
         body: Center(child: Text('Utilisateur non connecté')),
       );
     }
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Mon Profil'),
         centerTitle: true,

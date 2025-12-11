@@ -5,6 +5,7 @@ import 'package:social_business_pro/config/constants.dart';
 import '../../models/subscription_model.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../providers/subscription_provider.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 /// Écran de présentation des plans d'abonnement (Vendeur ou Livreur)
 /// S'adapte automatiquement selon le type d'utilisateur connecté
@@ -45,7 +46,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
   @override
   Widget build(BuildContext context) {
     if (_userType == null) {
-      return const Scaffold(
+      return SystemUIScaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
@@ -62,7 +63,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
     final subscriptionProvider = Provider.of<SubscriptionProvider>(context);
     final currentTier = subscriptionProvider.vendeurSubscription?.tier ?? VendeurSubscriptionTier.basique;
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Plans d\'abonnement'),
         centerTitle: true,
@@ -557,7 +558,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
     final subscriptionProvider = Provider.of<SubscriptionProvider>(context);
     final currentTier = subscriptionProvider.livreurSubscription?.tier ?? LivreurTier.starter;
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Plans d\'abonnement'),
         centerTitle: true,

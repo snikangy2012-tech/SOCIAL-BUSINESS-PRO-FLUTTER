@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../config/constants.dart';
 import '../../models/subscription_model.dart';
 import '../../models/user_model.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class AdminSubscriptionManagementScreen extends StatefulWidget {
   const AdminSubscriptionManagementScreen({super.key});
@@ -49,44 +50,76 @@ class _AdminSubscriptionManagementScreenState extends State<AdminSubscriptionMan
           .collection(FirebaseCollections.vendeurSubscriptions)
           .get();
 
-      _vendeurSubscriptionsWithUser = [];
+      // Charger les abonnements vendeurs (regrouper par utilisateur)
+      final Map<String, Map<String, dynamic>> vendeurSubscriptionsMap = {};
+
       for (var doc in vendeurSnapshot.docs) {
         final subscription = VendeurSubscription.fromFirestore(doc);
+        final vendeurId = subscription.vendeurId;
 
-        // Récupérer les infos du vendeur
+        // Si on a déjà un abonnement pour cet utilisateur, garder le plus récent
+        if (vendeurSubscriptionsMap.containsKey(vendeurId)) {
+          final existing = vendeurSubscriptionsMap[vendeurId]!['subscription'] as VendeurSubscription;
+          // Garder le plus récent (ou le plus actif)
+          if (subscription.createdAt.isAfter(existing.createdAt)) {
+            vendeurSubscriptionsMap[vendeurId] = {'subscription': subscription, 'user': null};
+          }
+        } else {
+          vendeurSubscriptionsMap[vendeurId] = {'subscription': subscription, 'user': null};
+        }
+      }
+
+      // Charger les infos utilisateur pour chaque vendeur unique
+      _vendeurSubscriptionsWithUser = [];
+      for (var entry in vendeurSubscriptionsMap.entries) {
         final userDoc = await FirebaseFirestore.instance
             .collection(FirebaseCollections.users)
-            .doc(subscription.vendeurId)
+            .doc(entry.key)
             .get();
 
         if (userDoc.exists) {
           final user = UserModel.fromFirestore(userDoc);
           _vendeurSubscriptionsWithUser.add({
-            'subscription': subscription,
+            'subscription': entry.value['subscription'],
             'user': user,
           });
         }
       }
 
-      // Charger les abonnements livreurs
+      // Charger les abonnements livreurs (regrouper par utilisateur)
       final livreurSnapshot = await FirebaseFirestore.instance
           .collection(FirebaseCollections.livreurSubscriptions)
           .get();
 
-      _livreurSubscriptionsWithUser = [];
+      final Map<String, Map<String, dynamic>> livreurSubscriptionsMap = {};
+
       for (var doc in livreurSnapshot.docs) {
         final subscription = LivreurSubscription.fromFirestore(doc);
+        final livreurId = subscription.livreurId;
 
-        // Récupérer les infos du livreur
+        // Si on a déjà un abonnement pour cet utilisateur, garder le plus récent
+        if (livreurSubscriptionsMap.containsKey(livreurId)) {
+          final existing = livreurSubscriptionsMap[livreurId]!['subscription'] as LivreurSubscription;
+          if (subscription.createdAt.isAfter(existing.createdAt)) {
+            livreurSubscriptionsMap[livreurId] = {'subscription': subscription, 'user': null};
+          }
+        } else {
+          livreurSubscriptionsMap[livreurId] = {'subscription': subscription, 'user': null};
+        }
+      }
+
+      // Charger les infos utilisateur pour chaque livreur unique
+      _livreurSubscriptionsWithUser = [];
+      for (var entry in livreurSubscriptionsMap.entries) {
         final userDoc = await FirebaseFirestore.instance
             .collection(FirebaseCollections.users)
-            .doc(subscription.livreurId)
+            .doc(entry.key)
             .get();
 
         if (userDoc.exists) {
           final user = UserModel.fromFirestore(userDoc);
           _livreurSubscriptionsWithUser.add({
-            'subscription': subscription,
+            'subscription': entry.value['subscription'],
             'user': user,
           });
         }
@@ -747,7 +780,7 @@ class _AdminSubscriptionManagementScreenState extends State<AdminSubscriptionMan
     final vendeurCount = _vendeurSubscriptionsWithUser.length;
     final livreurCount = _livreurSubscriptionsWithUser.length;
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Gestion des Abonnements'),
         backgroundColor: AppColors.primary,

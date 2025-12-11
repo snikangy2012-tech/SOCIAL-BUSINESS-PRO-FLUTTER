@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../models/payment_model.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class PaymentHistoryScreen extends StatefulWidget {
   const PaymentHistoryScreen({super.key});
@@ -18,7 +19,6 @@ class PaymentHistoryScreen extends StatefulWidget {
 class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   String _selectedPeriod = '30';
   String _selectedMethod = 'all';
-  String _selectedStatus = 'all';
 
   @override
   Widget build(BuildContext context) {
@@ -26,12 +26,12 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     final vendeurId = authProvider.user?.id;
 
     if (vendeurId == null) {
-      return const Scaffold(
+      return SystemUIScaffold(
         body: Center(child: Text('Utilisateur non connecté')),
       );
     }
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Historique des Paiements'),
         backgroundColor: AppColors.primary,
@@ -51,71 +51,50 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       color: AppColors.backgroundSecondary,
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _selectedPeriod,
-                  decoration: const InputDecoration(
-                    labelText: 'Période',
-                    border: OutlineInputBorder(),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: '7', child: Text('7 derniers jours')),
-                    DropdownMenuItem(value: '30', child: Text('30 derniers jours')),
-                    DropdownMenuItem(value: '90', child: Text('3 derniers mois')),
-                    DropdownMenuItem(value: 'all', child: Text('Tout')),
-                  ],
-                  onChanged: (value) {
-                    setState(() => _selectedPeriod = value!);
-                  },
-                ),
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              value: _selectedPeriod,
+              decoration: const InputDecoration(
+                labelText: 'Période',
+                border: OutlineInputBorder(),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _selectedMethod,
-                  decoration: const InputDecoration(
-                    labelText: 'Méthode',
-                    border: OutlineInputBorder(),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'all', child: Text('Tous')),
-                    DropdownMenuItem(value: 'mobile_money', child: Text('Mobile Money')),
-                    DropdownMenuItem(value: 'cash', child: Text('Espèces')),
-                    DropdownMenuItem(value: 'card', child: Text('Carte')),
-                  ],
-                  onChanged: (value) {
-                    setState(() => _selectedMethod = value!);
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            value: _selectedStatus,
-            decoration: const InputDecoration(
-              labelText: 'Statut',
-              border: OutlineInputBorder(),
-              filled: true,
-              fillColor: Colors.white,
+              items: const [
+                DropdownMenuItem(value: '7', child: Text('7 jours', overflow: TextOverflow.ellipsis)),
+                DropdownMenuItem(value: '30', child: Text('30 jours', overflow: TextOverflow.ellipsis)),
+                DropdownMenuItem(value: '90', child: Text('3 mois', overflow: TextOverflow.ellipsis)),
+                DropdownMenuItem(value: 'all', child: Text('Tout', overflow: TextOverflow.ellipsis)),
+              ],
+              onChanged: (value) {
+                setState(() => _selectedPeriod = value!);
+              },
             ),
-            items: const [
-              DropdownMenuItem(value: 'all', child: Text('Tous')),
-              DropdownMenuItem(value: 'completed', child: Text('✅ Validés')),
-              DropdownMenuItem(value: 'pending', child: Text('⏳ En attente')),
-              DropdownMenuItem(value: 'failed', child: Text('❌ Échoués')),
-            ],
-            onChanged: (value) {
-              setState(() => _selectedStatus = value!);
-            },
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              value: _selectedMethod,
+              decoration: const InputDecoration(
+                labelText: 'Méthode',
+                border: OutlineInputBorder(),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'all', child: Text('Tous')),
+                DropdownMenuItem(value: 'mobile_money', child: Text('Mobile Money')),
+                DropdownMenuItem(value: 'cash', child: Text('Espèces')),
+                DropdownMenuItem(value: 'card', child: Text('Carte')),
+              ],
+              onChanged: (value) {
+                setState(() => _selectedMethod = value!);
+              },
+            ),
           ),
         ],
       ),
@@ -437,10 +416,8 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
       query = query.where('paymentMethod', isEqualTo: _selectedMethod);
     }
 
-    // Filtre par statut
-    if (_selectedStatus != 'all') {
-      query = query.where('status', isEqualTo: _selectedStatus);
-    }
+    // ✅ CORRECTION: Suppression du filtre "Statut" (non applicable aux paiements)
+    // Les paiements ont leur propre workflow de validation, pas de "statut de commande"
 
     return query.orderBy('createdAt', descending: true).snapshots();
   }

@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/auth_provider_firebase.dart';
 import 'package:social_business_pro/config/constants.dart';
+import '../shared/my_activity_screen.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class AdminProfileScreen extends StatefulWidget {
   const AdminProfileScreen({super.key});
@@ -121,7 +123,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     final user = authProvider.user;
 
     if (user == null || user.userType != UserType.admin) {
-      return Scaffold(
+      return SystemUIScaffold(
         appBar: AppBar(title: const Text('Profil Admin')),
         body: const Center(
           child: Text('Accès administrateur requis'),
@@ -129,9 +131,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       );
     }
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false,
         title: const Text('🔐 Profil Administrateur'),
         centerTitle: true,
         backgroundColor: AppColors.error,
@@ -379,12 +380,30 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                       onTap: () => context.push('/admin/subscription-management'),
                     ),
 
+                    // Gestion des produits
+                    _buildMenuTile(
+                      icon: Icons.inventory_2,
+                      title: 'Gestion des produits',
+                      subtitle: 'Modérer et gérer tous les produits',
+                      color: AppColors.warning,
+                      onTap: () => context.push('/admin/product-management'),
+                    ),
+
+                    // Gestion des commandes
+                    _buildMenuTile(
+                      icon: Icons.receipt_long,
+                      title: 'Gestion des commandes',
+                      subtitle: 'Voir et gérer toutes les commandes',
+                      color: AppColors.info,
+                      onTap: () => context.push('/admin/order-management'),
+                    ),
+
                     // Statistiques globales
                     _buildMenuTile(
                       icon: Icons.bar_chart,
                       title: 'Statistiques globales',
                       subtitle: 'Analytics de la plateforme',
-                      color: AppColors.info,
+                      color: AppColors.secondary,
                       onTap: () => context.push('/admin/global-statistics'),
                     ),
 
@@ -418,19 +437,18 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                       onTap: () => context.push('/change-password'),
                     ),
 
-                    // Journal d'activité
+                    // Rapport d'activité
                     _buildMenuTile(
                       icon: Icons.history,
-                      title: 'Journal d\'activité',
+                      title: 'Rapport d\'Activité',
                       subtitle: 'Historique de vos actions admin',
-                      color: AppColors.textSecondary,
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Fonctionnalité à venir'),
-                          ),
-                        );
-                      },
+                      color: AppColors.info,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const MyActivityScreen(),
+                        ),
+                      ),
                     ),
 
                     const SizedBox(height: 24),

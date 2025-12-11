@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:social_business_pro/config/constants.dart';
 import '../../utils/system_ui_helper.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -39,7 +40,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return SystemUIScaffold(
       backgroundColor: AppColors.primary,
       body: Center(
         child: Column(

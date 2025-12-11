@@ -9,6 +9,7 @@ import '../../models/user_model.dart';
 import '../../services/firebase_service.dart';
 import '../../services/review_service.dart';
 import 'package:social_business_pro/config/constants.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class AdminLivreurManagementScreen extends StatefulWidget {
   const AdminLivreurManagementScreen({super.key});
@@ -185,7 +186,7 @@ class _AdminLivreurManagementScreenState extends State<AdminLivreurManagementScr
       return (status?.toLowerCase() ?? 'pending') == 'suspended';
     }).length;
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Gestion Livreurs'),
         backgroundColor: AppColors.primary,

@@ -9,8 +9,11 @@ import 'package:social_business_pro/providers/auth_provider_firebase.dart';
 
 import 'package:social_business_pro/config/constants.dart';
 import '../../models/product_model.dart';
+import '../../models/audit_log_model.dart';
 import '../../services/product_service.dart';
+import '../../services/audit_service.dart';
 import '../../config/product_categories.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class ProductManagement extends StatefulWidget {
   const ProductManagement({super.key, required String storeId});
@@ -338,23 +341,48 @@ Future<void> _toggleProductStatus(String productId, bool newStatus) async {
 }
 
 // Supprimer un produit
-Future<void> _deleteProduct(String productId) async {
+Future<void> _deleteProduct(String productId, String productName) async {
   try {
     debugPrint('🗑️ Suppression produit $productId');
-    
+
+    // Récupérer authProvider avant les appels async
+    final authProvider = context.read<AuthProvider>();
+
     // TODO: Supprimer de Firestore
     // await ProductService().deleteProduct(productId);
-    
+
     // Simuler pour le moment
     await Future.delayed(const Duration(milliseconds: 500));
-    
+
+    // Logger la suppression du produit
+    if (authProvider.user != null) {
+      await AuditService.log(
+        userId: authProvider.user!.id,
+        userType: authProvider.user!.userType.value,
+        userEmail: authProvider.user!.email,
+        userName: authProvider.user!.displayName,
+        action: 'product_deleted',
+        actionLabel: 'Suppression de produit',
+        category: AuditCategory.userAction,
+        severity: AuditSeverity.medium,
+        description: 'Suppression du produit "$productName"',
+        targetType: 'product',
+        targetId: productId,
+        targetLabel: productName,
+        metadata: {
+          'productId': productId,
+          'productName': productName,
+        },
+      );
+    }
+
     // Supprimer localement
     if (mounted) {
       setState(() {
         _products.removeWhere((p) => p.id == productId);
         _filteredProducts.removeWhere((p) => p.id == productId);
       });
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Produit supprimé'),
@@ -363,7 +391,7 @@ Future<void> _deleteProduct(String productId) async {
         ),
       );
     }
-    
+
     debugPrint('✅ Produit supprimé');
     
   } catch (e) {
@@ -382,7 +410,7 @@ Future<void> _deleteProduct(String productId) async {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
         title: const Text('Mes Produits'),
@@ -785,7 +813,7 @@ Future<void> _deleteProduct(String productId) async {
                 
                 if (confirm == true && mounted) {
                   // ✅ APPELER LA MÉTHODE
-                  await _deleteProduct(product.id);
+                  await _deleteProduct(product.id, product.name);
                 }
               },
             ),

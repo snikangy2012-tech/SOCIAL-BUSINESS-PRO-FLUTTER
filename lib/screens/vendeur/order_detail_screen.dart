@@ -18,6 +18,7 @@ import '../../widgets/review_dialog.dart';
 import '../../utils/order_status_helper.dart';
 import '../../utils/number_formatter.dart';
 import 'assign_livreur_screen.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class OrderDetail extends StatefulWidget {
   final String orderId;
@@ -348,7 +349,7 @@ class _OrderDetailState extends State<OrderDetail> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
+      return SystemUIScaffold(
         appBar: AppBar(
           title: const Text('Détail de la commande'),
           backgroundColor: AppColors.primary,
@@ -359,7 +360,7 @@ class _OrderDetailState extends State<OrderDetail> {
     }
 
     if (_order == null) {
-      return Scaffold(
+      return SystemUIScaffold(
         appBar: AppBar(
           title: const Text('Détail de la commande'),
           backgroundColor: AppColors.primary,
@@ -373,7 +374,7 @@ class _OrderDetailState extends State<OrderDetail> {
 
     final statusInfo = _getStatusInfo(_order!.status);
 
-    return Scaffold(
+    return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
         title: const Text('Détail de la commande'),

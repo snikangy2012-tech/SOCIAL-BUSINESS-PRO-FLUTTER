@@ -9,6 +9,8 @@ import '../../providers/auth_provider_firebase.dart' as auth;
 import '../../providers/notification_provider.dart';
 import '../../services/livreur_stats_service.dart';
 import '../../services/review_service.dart';
+import '../../utils/number_formatter.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class DeliveryDashboard extends StatefulWidget {
   const DeliveryDashboard({super.key});
@@ -146,13 +148,13 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
         }
       });
       
-      return const Scaffold(
+      return SystemUIScaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_isLoading) {
-      return Scaffold(
+      return SystemUIScaffold(
         body: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -176,7 +178,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
       );
     }
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Dashboard Livreur'),
         backgroundColor: AppColors.primary,
@@ -641,42 +643,51 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.delivery_dining,
-                          color: AppColors.primary,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            delivery.orderNumber,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          Text(
-                            delivery.customerName,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
+                          child: const Icon(
+                            Icons.delivery_dining,
+                            color: AppColors.primary,
+                            size: 20,
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                formatDeliveryNumber(delivery.id),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                delivery.customerName,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -724,12 +735,14 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${delivery.amount.toStringAsFixed(0)} FCFA',
+                        formatPriceWithCurrency(delivery.amount, currency: 'FCFA'),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: AppColors.success,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),

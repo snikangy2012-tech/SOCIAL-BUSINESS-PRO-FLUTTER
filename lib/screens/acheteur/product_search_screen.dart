@@ -6,6 +6,8 @@ import '../../models/product_model.dart';
 import '../../services/product_service.dart';
 import 'package:social_business_pro/config/constants.dart';
 import '../../config/product_categories.dart';
+import '../../utils/number_formatter.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class ProductSearchScreen extends StatefulWidget {
   const ProductSearchScreen({super.key});
@@ -210,8 +212,8 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
                         max: 1000000,
                         divisions: 100,
                         labels: RangeLabels(
-                          '${_minPrice.toInt()} FCFA',
-                          '${_maxPrice.toInt()} FCFA',
+                          formatPriceWithCurrency(_minPrice, currency: 'FCFA'),
+                          formatPriceWithCurrency(_maxPrice, currency: 'FCFA'),
                         ),
                         onChanged: (values) {
                           setModalState(() {
@@ -224,11 +226,11 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '${_minPrice.toInt()} FCFA',
+                            formatPriceWithCurrency(_minPrice, currency: 'FCFA'),
                             style: const TextStyle(fontSize: 12),
                           ),
                           Text(
-                            '${_maxPrice.toInt()} FCFA',
+                            formatPriceWithCurrency(_maxPrice, currency: 'FCFA'),
                             style: const TextStyle(fontSize: 12),
                           ),
                         ],
@@ -341,22 +343,66 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image
-            AspectRatio(
-              aspectRatio: 1,
-              child: product.images.isNotEmpty
-                  ? Image.network(
-                      product.images.first,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: Colors.grey.shade200,
-                        child: const Icon(Icons.image, size: 50),
+            // Image avec badge de stock
+            Stack(
+              children: [
+                AspectRatio(
+                  aspectRatio: 1,
+                  child: product.images.isNotEmpty
+                      ? Image.network(
+                          product.images.first,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: Colors.grey.shade200,
+                            child: const Icon(Icons.image, size: 50),
+                          ),
+                        )
+                      : Container(
+                          color: Colors.grey.shade200,
+                          child: const Icon(Icons.image, size: 50),
+                        ),
+                ),
+                // Badge de stock
+                if (product.isOutOfStock || product.isLowStock)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
                       ),
-                    )
-                  : Container(
-                      color: Colors.grey.shade200,
-                      child: const Icon(Icons.image, size: 50),
+                      decoration: BoxDecoration(
+                        color: product.isOutOfStock
+                            ? AppColors.error
+                            : AppColors.warning,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            product.isOutOfStock
+                                ? Icons.cancel_outlined
+                                : Icons.warning_amber_outlined,
+                            size: 12,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            product.isOutOfStock
+                                ? 'Rupture'
+                                : 'Stock: ${product.availableStock}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                  ),
+              ],
             ),
 
             // Informations
@@ -376,21 +422,25 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${product.price.toStringAsFixed(0)} FCFA',
+                    formatPriceWithCurrency(product.price, currency: 'FCFA'),
                     style: const TextStyle(
                       color: AppColors.primary,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   if (product.originalPrice != null)
                     Text(
-                      '${product.originalPrice!.toStringAsFixed(0)} FCFA',
+                      formatPriceWithCurrency(product.originalPrice!, currency: 'FCFA'),
                       style: const TextStyle(
                         decoration: TextDecoration.lineThrough,
                         color: AppColors.textSecondary,
                         fontSize: 12,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   const SizedBox(height: 4),
                   Row(
@@ -421,7 +471,7 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Rechercher'),
         actions: [
@@ -567,7 +617,7 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
                                   padding: const EdgeInsets.all(16),
                                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: 2,
-                                    childAspectRatio: 0.7,
+                                    childAspectRatio: 0.55, // ✅ CORRECTION: 0.55 pour carte complète avec tous les éléments
                                     crossAxisSpacing: 12,
                                     mainAxisSpacing: 12,
                                   ),

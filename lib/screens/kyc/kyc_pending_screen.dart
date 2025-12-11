@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../widgets/custom_widgets.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class KYCPendingScreen extends StatelessWidget {
   const KYCPendingScreen({super.key});
@@ -17,14 +18,14 @@ class KYCPendingScreen extends StatelessWidget {
     final user = context.watch<AuthProvider>().user;
 
     if (user == null) {
-      return const Scaffold(
+      return SystemUIScaffold(
         body: Center(child: Text('Utilisateur non connecté')),
       );
     }
 
     final userTypeLabel = user.userType == UserType.vendeur ? 'vendeur' : 'livreur';
 
-    return Scaffold(
+    return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
         title: const Text('Vérification en cours'),

@@ -10,6 +10,7 @@ import '../../services/product_service.dart';
 import '../../services/order_service.dart';
 import '../../services/review_service.dart';
 import 'package:social_business_pro/config/constants.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class VendorManagementScreen extends StatefulWidget {
   const VendorManagementScreen({super.key});
@@ -449,7 +450,7 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> with Si
       return (status?.toLowerCase() ?? 'pending') == 'suspended';
     }).length;
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Gestion Vendeurs'),
         actions: [

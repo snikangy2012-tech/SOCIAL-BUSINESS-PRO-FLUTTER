@@ -11,6 +11,7 @@ import '../../providers/auth_provider_firebase.dart';
 import '../../services/firebase_service.dart';
 import '../../services/notification_service.dart';
 import 'package:social_business_pro/config/constants.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class DocumentsManagementScreen extends StatefulWidget {
   const DocumentsManagementScreen({super.key});
@@ -336,7 +337,7 @@ class _DocumentsManagementScreenState extends State<DocumentsManagementScreen> {
     final user = authProvider.user;
 
     if (user == null || user.userType != UserType.livreur) {
-      return Scaffold(
+      return SystemUIScaffold(
         appBar: AppBar(title: const Text('Documents')),
         body: const Center(
           child: Text('Accès réservé aux livreurs'),
@@ -348,7 +349,7 @@ class _DocumentsManagementScreenState extends State<DocumentsManagementScreen> {
     final uploadedDocuments = _documents.length;
     final progress = uploadedDocuments / totalDocuments;
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Mes Documents'),
         backgroundColor: AppColors.primary,

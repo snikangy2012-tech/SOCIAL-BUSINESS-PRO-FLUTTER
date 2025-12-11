@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../config/constants.dart';
 import '../../services/review_service.dart';
 import 'vendor_shop_screen.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class VendorsListScreen extends StatefulWidget {
   const VendorsListScreen({super.key});
@@ -123,7 +124,7 @@ class _VendorsListScreenState extends State<VendorsListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Découvrir les vendeurs'),
         backgroundColor: AppColors.primary,

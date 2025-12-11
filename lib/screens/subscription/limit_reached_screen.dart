@@ -5,6 +5,7 @@ import 'package:social_business_pro/config/constants.dart';
 import '../../models/subscription_model.dart';
 import '../../providers/subscription_provider.dart';
 import '../../providers/auth_provider_firebase.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 /// Écran transversal affiché quand un utilisateur (vendeur ou livreur) atteint une limite
 /// - VENDEUR: limite de produits, messages AI
@@ -32,7 +33,7 @@ class LimitReachedScreen extends StatelessWidget {
     }
 
     // Fallback si le type d'utilisateur n'est pas reconnu
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(title: const Text('Limite atteinte')),
       body: const Center(
         child: Text('Type d\'utilisateur non reconnu'),
@@ -45,7 +46,7 @@ class LimitReachedScreen extends StatelessWidget {
   Widget _buildVendeurLimitScreen(BuildContext context, SubscriptionProvider subscriptionProvider) {
     final currentTier = subscriptionProvider.vendeurSubscription?.tier ?? VendeurSubscriptionTier.basique;
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Limite atteinte'),
         centerTitle: true,
@@ -527,7 +528,7 @@ class LimitReachedScreen extends StatelessWidget {
     final currentSubscription = subscriptionProvider.livreurSubscription;
     final currentTier = currentSubscription?.tier ?? LivreurTier.starter;
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Améliorer votre plan'),
         centerTitle: true,

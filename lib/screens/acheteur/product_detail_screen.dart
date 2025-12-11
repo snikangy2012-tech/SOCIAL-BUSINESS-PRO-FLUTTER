@@ -16,6 +16,8 @@ import '../../widgets/custom_widgets.dart';
 import '../../widgets/rating_stars.dart';
 import '../../widgets/review_list.dart';
 import '../../widgets/review_dialog.dart';
+import '../../utils/number_formatter.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -160,7 +162,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       backgroundColor: AppColors.background,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -266,7 +268,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               final shareText = '''
 🛍️ ${_product!.name}
 
-💰 Prix: ${_product!.price.toStringAsFixed(0)} FCFA${_product!.originalPrice != null ? '\n🏷️ Prix d\'origine: ${_product!.originalPrice!.toStringAsFixed(0)} FCFA' : ''}
+💰 Prix: ${formatPriceWithCurrency(_product!.price)}${_product!.originalPrice != null ? '\n🏷️ Prix d\'origine: ${formatPriceWithCurrency(_product!.originalPrice!)}' : ''}
 
 📝 ${_product!.description}
 
@@ -418,7 +420,7 @@ Découvrez ce produit sur Social Business Pro!
           Row(
             children: [
               Text(
-                '${_product!.price.toStringAsFixed(0)} FCFA',
+                formatPriceWithCurrency(_product!.price, currency: 'FCFA'),
                 style: const TextStyle(
                   fontSize: AppFontSizes.xxl,
                   fontWeight: FontWeight.bold,
@@ -429,7 +431,7 @@ Découvrez ce produit sur Social Business Pro!
                   _product!.originalPrice! > _product!.price) ...[
                 const SizedBox(width: AppSpacing.sm),
                 Text(
-                  '${_product!.originalPrice!.toStringAsFixed(0)} FCFA',
+                  formatPriceWithCurrency(_product!.originalPrice!, currency: 'FCFA'),
                   style: const TextStyle(
                     fontSize: AppFontSizes.md,
                     decoration: TextDecoration.lineThrough,

@@ -8,6 +8,8 @@ import 'package:provider/provider.dart';
 import 'package:social_business_pro/config/constants.dart';
 import '../../providers/cart_provider.dart';
 import '../../services/analytics_service.dart';
+import '../../utils/number_formatter.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -32,7 +34,7 @@ class _CartScreenState extends State<CartScreen> {
         final items = cartProvider.items;
         final isEmpty = items.isEmpty;
 
-        return Scaffold(
+        return SystemUIScaffold(
           appBar: AppBar(
             title: const Text('Mon Panier'),
             actions: [
@@ -240,20 +242,24 @@ class _CartScreenState extends State<CartScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                '${item.price.toStringAsFixed(0)} FCFA',
+                formatPriceWithCurrency(item.price, currency: 'FCFA'),
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: AppColors.primary,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 4),
               Text(
-                'Total: ${item.total.toStringAsFixed(0)} FCFA',
+                'Total: ${formatPriceWithCurrency(item.total, currency: 'FCFA')}',
                 style: const TextStyle(
                   fontSize: 13,
                   color: AppColors.textSecondary,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -420,12 +426,18 @@ class _CartScreenState extends State<CartScreen> {
             color: AppColors.textPrimary,
           ),
         ),
-        Text(
-          '${amount.toStringAsFixed(0)} FCFA',
-          style: TextStyle(
-            fontSize: isLarge ? 18 : 14,
-            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-            color: isBold ? AppColors.primary : AppColors.textPrimary,
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            formatPriceWithCurrency(amount, currency: 'FCFA'),
+            style: TextStyle(
+              fontSize: isLarge ? 18 : 14,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+              color: isBold ? AppColors.primary : AppColors.textPrimary,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
           ),
         ),
       ],
@@ -472,7 +484,7 @@ class _CartScreenState extends State<CartScreen> {
               ),
               const SizedBox(width: AppSpacing.sm),
               Text(
-                '${cartProvider.total.toStringAsFixed(0)} FCFA',
+                formatPriceWithCurrency(cartProvider.total, currency: 'FCFA'),
                 style: const TextStyle(
                   fontSize: 16,
                   color: Colors.white,

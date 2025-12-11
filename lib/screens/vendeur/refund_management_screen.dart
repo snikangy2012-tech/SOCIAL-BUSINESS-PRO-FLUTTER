@@ -9,6 +9,7 @@ import '../../config/constants.dart';
 import '../../models/refund_model.dart';
 import '../../services/refund_service.dart';
 import '../../providers/auth_provider_firebase.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class RefundManagementScreen extends StatefulWidget {
   const RefundManagementScreen({super.key});
@@ -53,12 +54,12 @@ class _RefundManagementScreenState extends State<RefundManagementScreen> {
     final vendeurId = authProvider.user?.id;
 
     if (vendeurId == null) {
-      return const Scaffold(
+      return SystemUIScaffold(
         body: Center(child: Text('Utilisateur non connecté')),
       );
     }
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Gestion des retours'),
         centerTitle: true,

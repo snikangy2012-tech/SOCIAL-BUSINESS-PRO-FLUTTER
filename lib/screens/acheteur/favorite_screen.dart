@@ -13,8 +13,10 @@ import '../../models/product_model.dart';
 import '../../models/user_model.dart';
 import '../../services/product_service.dart';
 import '../../services/firebase_service.dart';
+import '../../utils/number_formatter.dart';
 import 'vendors_list_screen.dart';
 import 'vendor_shop_screen.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class FavoriteScreen extends StatefulWidget {
   const FavoriteScreen({super.key});
@@ -102,7 +104,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> with SingleTickerProvid
     final favoriteProvider = context.watch<FavoriteProvider>();
     final isAuthenticated = authProvider.isAuthenticated;
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Mes Favoris'),
         backgroundColor: AppColors.primary,
@@ -218,32 +220,61 @@ class _FavoriteScreenState extends State<FavoriteScreen> with SingleTickerProvid
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '${product.price.toStringAsFixed(0)} FCFA',
+                      formatPriceWithCurrency(product.price, currency: 'FCFA'),
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: AppColors.primary,
                       ),
                     ),
-                    if (product.stock > 0) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'En stock: ${product.stock}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.success,
-                        ),
+                    const SizedBox(height: 4),
+                    // Badge de stock
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: product.isOutOfStock
+                            ? AppColors.error.withValues(alpha: 0.1)
+                            : product.isLowStock
+                                ? AppColors.warning.withValues(alpha: 0.1)
+                                : AppColors.success.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
                       ),
-                    ] else ...[
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Rupture de stock',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.error,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            product.isOutOfStock
+                                ? Icons.cancel_outlined
+                                : product.isLowStock
+                                    ? Icons.warning_amber_outlined
+                                    : Icons.check_circle_outlined,
+                            size: 14,
+                            color: product.isOutOfStock
+                                ? AppColors.error
+                                : product.isLowStock
+                                    ? AppColors.warning
+                                    : AppColors.success,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            product.isOutOfStock
+                                ? 'Rupture de stock'
+                                : product.isLowStock
+                                    ? 'Stock faible (${product.availableStock})'
+                                    : '${product.availableStock} en stock',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: product.isOutOfStock
+                                  ? AppColors.error
+                                  : product.isLowStock
+                                      ? AppColors.warning
+                                      : AppColors.success,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),
@@ -322,11 +353,18 @@ class _FavoriteScreenState extends State<FavoriteScreen> with SingleTickerProvid
     final profileData = vendor.profile;
     if (profileData.isEmpty) return const SizedBox.shrink();
 
-    final businessName = profileData['businessName'] as String? ?? vendor.displayName;
-    final businessCategory = profileData['businessCategory'] as String? ?? 'Commerce';
-    final stats = profileData['stats'] as Map<String, dynamic>? ?? {};
+    // Récupérer les données du profil vendeur
+    final vendeurProfileData = profileData['vendeurProfile'] as Map<String, dynamic>?;
+    if (vendeurProfileData == null) return const SizedBox.shrink();
+
+    final businessName = vendeurProfileData['businessName'] as String? ?? vendor.displayName;
+    final businessCategory = vendeurProfileData['businessCategory'] as String? ?? 'Commerce';
+    final stats = vendeurProfileData['stats'] as Map<String, dynamic>? ?? {};
     final averageRating = (stats['averageRating'] as num?)?.toDouble() ?? 0.0;
     final totalProducts = stats['totalProducts'] as int? ?? 0;
+
+    // Protection contre businessName vide
+    final initial = businessName.isEmpty ? '?' : businessName.substring(0, 1).toUpperCase();
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -351,7 +389,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> with SingleTickerProvid
                 radius: 40,
                 backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                 child: Text(
-                  businessName.substring(0, 1).toUpperCase(),
+                  initial,
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,

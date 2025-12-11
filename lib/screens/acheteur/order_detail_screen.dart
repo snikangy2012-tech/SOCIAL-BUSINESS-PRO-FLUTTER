@@ -12,7 +12,10 @@ import '../../services/order_service.dart';
 import '../../services/delivery_service.dart';
 import '../../services/review_service.dart';
 import '../../widgets/review_dialog.dart';
+import '../../utils/order_status_helper.dart';
+import '../../utils/number_formatter.dart';
 import 'request_refund_screen.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class AcheteurOrderDetailScreen extends StatefulWidget {
   final String orderId;
@@ -89,51 +92,12 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
     return DateFormat('dd/MM/yyyy à HH:mm').format(date);
   }
 
-  String _formatPrice(double price) {
-    return NumberFormat.currency(locale: 'fr_FR', symbol: 'FCFA', decimalDigits: 0)
-        .format(price);
-  }
-
   Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return AppColors.warning;
-      case 'confirmed':
-        return AppColors.info;
-      case 'ready':
-        return Colors.green;
-      case 'preparing':
-        return Colors.orange;
-      case 'in_delivery':
-        return Colors.blue;
-      case 'delivered':
-        return AppColors.success;
-      case 'cancelled':
-        return AppColors.error;
-      default:
-        return AppColors.textSecondary;
-    }
+    return OrderStatusHelper.getStatusColor(status);
   }
 
   String _getStatusLabel(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return 'En attente';
-      case 'confirmed':
-        return 'Confirmée';
-      case 'ready':
-        return 'Prête';
-      case 'preparing':
-        return 'En préparation';
-      case 'in_delivery':
-        return 'En livraison';
-      case 'delivered':
-        return 'Livrée';
-      case 'cancelled':
-        return 'Annulée';
-      default:
-        return status;
-    }
+    return OrderStatusHelper.getStatusLabel(status);
   }
 
   Widget _buildStatusTimeline() {
@@ -243,7 +207,7 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
+      return SystemUIScaffold(
         appBar: AppBar(
           title: const Text('Détail de la commande'),
           backgroundColor: AppColors.primary,
@@ -254,7 +218,7 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
     }
 
     if (_order == null) {
-      return Scaffold(
+      return SystemUIScaffold(
         appBar: AppBar(
           title: const Text('Détail de la commande'),
           backgroundColor: AppColors.primary,
@@ -266,7 +230,7 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
       );
     }
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Détail de la commande'),
         backgroundColor: AppColors.primary,
@@ -415,11 +379,16 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
                                   ),
                                 ),
                                 // Prix
-                                Text(
-                                  _formatPrice(item.price * item.quantity),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: AppFontSizes.md,
+                                Flexible(
+                                  child: Text(
+                                    formatPriceWithCurrency(item.price * item.quantity, currency: 'FCFA'),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: AppFontSizes.md,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.right,
                                   ),
                                 ),
                               ],
@@ -688,7 +657,15 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Sous-total'),
-                          Text(_formatPrice(_order!.subtotal)),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              formatPriceWithCurrency(_order!.subtotal, currency: 'FCFA'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -696,7 +673,15 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Frais de livraison'),
-                          Text(_formatPrice(_order!.deliveryFee)),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              formatPriceWithCurrency(_order!.deliveryFee, currency: 'FCFA'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
                         ],
                       ),
                       if (_order!.discount > 0) ...[
@@ -708,9 +693,15 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
                               'Réduction',
                               style: TextStyle(color: AppColors.success),
                             ),
-                            Text(
-                              '- ${_formatPrice(_order!.discount)}',
-                              style: const TextStyle(color: AppColors.success),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                '- ${formatPriceWithCurrency(_order!.discount, currency: 'FCFA')}',
+                                style: const TextStyle(color: AppColors.success),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.right,
+                              ),
                             ),
                           ],
                         ),
@@ -728,12 +719,18 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          Text(
-                            _formatPrice(_order!.totalAmount),
-                            style: const TextStyle(
-                              fontSize: AppFontSizes.lg,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              formatPriceWithCurrency(_order!.totalAmount, currency: 'FCFA'),
+                              style: const TextStyle(
+                                fontSize: AppFontSizes.lg,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
                             ),
                           ),
                         ],

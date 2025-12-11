@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../models/review_model.dart';
 import '../../services/review_service.dart';
 import 'package:social_business_pro/config/constants.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class ReviewsScreen extends StatefulWidget {
   final String targetId; // Product ID, Vendor ID, or Livreur ID
@@ -382,7 +383,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: Text(
           widget.targetType == 'product'

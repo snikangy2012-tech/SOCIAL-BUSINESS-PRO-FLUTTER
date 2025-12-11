@@ -8,6 +8,7 @@ import '../../models/product_model.dart';
 import '../../models/order_model.dart';
 import '../../models/delivery_model.dart';
 import 'package:social_business_pro/config/constants.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class GlobalStatisticsScreen extends StatefulWidget {
   const GlobalStatisticsScreen({super.key});
@@ -411,9 +412,8 @@ class _GlobalStatisticsScreenState extends State<GlobalStatisticsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false,
         title: const Text('Statistiques Globales'),
         actions: [
           PopupMenuButton<String>(

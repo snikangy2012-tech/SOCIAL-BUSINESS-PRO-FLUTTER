@@ -9,8 +9,11 @@ import 'package:provider/provider.dart';
 
 import '../../config/constants.dart';
 import '../../models/order_model.dart';
+import '../../models/audit_log_model.dart';
 import '../../services/refund_service.dart';
+import '../../services/audit_service.dart';
 import '../../providers/auth_provider_firebase.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class RequestRefundScreen extends StatefulWidget {
   final OrderModel order;
@@ -117,6 +120,30 @@ class _RequestRefundScreenState extends State<RequestRefundScreen> {
         setState(() => _isLoading = false);
 
         if (refundId != null) {
+          // Logger la demande de remboursement
+          await AuditService.log(
+            userId: buyerId,
+            userType: authProvider.user!.userType.value,
+            userEmail: authProvider.user!.email,
+            userName: buyerName,
+            action: 'refund_requested',
+            actionLabel: 'Demande de remboursement',
+            category: AuditCategory.financial,
+            severity: AuditSeverity.medium,
+            description: 'Demande de remboursement pour commande #${widget.order.displayNumber}',
+            targetType: 'order',
+            targetId: widget.order.id,
+            targetLabel: 'Commande #${widget.order.displayNumber}',
+            metadata: {
+              'orderId': widget.order.id,
+              'refundId': refundId,
+              'reason': _selectedReason,
+              'description': _descriptionController.text.trim(),
+              'imageCount': imageUrls.length,
+              'orderAmount': widget.order.totalAmount,
+            },
+          );
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('✅ Demande de retour envoyée avec succès'),
@@ -155,7 +182,7 @@ class _RequestRefundScreenState extends State<RequestRefundScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Demander un retour'),
         centerTitle: true,
@@ -184,7 +211,7 @@ class _RequestRefundScreenState extends State<RequestRefundScreen> {
                               ),
                             ),
                             const SizedBox(height: AppSpacing.sm),
-                            Text('N° ${widget.order.orderNumber}'),
+                            Text('Commande ${widget.order.displayNumber}'),
                             Text(
                               'Montant produit: ${widget.order.totalAmount - widget.order.deliveryFee} FCFA',
                               style: const TextStyle(

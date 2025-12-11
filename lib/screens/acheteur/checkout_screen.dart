@@ -14,9 +14,15 @@ import '../../services/analytics_service.dart';
 import '../../services/mobile_money_service.dart';
 import '../../services/counter_service.dart';
 import '../../services/firebase_service.dart';
-import '../../services/geolocation_service.dart';
 import '../../services/stock_management_service.dart';
+import '../../services/audit_service.dart';
+import '../../services/vendor_location_service.dart';
+import '../../services/notification_service.dart';
 import '../../models/user_model.dart';
+import '../../models/audit_log_model.dart';
+import '../../utils/number_formatter.dart';
+import 'address_picker_screen.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -44,6 +50,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _orderCompleted = false; // Empêche la redirection après commande réussie
   List<String> _availablePaymentMethods = []; // Méthodes disponibles selon les vendeurs
   bool _isLoadingPaymentMethods = false;
+  List<Address> _savedAddresses = []; // Adresses enregistrées
+  Address? _selectedAddress; // Adresse sélectionnée
 
   @override
   void initState() {
@@ -170,23 +178,40 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       _nameController.text = user.displayName;
       _phoneController.text = user.phoneNumber ?? '';
 
-      // Charger l'adresse par défaut si disponible
+      // Charger toutes les adresses enregistrées
       final profile = user.profile;
-      if (profile.isNotEmpty) {
-        final acheteurProfile = profile['acheteurProfile'] as Map<String, dynamic>?;
-        if (acheteurProfile != null) {
-          final addresses = acheteurProfile['addresses'] as List<dynamic>? ?? [];
-          if (addresses.isNotEmpty) {
-            final defaultAddress = addresses.firstWhere(
-              (addr) => addr['isDefault'] == true,
-              orElse: () => addresses.isNotEmpty ? addresses.first : <String, dynamic>{},
-            );
-            _addressController.text = defaultAddress['street'] ?? '';
-            _communeController.text = defaultAddress['commune'] ?? '';
+      if (profile.isNotEmpty && profile['addresses'] != null) {
+        final addresses = profile['addresses'] as List<dynamic>? ?? [];
+        if (addresses.isNotEmpty) {
+          // Convertir en objets Address
+          _savedAddresses = addresses
+              .map((addr) => Address.fromMap(addr as Map<String, dynamic>))
+              .toList();
+
+          debugPrint('✅ Loaded ${_savedAddresses.length} addresses from user profile');
+
+          // Sélectionner l'adresse par défaut
+          final defaultIndex = _savedAddresses.indexWhere((addr) => addr.isDefault);
+          if (defaultIndex != -1) {
+            _selectedAddress = _savedAddresses[defaultIndex];
+            _fillAddressFields(_selectedAddress!);
+            debugPrint('✅ Selected default address: ${_selectedAddress!.label}');
+          } else if (_savedAddresses.isNotEmpty) {
+            _selectedAddress = _savedAddresses.first;
+            _fillAddressFields(_selectedAddress!);
+            debugPrint('✅ Selected first address: ${_selectedAddress!.label}');
           }
         }
       }
     }
+  }
+
+  // Remplir les champs avec une adresse
+  void _fillAddressFields(Address address) {
+    setState(() {
+      _addressController.text = address.street;
+      _communeController.text = address.commune;
+    });
   }
 
   @override
@@ -269,25 +294,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() => _isProcessing = true);
 
     try {
-      // Récupérer l'adresse par défaut de l'utilisateur avec ses coordonnées GPS
-      final profile = user.profile;
-      Address? selectedAddress;
-
-      if (profile.isNotEmpty) {
-        final acheteurProfile = profile['acheteurProfile'] as Map<String, dynamic>?;
-        if (acheteurProfile != null) {
-          final addresses = acheteurProfile['addresses'] as List<dynamic>? ?? [];
-          if (addresses.isNotEmpty) {
-            final defaultAddressData = addresses.firstWhere(
-              (addr) => addr['isDefault'] == true,
-              orElse: () => addresses.isNotEmpty ? addresses.first : null,
-            );
-            if (defaultAddressData != null) {
-              selectedAddress = Address.fromMap(defaultAddressData as Map<String, dynamic>);
-            }
-          }
-        }
-      }
+      // Utiliser l'adresse sélectionnée par l'utilisateur
+      // (_selectedAddress a été définie lors du chargement ou de la sélection dans address_picker)
+      debugPrint('📍 Using selected address: ${_selectedAddress?.label ?? "NONE"}');
+      debugPrint('   GPS coordinates: ${_selectedAddress?.coordinates != null ? "YES" : "NO"}');
 
       // Préparer l'adresse de livraison (format texte simple)
       final deliveryAddressText = '''
@@ -306,6 +316,9 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
 
       final createdOrders = <String>[];
       final now = DateTime.now();
+
+      // 📦 Tracker les réservations de stock pour libération en cas d'erreur
+      final allReservedStock = <String, int>{}; // productId -> quantity
 
       // Créer une commande pour chaque vendeur
       for (final entry in itemsByVendor.entries) {
@@ -337,6 +350,14 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
         );
 
         if (!stockReserved) {
+          // ⚠️ Libérer tout le stock déjà réservé pour les commandes précédentes
+          if (allReservedStock.isNotEmpty) {
+            debugPrint('⚠️ Libération du stock déjà réservé pour les autres vendeurs...');
+            await StockManagementService.releaseStockBatch(
+              productsQuantities: allReservedStock,
+            );
+          }
+
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -349,61 +370,53 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
           return;
         }
 
+        // ✅ Ajouter ces réservations au tracker global
+        allReservedStock.addAll(productsQuantities);
+
         debugPrint('✅ Stock réservé pour ${items.length} produit(s)');
 
-        // Générer un numéro de commande unique (pour le système)
+        // Obtenir le numéro d'affichage incrémental PAR VENDEUR
+        // ✅ Chaque vendeur a ses propres numéros : 1, 2, 3...
+        final displayNumber = await CounterService.getNextOrderNumber(vendeurId: vendeurId);
+
+        // Générer un numéro de commande unique (pour le système/logs)
         final orderNumber = 'ORD${now.millisecondsSinceEpoch}${vendeurId.substring(0, 4)}';
 
-        // Obtenir le numéro d'affichage incrémental
-        final displayNumber = await CounterService.getNextOrderNumber();
+        // Récupérer les coordonnées GPS de la boutique du vendeur (pickup)
+        // Utilise le système hybride avec fallback sur Abidjan
+        final pickupCoords = await VendorLocationService.getVendorPickupCoordinates(vendeurId);
+        final pickupLatitude = pickupCoords?['latitude'] ?? 5.316667;
+        final pickupLongitude = pickupCoords?['longitude'] ?? -4.033333;
 
-        // Récupérer les coordonnées du vendeur (shopLocation)
-        double pickupLatitude = 5.3167; // Abidjan centre par défaut
-        double pickupLongitude = -4.0333;
-
-        try {
-          final vendorDoc = await FirebaseService.getDocument(
-            collection: FirebaseCollections.users,
-            docId: vendeurId,
+        // ✅ VALIDATION STRICTE : Adresse avec coordonnées GPS OBLIGATOIRE
+        if (_selectedAddress == null || _selectedAddress!.coordinates == null) {
+          // ⚠️ LIBÉRER LE STOCK RÉSERVÉ car la validation a échoué
+          debugPrint('⚠️ Validation GPS échouée, libération du stock réservé...');
+          await StockManagementService.releaseStockBatch(
+            productsQuantities: productsQuantities,
           );
 
-          if (vendorDoc != null && vendorDoc['profile'] != null) {
-            final vendorProfile = vendorDoc['profile'] as Map<String, dynamic>;
-            final vendeurProfileData = vendorProfile['vendeurProfile'] as Map<String, dynamic>?;
-
-            if (vendeurProfileData != null && vendeurProfileData['shopLocation'] != null) {
-              final shopLocation = vendeurProfileData['shopLocation'] as Map<String, dynamic>;
-              pickupLatitude = (shopLocation['latitude'] ?? pickupLatitude).toDouble();
-              pickupLongitude = (shopLocation['longitude'] ?? pickupLongitude).toDouble();
-              debugPrint('✅ Coordonnées vendeur trouvées: $pickupLatitude, $pickupLongitude');
-            }
+          setState(() => _isProcessing = false);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  '❌ Veuillez sélectionner une adresse avec coordonnées GPS.\n'
+                  'Utilisez une adresse enregistrée ou ajoutez-en une nouvelle via votre profil.',
+                ),
+                backgroundColor: AppColors.error,
+                duration: Duration(seconds: 5),
+              ),
+            );
           }
-        } catch (e) {
-          debugPrint('⚠️ Erreur récupération coordonnées vendeur, utilisation coordonnées par défaut: $e');
+          debugPrint('❌ Commande bloquée: Aucune adresse avec coordonnées GPS sélectionnée');
+          return;
         }
 
-        // Récupérer les coordonnées de livraison avec approche hybride
-        double deliveryLatitude = 5.3467; // Abidjan par défaut (fallback final)
-        double deliveryLongitude = -4.0083;
-
-        if (selectedAddress != null && selectedAddress.coordinates != null) {
-          // ✅ Priorité 1 : Adresse enregistrée avec coordonnées GPS
-          deliveryLatitude = selectedAddress.coordinates!.latitude;
-          deliveryLongitude = selectedAddress.coordinates!.longitude;
-          debugPrint('✅ Coordonnées de livraison depuis adresse enregistrée: $deliveryLatitude, $deliveryLongitude');
-        } else {
-          // ⚠️ Priorité 2 : Position GPS actuelle de l'utilisateur (fallback automatique)
-          debugPrint('⚠️ Aucune adresse enregistrée, tentative de géolocalisation automatique...');
-          try {
-            final position = await GeolocationService.getCurrentPosition();
-            deliveryLatitude = position.latitude;
-            deliveryLongitude = position.longitude;
-            debugPrint('✅ Position actuelle utilisée pour livraison: $deliveryLatitude, $deliveryLongitude');
-          } catch (e) {
-            // ❌ Priorité 3 : Coordonnées par défaut (Abidjan centre)
-            debugPrint('⚠️ Géolocalisation échouée ($e), utilisation coordonnées par défaut Abidjan');
-          }
-        }
+        // Récupérer les coordonnées de livraison depuis l'adresse sélectionnée
+        final deliveryLatitude = _selectedAddress!.coordinates!.latitude;
+        final deliveryLongitude = _selectedAddress!.coordinates!.longitude;
+        debugPrint('✅ Coordonnées de livraison depuis adresse enregistrée: $deliveryLatitude, $deliveryLongitude');
 
         // Créer la commande dans Firestore
         final orderData = {
@@ -443,13 +456,67 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
 
         debugPrint('✅ Commande créée: ${docRef.id} pour vendeur: $vendeurId');
 
-        // Logger l'achat
+        // Logger l'achat dans Analytics
         await _analytics.logPurchase(
           orderId: docRef.id,
           value: total,
           deliveryFee: deliveryFee,
           items: orderItems,
         );
+
+        // Logger la création de commande dans l'Audit
+        await AuditService.log(
+          userId: user.id,
+          userType: user.userType.value,
+          userEmail: user.email,
+          userName: user.displayName,
+          action: 'order_created',
+          actionLabel: 'Création de commande',
+          category: AuditCategory.userAction,
+          severity: AuditSeverity.low,
+          description: 'Création de commande #$displayNumber',
+          targetType: 'order',
+          targetId: docRef.id,
+          targetLabel: 'Commande #$displayNumber',
+          metadata: {
+            'orderId': docRef.id,
+            'orderNumber': orderNumber,
+            'displayNumber': displayNumber,
+            'vendeurId': vendeurId,
+            'totalAmount': total,
+            'subtotal': subtotal,
+            'deliveryFee': deliveryFee,
+            'itemCount': items.length,
+            'paymentMethod': _selectedPaymentMethod,
+          },
+        );
+
+        // 🔔 ENVOYER NOTIFICATION AU VENDEUR
+        try {
+          await NotificationService().createNotification(
+            userId: vendeurId,
+            type: 'new_order',
+            title: 'Nouvelle commande !',
+            body: 'Commande #$displayNumber - ${formatPriceWithCurrency(total, currency: 'FCFA')} - ${items.length} article(s)',
+            data: {
+              'orderId': docRef.id,
+              'orderNumber': orderNumber,
+              'displayNumber': displayNumber,
+              'totalAmount': total,
+              'itemCount': items.length,
+              'route': '/vendeur/order-detail/${docRef.id}',
+            },
+          );
+          debugPrint('✅ Notification envoyée au vendeur $vendeurId');
+        } catch (e) {
+          debugPrint('❌ Erreur envoi notification: $e');
+          // L'erreur n'empêche pas la commande d'être créée
+        }
+
+        // ℹ️ NOTE: L'assignation automatique du livreur se fera quand le vendeur
+        // marquera la commande comme "ready" (après confirmation et préparation).
+        // Voir order_detail_screen.dart ligne 108-123
+        debugPrint('📋 Commande créée en statut "pending" - En attente de confirmation vendeur');
       }
 
       // Vider le panier
@@ -551,6 +618,26 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
       }
     } catch (e) {
       debugPrint('❌ Erreur création commande: $e');
+
+      // ⚠️ LIBÉRER TOUT LE STOCK RÉSERVÉ en cas d'erreur
+      try {
+        // Récupérer tous les produits du panier
+        final allProductsQuantities = <String, int>{};
+        for (final item in cartProvider.items) {
+          allProductsQuantities[item.productId] = item.quantity;
+        }
+
+        if (allProductsQuantities.isNotEmpty) {
+          debugPrint('⚠️ Erreur détectée, libération de tout le stock réservé...');
+          await StockManagementService.releaseStockBatch(
+            productsQuantities: allProductsQuantities,
+          );
+          debugPrint('✅ Stock libéré suite à l\'erreur');
+        }
+      } catch (releaseError) {
+        debugPrint('❌ Erreur lors de la libération du stock: $releaseError');
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -586,7 +673,7 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
       });
     }
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Finaliser ma commande'),
         backgroundColor: AppColors.primary,
@@ -716,6 +803,101 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
         ),
         const SizedBox(height: AppSpacing.md),
 
+        // Bouton de sélection d'adresse moderne
+        Card(
+          elevation: 2,
+          child: InkWell(
+            onTap: _openAddressPicker,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.location_on,
+                          color: AppColors.primary,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _selectedAddress != null
+                                  ? (_selectedAddress!.label.isNotEmpty
+                                      ? _selectedAddress!.label
+                                      : 'Adresse sélectionnée')
+                                  : 'Sélectionner une adresse',
+                              style: const TextStyle(
+                                fontSize: AppFontSizes.md,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _selectedAddress != null
+                                  ? '${_selectedAddress!.street}, ${_selectedAddress!.commune}'
+                                  : 'Choisissez parmi vos adresses ou utilisez la carte',
+                              style: TextStyle(
+                                fontSize: AppFontSizes.sm,
+                                color: AppColors.textSecondary,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: AppColors.textSecondary,
+                      ),
+                    ],
+                  ),
+                  if (_selectedAddress?.coordinates != null) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    const Divider(),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.check_circle,
+                          color: AppColors.success,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'GPS validé',
+                          style: TextStyle(
+                            fontSize: AppFontSizes.sm,
+                            color: AppColors.success,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: AppSpacing.md),
+
         Form(
           key: _formKey,
           child: Column(
@@ -762,45 +944,6 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
 
               const SizedBox(height: AppSpacing.md),
 
-              // Commune
-              TextFormField(
-                controller: _communeController,
-                decoration: const InputDecoration(
-                  labelText: 'Commune *',
-                  hintText: 'Ex: Cocody, Yopougon, Abobo...',
-                  prefixIcon: Icon(Icons.location_city),
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Veuillez saisir votre commune';
-                  }
-                  return null;
-                },
-              ),
-
-              const SizedBox(height: AppSpacing.md),
-
-              // Adresse
-              TextFormField(
-                controller: _addressController,
-                decoration: const InputDecoration(
-                  labelText: 'Adresse détaillée *',
-                  hintText: 'Ex: Angré 7e tranche, près de la pharmacie',
-                  prefixIcon: Icon(Icons.location_on),
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Veuillez saisir votre adresse';
-                  }
-                  return null;
-                },
-              ),
-
-              const SizedBox(height: AppSpacing.md),
-
               // Notes (optionnel)
               TextFormField(
                 controller: _notesController,
@@ -817,6 +960,32 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
         ),
       ],
     );
+  }
+
+  // Ouvrir le sélecteur d'adresse moderne
+  Future<void> _openAddressPicker() async {
+    debugPrint('🔍 Opening address picker with ${_savedAddresses.length} saved addresses');
+    for (var addr in _savedAddresses) {
+      debugPrint('  - ${addr.label}: ${addr.street}, ${addr.commune}');
+    }
+
+    final result = await Navigator.push<Address>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddressPickerScreen(
+          savedAddresses: _savedAddresses,
+          currentAddress: _selectedAddress,
+        ),
+      ),
+    );
+
+    if (result != null) {
+      debugPrint('✅ Address selected: ${result.label} with GPS: ${result.coordinates != null}');
+      setState(() {
+        _selectedAddress = result;
+      });
+      _fillAddressFields(result);
+    }
   }
 
   // Étape 2: Paiement
@@ -1031,11 +1200,15 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
-                  Text(
-                    '${item.total.toStringAsFixed(0)} FCFA',
-                    style: const TextStyle(
-                      fontSize: AppFontSizes.sm,
-                      fontWeight: FontWeight.w600,
+                  Flexible(
+                    child: Text(
+                      formatPriceWithCurrency(item.total, currency: 'FCFA'),
+                      style: const TextStyle(
+                        fontSize: AppFontSizes.sm,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -1112,12 +1285,16 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text(
-                      '${cartProvider.total.toStringAsFixed(0)} FCFA',
-                      style: const TextStyle(
-                        fontSize: AppFontSizes.xl,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                    Flexible(
+                      child: Text(
+                        formatPriceWithCurrency(cartProvider.total, currency: 'FCFA'),
+                        style: const TextStyle(
+                          fontSize: AppFontSizes.xl,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -1231,11 +1408,15 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
             color: AppColors.textSecondary,
           ),
         ),
-        Text(
-          '${amount.toStringAsFixed(0)} FCFA',
-          style: const TextStyle(
-            fontSize: AppFontSizes.md,
-            fontWeight: FontWeight.w600,
+        Flexible(
+          child: Text(
+            formatPriceWithCurrency(amount, currency: 'FCFA'),
+            style: const TextStyle(
+              fontSize: AppFontSizes.md,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -1310,12 +1491,16 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
                       )
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            _currentStep == 2 ? 'Confirmer la commande' : 'Suivant',
-                            style: const TextStyle(
-                              fontSize: AppFontSizes.md,
-                              fontWeight: FontWeight.bold,
+                          Flexible(
+                            child: Text(
+                              _currentStep == 2 ? 'Confirmer' : 'Suivant',
+                              style: const TextStyle(
+                                fontSize: AppFontSizes.md,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: AppSpacing.sm),

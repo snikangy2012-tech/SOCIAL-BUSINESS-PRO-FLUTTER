@@ -13,6 +13,7 @@ import '../../config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/kyc_verification_service.dart';
 import '../../widgets/custom_widgets.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class KYCUploadScreen extends StatefulWidget {
   const KYCUploadScreen({super.key});
@@ -43,12 +44,12 @@ class _KYCUploadScreenState extends State<KYCUploadScreen> {
     final user = context.watch<AuthProvider>().user;
 
     if (user == null) {
-      return const Scaffold(
+      return SystemUIScaffold(
         body: Center(child: Text('Utilisateur non connecté')),
       );
     }
 
-    return Scaffold(
+    return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
         title: const Text('Vérification d\'identité'),

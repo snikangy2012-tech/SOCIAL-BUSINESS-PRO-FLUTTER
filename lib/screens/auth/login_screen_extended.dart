@@ -12,6 +12,7 @@ import 'package:social_business_pro/providers/auth_provider_firebase.dart';
 import '../../services/auth_service_web.dart';
 import '../../services/auth_service_extended.dart';
 import '../../widgets/custom_widgets.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class LoginScreenExtended extends StatefulWidget {
   const LoginScreenExtended({super.key});
@@ -292,7 +293,7 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       body: SafeArea(
         child: SingleChildScrollView(

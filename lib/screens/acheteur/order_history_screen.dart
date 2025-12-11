@@ -11,7 +11,10 @@ import '../../models/order_model.dart';
 import '../../services/order_service.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../widgets/custom_widgets.dart';
+import '../../utils/order_status_helper.dart';
+import '../../utils/number_formatter.dart';
 import 'package:provider/provider.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
   const OrderHistoryScreen({super.key});
@@ -92,62 +95,38 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
     if (status == 'all') {
       return _allOrders;
     }
-    return _allOrders.where((order) => order.status.toLowerCase() == status.toLowerCase()).toList();
+    // Mapper les statuts français vers anglais si nécessaire
+    return _allOrders.where((order) {
+      final orderStatus = order.status.toLowerCase();
+      switch (status.toLowerCase()) {
+        case 'en_attente':
+          return orderStatus == 'en_attente' || orderStatus == 'pending';
+        case 'en_cours':
+          // Inclure tous les statuts "en cours": confirmed, preparing, processing, in_delivery
+          return orderStatus == 'en_cours' ||
+                 orderStatus == 'confirmed' ||
+                 orderStatus == 'preparing' ||
+                 orderStatus == 'ready' ||
+                 orderStatus == 'processing' ||
+                 orderStatus == 'in_delivery';
+        case 'livree':
+          return orderStatus == 'livree' || orderStatus == 'delivered' || orderStatus == 'completed';
+        case 'annulee':
+          return orderStatus == 'annulee' || orderStatus == 'cancelled' || orderStatus == 'canceled';
+        default:
+          return orderStatus == status.toLowerCase();
+      }
+    }).toList();
   }
 
-  // Obtenir la couleur selon le statut (SIMPLIFIÉ)
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'en_attente':
-        return AppColors.warning;
-      case 'en_cours':
-        return AppColors.info;
-      case 'livree':
-        return AppColors.success;
-      case 'annulee':
-        return AppColors.error;
-      default:
-        return AppColors.textLight;
-    }
-  }
-
-  // Obtenir le libellé du statut (SIMPLIFIÉ)
-  String _getStatusLabel(String status) {
-    switch (status.toLowerCase()) {
-      case 'all':
-        return 'Toutes';
-      case 'en_attente':
-        return 'En attente';
-      case 'en_cours':
-        return 'En cours';
-      case 'livree':
-        return 'Livrée';
-      case 'annulee':
-        return 'Annulée';
-      default:
-        return status;
-    }
-  }
-
-  // Obtenir l'icône du statut (SIMPLIFIÉ)
-  IconData _getStatusIcon(String status) {
-    switch (status.toLowerCase()) {
-      case 'en_attente':
-        return Icons.schedule;
-      case 'en_cours':
-        return Icons.local_shipping;
-      case 'livree':
-        return Icons.check_circle;
-      case 'annulee':
-        return Icons.cancel;
-      default:
-        return Icons.receipt;
-    }
-  }
+  // ✅ Utilisation du helper centralisé pour les statuts
+  Color _getStatusColor(String status) => OrderStatusHelper.getStatusColor(status);
+  String _getStatusLabel(String status) => OrderStatusHelper.getStatusLabel(status);
+  IconData _getStatusIcon(String status) => OrderStatusHelper.getStatusIcon(status);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Mes Commandes'),
         centerTitle: true,
@@ -485,12 +464,18 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
                         color: AppColors.textSecondary,
                       ),
                     ),
-                    Text(
-                      '${_formatCurrency(order.totalAmount)} FCFA',
-                      style: const TextStyle(
-                        fontSize: AppFontSizes.lg,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        formatPriceWithCurrency(order.totalAmount, currency: 'FCFA'),
+                        style: const TextStyle(
+                          fontSize: AppFontSizes.lg,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
                       ),
                     ),
                   ],
@@ -595,8 +580,4 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
     }
   }
 
-  // Formater une devise
-  String _formatCurrency(double amount) {
-    return NumberFormat('#,##0', 'fr_FR').format(amount);
-  }
 }

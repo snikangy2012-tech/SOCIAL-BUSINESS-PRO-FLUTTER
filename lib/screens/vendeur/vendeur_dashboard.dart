@@ -11,6 +11,9 @@ import '../../providers/vendeur_navigation_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../services/review_service.dart';
 import '../../services/vendor_stats_service.dart';
+import '../../utils/order_status_helper.dart';
+import '../../utils/number_formatter.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class VendeurDashboard extends StatefulWidget {
   const VendeurDashboard({super.key});
@@ -165,7 +168,7 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
   Widget build(BuildContext context) {
     // Écran de chargement
     if (_isLoading) {
-      return Scaffold(
+      return SystemUIScaffold(
         body: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -215,7 +218,7 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
     }
 
     // Dashboard
-    return Scaffold(
+    return SystemUIScaffold(
       body: RefreshIndicator(
         onRefresh: _handleRefresh,
         color: AppColors.primary,
@@ -354,12 +357,14 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  _formatPrice(_stats.monthlyRevenue),
+                                  formatPriceWithCurrency(_stats.monthlyRevenue, currency: 'FCFA'),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 28,
                                     fontWeight: FontWeight.bold,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),
@@ -496,16 +501,19 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  subtitle: Text(order.orderNumber),
+                                  subtitle: Text('Commande ${order.displayNumber}'),
                                   trailing: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text(
-                                        _formatPrice(order.amount),
+                                        formatPriceWithCurrency(order.amount, currency: 'FCFA'),
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                         ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.right,
                                       ),
                                       const SizedBox(height: 4),
                                       Container(
@@ -615,41 +623,12 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
   }
 
   // Helpers
-  String _formatPrice(num price) {
-    return '${price.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]} ',
-    )} FCFA';
-  }
-
   Color _getStatusColor(String status) {
-    switch (status) {
-      case 'pending':
-        return AppColors.warning;
-      case 'confirmed':
-        return AppColors.info;
-      case 'delivered':
-        return AppColors.success;
-      case 'cancelled':
-        return AppColors.error;
-      default:
-        return Colors.grey;
-    }
+    return OrderStatusHelper.getStatusColor(status);
   }
 
   String _getStatusLabel(String status) {
-    switch (status) {
-      case 'pending':
-        return 'En attente';
-      case 'confirmed':
-        return 'Confirmée';
-      case 'delivered':
-        return 'Livrée';
-      case 'cancelled':
-        return 'Annulée';
-      default:
-        return status;
-    }
+    return OrderStatusHelper.getStatusLabel(status);
   }
 }
 

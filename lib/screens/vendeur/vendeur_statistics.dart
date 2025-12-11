@@ -10,6 +10,7 @@ import 'package:social_business_pro/config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/statistics_service.dart';
 import '../../models/statistics_model.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class Statistics extends StatefulWidget {
   const Statistics({super.key});
@@ -105,7 +106,7 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
         title: const Text('Statistiques'),

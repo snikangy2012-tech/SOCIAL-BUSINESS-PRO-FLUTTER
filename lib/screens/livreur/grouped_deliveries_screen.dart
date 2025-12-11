@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../config/constants.dart';
 import '../../models/delivery_model.dart';
 import '../../services/delivery_grouping_service.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class GroupedDeliveriesScreen extends StatelessWidget {
   final List<DeliveryModel> deliveries;
@@ -31,7 +32,7 @@ class GroupedDeliveriesScreen extends StatelessWidget {
     final optimizedDistance = DeliveryGroupingService.calculateOptimizedDistance(optimizedRoute);
     final timeSaved = DeliveryGroupingService.estimateTimeSaved(deliveries);
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Tournée Groupée'),
         backgroundColor: AppColors.primary,

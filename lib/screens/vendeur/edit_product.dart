@@ -3,13 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 import 'package:social_business_pro/config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/product_service.dart';
+import '../../services/audit_service.dart';
+import '../../models/audit_log_model.dart';
 import '../../config/product_categories.dart';
 import '../../config/product_subcategories.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class EditProduct extends StatefulWidget {
   final String productId;
@@ -43,6 +47,8 @@ class _EditProductState extends State<EditProduct> {
   String _otherSubcategory = '';
   final _otherSubcategoryController = TextEditingController();
   List<String> _existingImages = [];
+  List<File> _newImages = []; // Nouvelles images à uploader
+  final ImagePicker _imagePicker = ImagePicker();
   List<String> _tags = [];
   bool _isActive = true;
   bool _isLoading = true;
@@ -122,7 +128,16 @@ class _EditProductState extends State<EditProduct> {
             _otherSubcategory = _otherSubcategoryController.text;
           }
 
-          _existingImages = product.images;
+          // Filtrer les images valides (URLs Firebase Storage uniquement)
+          _existingImages = product.images.where((url) {
+            return url.contains('firebasestorage.googleapis.com') ||
+                   (url.startsWith('http://') || url.startsWith('https://'));
+          }).toList();
+
+          if (_existingImages.length != product.images.length) {
+            debugPrint('⚠️ ${product.images.length - _existingImages.length} image(s) invalide(s) ignorée(s)');
+          }
+
           _tags = List.from(product.tags);
           _tagsController.text = _tags.join(', ');
           _isActive = product.isActive;
@@ -179,6 +194,45 @@ class _EditProductState extends State<EditProduct> {
     });
   }
 
+  // Sélectionner des images
+  Future<void> _pickImages() async {
+    try {
+      final List<XFile> images = await _imagePicker.pickMultiImage(
+        imageQuality: 80,
+      );
+
+      if (images.isNotEmpty) {
+        setState(() {
+          _newImages.addAll(images.map((xfile) => File(xfile.path)));
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur sélection images: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erreur lors de la sélection des images'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  // Supprimer une image existante
+  void _removeExistingImage(int index) {
+    setState(() {
+      _existingImages.removeAt(index);
+    });
+  }
+
+  // Supprimer une nouvelle image
+  void _removeNewImage(int index) {
+    setState(() {
+      _newImages.removeAt(index);
+    });
+  }
+
   // Sauvegarder le produit
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) {
@@ -194,6 +248,10 @@ class _EditProductState extends State<EditProduct> {
     setState(() => _isSaving = true);
 
     try {
+      // Récupérer authProvider avant les appels async
+      final authProvider = context.read<AuthProvider>();
+
+      // Préparer les updates sans les images
       final updates = {
         'name': _nameController.text.trim(),
         'description': _descriptionController.text.trim(),
@@ -210,14 +268,51 @@ class _EditProductState extends State<EditProduct> {
             ? null
             : _brandController.text.trim(),
         'tags': _tags,
-        'images': List.from(_existingImages),
         'isActive': _isActive,
-        'updatedAt': DateTime.now(),
       };
 
-      await _productService.updateProduct(widget.productId, updates).timeout(
-        const Duration(seconds: 10),
+      // Utiliser la nouvelle fonction avec upload d'images
+      debugPrint('📦 Modification produit: ${widget.productId}');
+      debugPrint('   - Images existantes: ${_existingImages.length}');
+      debugPrint('   - Nouvelles images: ${_newImages.length}');
+
+      await _productService.updateProductWithImages(
+        productId: widget.productId,
+        updates: updates,
+        existingImageUrls: _existingImages,
+        newImages: _newImages.isNotEmpty ? _newImages : null,
+      ).timeout(
+        const Duration(seconds: 30), // Timeout plus long pour l'upload
       );
+
+      // Logger la modification du produit
+      if (authProvider.user != null) {
+        await AuditService.log(
+          userId: authProvider.user!.id,
+          userType: authProvider.user!.userType.value,
+          userEmail: authProvider.user!.email,
+          userName: authProvider.user!.displayName,
+          action: 'product_updated',
+          actionLabel: 'Modification de produit',
+          category: AuditCategory.userAction,
+          severity: AuditSeverity.low,
+          description: 'Modification du produit "${_nameController.text.trim()}"',
+          targetType: 'product',
+          targetId: widget.productId,
+          targetLabel: _nameController.text.trim(),
+          metadata: {
+            'productId': widget.productId,
+            'productName': _nameController.text.trim(),
+            'category': _selectedCategory,
+            'subCategory': _selectedSubcategory == 'Autre (à préciser)'
+                ? _otherSubcategory.trim()
+                : _selectedSubcategory,
+            'price': double.parse(_priceController.text),
+            'stock': int.parse(_stockController.text),
+            'isActive': _isActive,
+          },
+        );
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -253,7 +348,7 @@ class _EditProductState extends State<EditProduct> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
+      return SystemUIScaffold(
         appBar: AppBar(
           title: const Text('Modifier le produit'),
           backgroundColor: AppColors.primary,
@@ -263,7 +358,7 @@ class _EditProductState extends State<EditProduct> {
       );
     }
 
-    return Scaffold(
+    return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
         title: const Text('Modifier le produit'),
@@ -409,9 +504,160 @@ class _EditProductState extends State<EditProduct> {
                   return null;
                 },
               ),
-              
+
               const SizedBox(height: 16),
-              
+
+              // Section Images
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Images du produit',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: _pickImages,
+                          icon: const Icon(Icons.add_photo_alternate),
+                          label: const Text('Ajouter'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Images existantes
+                    if (_existingImages.isNotEmpty) ...[
+                      const Text('Images actuelles:', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 100,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _existingImages.length,
+                          itemBuilder: (context, index) {
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    width: 100,
+                                    height: 100,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      image: DecorationImage(
+                                        image: NetworkImage(_existingImages[index]),
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 4,
+                                    right: 4,
+                                    child: GestureDetector(
+                                      onTap: () => _removeExistingImage(index),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.close,
+                                          color: Colors.white,
+                                          size: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+
+                    // Nouvelles images
+                    if (_newImages.isNotEmpty) ...[
+                      const Text('Nouvelles images:', style: TextStyle(fontSize: 12, color: Colors.green)),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 100,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _newImages.length,
+                          itemBuilder: (context, index) {
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    width: 100,
+                                    height: 100,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      image: DecorationImage(
+                                        image: FileImage(_newImages[index]),
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 4,
+                                    right: 4,
+                                    child: GestureDetector(
+                                      onTap: () => _removeNewImage(index),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.close,
+                                          color: Colors.white,
+                                          size: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+
+                    if (_existingImages.isEmpty && _newImages.isEmpty)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Text(
+                            'Aucune image. Cliquez sur "Ajouter" pour en sélectionner.',
+                            style: TextStyle(color: Colors.grey),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
               // Prix
               TextFormField(
                 controller: _priceController,
@@ -537,6 +783,9 @@ class _EditProductState extends State<EditProduct> {
                         style: TextStyle(fontSize: 16, color: Colors.white),
                       ),
               ),
+
+              // Espace pour éviter que le bouton soit caché par la barre de navigation
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
             ],
           ),
         ),

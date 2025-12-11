@@ -11,9 +11,13 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:social_business_pro/config/constants.dart';
 import 'package:social_business_pro/utils/create_test_activities.dart';
+import 'package:social_business_pro/screens/admin/admin_management_screen.dart';
+import 'package:social_business_pro/screens/admin/audit_logs_screen.dart';
+import 'package:social_business_pro/screens/admin/global_reports_screen.dart';
 import '../../providers/auth_provider_firebase.dart' as auth;
 import '../../providers/notification_provider.dart';
 import '../../widgets/custom_widgets.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -100,10 +104,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
-        automaticallyImplyLeading: false,
         title: const Text('Administration'),
         backgroundColor: AppColors.warning,
         foregroundColor: Colors.white,
@@ -299,27 +302,40 @@ class _AdminDashboardState extends State<AdminDashboard> {
               crossAxisSpacing: AppSpacing.md,
               childAspectRatio: 1.5,
               children: [
-                _StatCard(
-                  title: 'Vendeurs',
-                  value: stats['vendeurs'].toString(),
-                  icon: Icons.store,
-                  color: AppColors.primary,
-                  trend: '+12%',
+                // Carte Vendeurs - Cliquable
+                GestureDetector(
+                  onTap: () => context.push('/admin/vendor-management'),
+                  child: _StatCard(
+                    title: 'Vendeurs',
+                    value: stats['vendeurs'].toString(),
+                    icon: Icons.store,
+                    color: AppColors.primary,
+                    trend: '+12%',
+                  ),
                 ),
-                _StatCard(
-                  title: 'Acheteurs',
-                  value: stats['acheteurs'].toString(),
-                  icon: Icons.shopping_bag,
-                  color: AppColors.secondary,
-                  trend: '+8%',
+                // Carte Acheteurs - Cliquable
+                GestureDetector(
+                  onTap: () => context.push('/admin/user-management'),
+                  child: _StatCard(
+                    title: 'Acheteurs',
+                    value: stats['acheteurs'].toString(),
+                    icon: Icons.shopping_bag,
+                    color: AppColors.secondary,
+                    trend: '+8%',
+                  ),
                 ),
-                _StatCard(
-                  title: 'Livreurs',
-                  value: stats['livreurs'].toString(),
-                  icon: Icons.delivery_dining,
-                  color: AppColors.success,
-                  trend: '+15%',
+                // Carte Livreurs - Cliquable
+                GestureDetector(
+                  onTap: () => context.push('/admin/livreur-management'),
+                  child: _StatCard(
+                    title: 'Livreurs',
+                    value: stats['livreurs'].toString(),
+                    icon: Icons.delivery_dining,
+                    color: AppColors.success,
+                    trend: '+15%',
+                  ),
                 ),
+                // Carte Commandes - Non cliquable pour l'instant (pas d'écran dédié)
                 _StatCard(
                   title: 'Commandes',
                   value: stats['commandes'].toString(),
@@ -327,7 +343,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   color: AppColors.info,
                   trend: '+23%',
                 ),
-                // Carte KYC avec alerte si en attente
+                // Carte KYC - Cliquable si en attente
                 GestureDetector(
                   onTap: kycPending > 0 ? () => context.go('/admin/kyc-verification') : null,
                   child: _StatCard(
@@ -536,14 +552,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         icon: Icons.block,
                         label: '$suspendedUsers utilisateur(s) suspendu(s)',
                         color: AppColors.error,
-                        onTap: () {
-                          // Navigation vers gestion utilisateurs
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Voir les utilisateurs suspendus'),
-                            ),
-                          );
-                        },
+                        onTap: () => context.push('/admin/suspended-users'),
                       ),
                     ],
                   ),
@@ -827,45 +836,96 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   // Actions rapides admin
   Widget _buildQuickActionsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Actions rapides',
-          style: TextStyle(
-            fontSize: AppFontSizes.lg,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
+    return Consumer<auth.AuthProvider>(
+      builder: (context, authProvider, _) {
+        final isSuperAdmin = authProvider.user?.isSuperAdmin ?? false;
 
-        CustomButton(
-          text: 'Voir toutes les activités',
-          icon: Icons.timeline,
-          backgroundColor: AppColors.info,
-          onPressed: () => context.go('/admin/activities'),
-        ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Actions rapides',
+              style: TextStyle(
+                fontSize: AppFontSizes.lg,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
 
-        const SizedBox(height: AppSpacing.sm),
+            // Bouton Gérer les Administrateurs (SUPER ADMIN ONLY)
+            if (isSuperAdmin) ...[
+              CustomButton(
+                text: 'Gérer les Administrateurs',
+                icon: Icons.admin_panel_settings,
+                backgroundColor: AppColors.primary,
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AdminManagementScreen(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
 
-        CustomButton(
-          text: 'Gérer les paramètres',
-          icon: Icons.settings,
-          backgroundColor: AppColors.secondary,
-          isOutlined: true,
-          onPressed: () => context.go('/admin/settings'),
-        ),
+            CustomButton(
+              text: 'Logs d\'Audit',
+              icon: Icons.security,
+              backgroundColor: AppColors.info,
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AuditLogsScreen(),
+                ),
+              ),
+            ),
 
-        const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: AppSpacing.sm),
 
-        // Bouton pour générer des données de test
-        CustomButton(
-          text: 'Générer données de test',
-          icon: Icons.science,
-          backgroundColor: AppColors.warning,
-          isOutlined: true,
-          onPressed: () async {
+            // Bouton Rapports Globaux (SUPER ADMIN ONLY)
+            if (isSuperAdmin) ...[
+              CustomButton(
+                text: 'Rapports Globaux',
+                icon: Icons.assessment,
+                backgroundColor: AppColors.primary,
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const GlobalReportsScreen(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+
+            CustomButton(
+              text: 'Voir toutes les activités',
+              icon: Icons.timeline,
+              backgroundColor: AppColors.info,
+              isOutlined: true,
+              onPressed: () => context.go('/admin/activities'),
+            ),
+
+            const SizedBox(height: AppSpacing.sm),
+
+            CustomButton(
+              text: 'Gérer les paramètres',
+              icon: Icons.settings,
+              backgroundColor: AppColors.secondary,
+              isOutlined: true,
+              onPressed: () => context.go('/admin/settings'),
+            ),
+
+            const SizedBox(height: AppSpacing.sm),
+
+            // Bouton pour générer des données de test
+            CustomButton(
+              text: 'Générer données de test',
+              icon: Icons.science,
+              backgroundColor: AppColors.warning,
+              isOutlined: true,
+              onPressed: () async {
             try {
               // Afficher un loader
               showDialog(
@@ -909,7 +969,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
             }
           },
         ),
-      ],
+          ],
+        );
+      },
     );
   }
 }

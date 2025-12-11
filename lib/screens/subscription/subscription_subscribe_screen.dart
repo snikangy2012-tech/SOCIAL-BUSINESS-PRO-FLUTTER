@@ -6,6 +6,7 @@ import 'package:social_business_pro/config/constants.dart';
 import '../../models/subscription_model.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../providers/subscription_provider.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 /// Écran de souscription à un plan avec paiement Mobile Money
 /// Accepte soit VendeurSubscriptionTier soit LivreurTier
@@ -62,7 +63,7 @@ class _SubscriptionSubscribeScreenState extends State<SubscriptionSubscribeScree
   Widget build(BuildContext context) {
     final planDetails = _getPlanDetails();
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: Text('Souscrire au plan ${_getTierName()}'),
         centerTitle: true,

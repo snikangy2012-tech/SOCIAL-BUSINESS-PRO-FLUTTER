@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:social_business_pro/config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/analytics_service.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 
 class BusinessProScreen extends StatefulWidget {
@@ -53,7 +54,7 @@ class _BusinessProScreenState extends State<BusinessProScreen> {
             }
           });
         }
-        return Scaffold(
+        return SystemUIScaffold(
           appBar: AppBar(
             title: const Text('Mon Business Pro'),
           ),
@@ -347,11 +348,7 @@ class _BusinessProScreenState extends State<BusinessProScreen> {
               icon: Icons.rate_review_outlined,
               title: 'Mes avis',
               subtitle: 'Évaluations et commentaires',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Fonctionnalité à venir')),
-                );
-              },
+              onTap: () => context.push('/acheteur/my-reviews'),
             ),
 
             const SizedBox(height: AppSpacing.md),

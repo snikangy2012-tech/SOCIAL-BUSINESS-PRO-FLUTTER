@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/auth_provider_firebase.dart';
 import 'package:social_business_pro/config/constants.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class VendeurProfileScreen extends StatefulWidget {
   const VendeurProfileScreen({super.key});
@@ -116,12 +117,12 @@ class _VendeurProfileScreenState extends State<VendeurProfileScreen> {
     final user = authProvider.user;
 
     if (user == null) {
-      return const Scaffold(
+      return SystemUIScaffold(
         body: Center(child: Text('Utilisateur non connecté')),
       );
     }
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Mon Profil Vendeur'),
         centerTitle: true,
@@ -315,8 +316,8 @@ class _VendeurProfileScreenState extends State<VendeurProfileScreen> {
                     _buildMenuTile(
                       icon: Icons.storefront,
                       title: 'Ma Boutique',
-                      subtitle: 'Gérer les informations de votre boutique',
-                      onTap: () => context.push('vendeur/shop-setup'),
+                      subtitle: 'Voir et gérer les informations de votre boutique',
+                      onTap: () => context.push('/vendeur/my-shop'),
                     ),
 
                     _buildMenuTile(

@@ -3,9 +3,12 @@
 // 🎨 VERSION COMPLÈTE ET CORRIGÉE
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
 
 import 'package:social_business_pro/config/constants.dart';
@@ -18,6 +21,9 @@ import '../../providers/cart_provider.dart';
 import '../../providers/favorite_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../widgets/custom_widgets.dart';
+import '../../utils/image_helper.dart';
+import '../../utils/number_formatter.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class AcheteurHome extends StatefulWidget {
   const AcheteurHome({super.key});
@@ -141,7 +147,7 @@ class _AcheteurHomeState extends State<AcheteurHome> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       body: RefreshIndicator(
         onRefresh: _loadProducts,
         color: AppColors.primary,
@@ -301,50 +307,10 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                             ],
                           ),
                           
-                          const SizedBox(height: 16),
-                          
-                          // Barre de recherche moderne
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 5),
-                                ),
-                              ],
-                            ),
-                            child: TextField(
-                              decoration: InputDecoration(
-                                hintText: 'Rechercher un produit...',
-                                prefixIcon: const Icon(Icons.search, color: AppColors.primary),
-                                suffixIcon: IconButton(
-                                  icon: const Icon(Icons.tune, color: AppColors.primary),
-                                  onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Filtres')),
-                                    );
-                                  },
-                                ),
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 15,
-                                ),
-                              ),
-                              onSubmitted: (value) {
-                                // Navigation vers l'écran de recherche avec la query
-                                context.push('/acheteur/search');
-                              },
-                              onTap: () {
-                                // Navigation vers l'écran de recherche au clic sur le champ
-                                context.push('/acheteur/search');
-                              },
-                              readOnly: true, // Empêche l'édition ici, force la navigation
-                            ),
-                          ),
+                          const SizedBox(height: 8),
+
+                          // ✅ CORRECTION: Barre de recherche supprimée ici
+                          // La barre de recherche pinnée en bas suffit
                         ],
                       ),
                     ),
@@ -359,7 +325,6 @@ class _AcheteurHomeState extends State<AcheteurHome> {
               elevation: 2,
               backgroundColor: Colors.white,
               toolbarHeight: 80,
-              automaticallyImplyLeading: false,
               flexibleSpace: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 child: Container(
@@ -606,42 +571,6 @@ class _AcheteurHomeState extends State<AcheteurHome> {
               ),
             ),
 
-            // ✅ CATÉGORIES RAPIDES
-            SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
-                    child: Text(
-                      'Catégories populaires',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    height: 110, // ✅ Augmenté de 10px pour éviter l'overflow
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      children: [
-                        _buildQuickCategory('Mode & Style', 'mode', Icons.shopping_bag, AppColors.secondary),
-                        _buildQuickCategory('Électronique', 'electronique', Icons.smartphone, AppColors.primary),
-                        _buildQuickCategory('Alimentation', 'alimentation', Icons.restaurant, AppColors.success),
-                        _buildQuickCategory('Maison', 'maison', Icons.home, AppColors.warning),
-                        _buildQuickCategory('Beauté', 'beaute', Icons.face, AppColors.error),
-                        _buildQuickCategory('Sport', 'sport', Icons.sports_soccer, AppColors.info),
-                        _buildQuickCategory('Auto', 'auto', Icons.directions_car, AppColors.textPrimary),
-                        _buildQuickCategory('Services', 'services', Icons.build, AppColors.textSecondary),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             // ✅ TITRE PRODUITS
             SliverToBoxAdapter(
               child: Padding(
@@ -706,7 +635,7 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                     ),
                     const SizedBox(height: 12),
                     SizedBox(
-                      height: 250, // ✅ Augmenté de 10px pour éviter l'overflow
+                      height: 270, // ✅ CORRECTION: 270px pour éviter l'overflow (était 250px)
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -757,7 +686,7 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                     ),
                     const SizedBox(height: 12),
                     SizedBox(
-                      height: 250, // ✅ Augmenté de 10px pour éviter l'overflow
+                      height: 270, // ✅ CORRECTION: 270px pour éviter l'overflow (était 250px)
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -773,6 +702,11 @@ class _AcheteurHomeState extends State<AcheteurHome> {
               ),
             ],
 
+            // Espacement entre sections
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 24),
+            ),
+
             // ✅ GRILLE PRODUITS MODERNE
             _isLoading
                 ? SliverPadding(
@@ -780,7 +714,7 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                     sliver: SliverGrid(
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
-                        childAspectRatio: 0.7,
+                        childAspectRatio: 0.55, // ✅ CORRECTION: 0.55 pour carte complète avec tous les éléments
                         crossAxisSpacing: 12,
                         mainAxisSpacing: 12,
                       ),
@@ -813,11 +747,11 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                         ),
                       )
                     : SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
                         sliver: SliverGrid(
                           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
-                            childAspectRatio: 0.7,
+                            childAspectRatio: 0.55, // ✅ CORRECTION: 0.55 pour carte complète avec tous les éléments
                             crossAxisSpacing: 12,
                             mainAxisSpacing: 12,
                           ),
@@ -830,41 +764,6 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                           ),
                         ),
                       ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Widget catégorie rapide
-  Widget _buildQuickCategory(String name, String categoryId, IconData icon, Color color) {
-    return InkWell(
-      onTap: () {
-        context.push('/categories', extra: categoryId);
-      },
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        width: 80,
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        child: Column(
-          children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(icon, color: color, size: 30),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              name,
-              style: const TextStyle(fontSize: 12),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
           ],
         ),
       ),
@@ -944,20 +843,52 @@ class _AcheteurHomeState extends State<AcheteurHome> {
             // Image avec badges
             Stack(
               children: [
-                Container(
-                  height: 150, // ✅ Augmenté de 10px pour éviter l'overflow
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(16),
-                    ),
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
                   ),
-                  child: Center(
-                    child: Icon(
-                      Icons.image_outlined,
-                      size: 50,
-                      color: Colors.grey[300],
+                  child: Image.network(
+                    ImageHelper.getValidImageUrl(
+                      imageUrl: product.images.isNotEmpty ? product.images.first : null,
+                      category: product.category,
+                      index: product.hashCode % 4,
                     ),
+                    height: 150,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        height: 150,
+                        color: Colors.grey[200],
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                          ),
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: 150,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(16),
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.image_outlined,
+                            size: 50,
+                            color: Colors.grey[400],
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 
@@ -1104,34 +1035,92 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 4),
+                    // Badge de stock
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: product.isOutOfStock
+                                ? AppColors.error.withValues(alpha: 0.1)
+                                : product.isLowStock
+                                    ? AppColors.warning.withValues(alpha: 0.1)
+                                    : AppColors.success.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                product.isOutOfStock
+                                    ? Icons.cancel_outlined
+                                    : product.isLowStock
+                                        ? Icons.warning_amber_outlined
+                                        : Icons.check_circle_outlined,
+                                size: 12,
+                                color: product.isOutOfStock
+                                    ? AppColors.error
+                                    : product.isLowStock
+                                        ? AppColors.warning
+                                        : AppColors.success,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                product.isOutOfStock
+                                    ? 'Rupture'
+                                    : product.isLowStock
+                                        ? 'Stock faible (${product.availableStock})'
+                                        : '${product.availableStock} en stock',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  color: product.isOutOfStock
+                                      ? AppColors.error
+                                      : product.isLowStock
+                                          ? AppColors.warning
+                                          : AppColors.success,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                     const Spacer(),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Prix actuel
-                            Text(
-                              '${product.price.toStringAsFixed(0)} FCFA',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            // Prix original barré si promo
-                            if (product.hasPromotion)
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Prix actuel
                               Text(
-                                '${product.originalPrice!.toStringAsFixed(0)} FCFA',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[500],
-                                  decoration: TextDecoration.lineThrough,
+                                formatPriceWithCurrency(product.price, currency: 'FCFA'),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                          ],
+                              // Prix original barré si promo
+                              if (product.hasPromotion)
+                                Text(
+                                  formatPriceWithCurrency(product.originalPrice!, currency: 'FCFA'),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[500],
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         Consumer<CartProvider>(
                           builder: (context, cartProvider, _) {
                             return GestureDetector(
@@ -1204,20 +1193,53 @@ class _AcheteurHomeState extends State<AcheteurHome> {
               // Image avec badges
               Stack(
                 children: [
-                  Container(
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(12),
-                      ),
+                  // ✅ CORRECTION: Image avec placeholder valide au lieu de placeholder gris
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(12),
                     ),
-                    child: Center(
-                      child: Icon(
-                        Icons.image_outlined,
-                        size: 40,
-                        color: Colors.grey[400],
+                    child: Image.network(
+                      ImageHelper.getValidImageUrl(
+                        imageUrl: product.images.isNotEmpty ? product.images.first : null,
+                        category: product.category,
+                        index: product.hashCode % 4, // Variation d'image basée sur le produit
                       ),
+                      height: 120,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          height: 120,
+                          color: Colors.grey[200],
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(12),
+                            ),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              Icons.image_outlined,
+                              size: 40,
+                              color: Colors.grey[400],
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                   
@@ -1332,6 +1354,19 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                       },
                     ),
                   ),
+
+                  // Bouton de partage
+                  Positioned(
+                    bottom: 8,
+                    right: 8,
+                    child: ShareButton(
+                      compact: true,
+                      shareCount: product.shareCount,
+                      onPressed: () {
+                        _showShareDialog(product);
+                      },
+                    ),
+                  ),
                 ],
               ),
               
@@ -1352,8 +1387,66 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                       ),
                     ),
                     const SizedBox(height: 4),
+                    // Nom de la boutique
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.store,
+                          size: 12,
+                          color: Colors.grey[600],
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            product.vendeurName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    // Stock indicator
+                    Row(
+                      children: [
+                        Container(
+                          height: 6,
+                          width: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: product.stock > 10
+                                ? Colors.green
+                                : product.stock > 0
+                                    ? Colors.orange
+                                    : Colors.red,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          product.stock > 10
+                              ? 'En stock'
+                              : product.stock > 0
+                                  ? '${product.stock} restant${product.stock > 1 ? 's' : ''}'
+                                  : 'Rupture',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: product.stock > 10
+                                ? Colors.green[700]
+                                : product.stock > 0
+                                    ? Colors.orange[700]
+                                    : Colors.red[700],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
                     Text(
-                      '${product.price.toStringAsFixed(0)} F',
+                      formatPriceWithCurrency(product.price),
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
@@ -1362,7 +1455,7 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                     ),
                     if (product.originalPrice != null)
                       Text(
-                        '${product.originalPrice!.toStringAsFixed(0)} F',
+                        formatPriceWithCurrency(product.originalPrice!),
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey[500],
@@ -1397,7 +1490,7 @@ class _AcheteurHomeState extends State<AcheteurHome> {
 
     return InkWell(
       onTap: () {
-        context.push('/acheteur/categories', extra: category.id);
+        context.push('/categories', extra: category.id);
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
@@ -1491,45 +1584,49 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                   icon: Icons.message,
                   label: 'WhatsApp',
                   color: const Color(0xFF25D366),
-                  onTap: () {
-                    // TODO: Implémenter partage WhatsApp
+                  onTap: () async {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Partage WhatsApp à venir')),
-                    );
+                    final message = '🛍️ Découvrez ce produit: ${product.name}\n💰 Prix: ${product.price.toStringAsFixed(0)} FCFA\n\n📱 Commandez sur SOCIAL BUSINESS Pro!';
+                    final whatsappUrl = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(message)}');
+                    if (await canLaunchUrl(whatsappUrl)) {
+                      await launchUrl(whatsappUrl, mode: LaunchMode.externalApplication);
+                    } else {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('WhatsApp non disponible')),
+                        );
+                      }
+                    }
                   },
                 ),
                 _buildShareOption(
                   icon: Icons.camera_alt,
                   label: 'TikTok',
                   color: Colors.black,
-                  onTap: () {
+                  onTap: () async {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Partage TikTok à venir')),
-                    );
+                    final message = '🛍️ ${product.name} - ${product.price.toStringAsFixed(0)} FCFA sur SOCIAL BUSINESS Pro!';
+                    await Share.share(message);
                   },
                 ),
                 _buildShareOption(
                   icon: Icons.photo_camera,
                   label: 'Instagram',
                   color: const Color(0xFFE4405F),
-                  onTap: () {
+                  onTap: () async {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Partage Instagram à venir')),
-                    );
+                    final message = '🛍️ ${product.name} - ${product.price.toStringAsFixed(0)} FCFA sur SOCIAL BUSINESS Pro!';
+                    await Share.share(message);
                   },
                 ),
                 _buildShareOption(
                   icon: Icons.facebook,
                   label: 'Facebook',
                   color: const Color(0xFF1877F2),
-                  onTap: () {
+                  onTap: () async {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Partage Facebook à venir')),
-                    );
+                    final message = '🛍️ ${product.name} - ${product.price.toStringAsFixed(0)} FCFA sur SOCIAL BUSINESS Pro!';
+                    await Share.share(message);
                   },
                 ),
               ],
@@ -1538,11 +1635,15 @@ class _AcheteurHomeState extends State<AcheteurHome> {
 
             // Bouton copier le lien
             TextButton.icon(
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Lien copié !')),
-                );
+              onPressed: () async {
+                final text = '🛍️ ${product.name} - ${product.price.toStringAsFixed(0)} FCFA\n📱 Commandez sur SOCIAL BUSINESS Pro!';
+                await Clipboard.setData(ClipboardData(text: text));
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Lien copié !')),
+                  );
+                }
               },
               icon: const Icon(Icons.link),
               label: const Text('Copier le lien'),

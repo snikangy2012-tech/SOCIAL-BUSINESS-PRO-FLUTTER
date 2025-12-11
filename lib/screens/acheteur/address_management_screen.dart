@@ -10,6 +10,7 @@ import '../../models/user_model.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/firebase_service.dart';
 import 'package:social_business_pro/config/constants.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class AddressManagementScreen extends StatefulWidget {
   const AddressManagementScreen({super.key});
@@ -299,7 +300,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Mes adresses'),
       ),
@@ -1574,7 +1575,7 @@ class _FullScreenMapPickerState extends State<FullScreenMapPicker> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       extendBodyBehindAppBar: false,
       appBar: AppBar(
         toolbarHeight: 0,

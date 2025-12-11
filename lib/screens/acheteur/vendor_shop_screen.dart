@@ -4,13 +4,18 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../config/constants.dart';
 import '../../models/product_model.dart';
-import '../../providers/auth_provider_firebase.dart';
+import '../../providers/cart_provider.dart';
+import '../../providers/favorite_provider.dart';
 import '../../services/review_service.dart';
 import '../../services/product_service.dart';
-import 'product_detail_screen.dart';
+import '../../widgets/custom_widgets.dart';
+import '../../utils/image_helper.dart';
+import '../../utils/number_formatter.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class VendorShopScreen extends StatefulWidget {
   final String vendorId;
@@ -89,23 +94,9 @@ class _VendorShopScreenState extends State<VendorShopScreen> {
 
   Future<void> _checkIfFavorite() async {
     try {
-      final authProvider = context.read<AuthProvider>();
-      final userId = authProvider.user?.id;
-
-      if (userId == null) return;
-
-      final userDoc = await FirebaseFirestore.instance
-          .collection(FirebaseCollections.users)
-          .doc(userId)
-          .get();
-
-      final userData = userDoc.data();
-      final profile = userData?['profile'] as Map<String, dynamic>?;
-      final acheteurProfile = profile?['acheteurProfile'] as Map<String, dynamic>?;
-      final favoriteVendors = acheteurProfile?['favoriteVendors'] as List<dynamic>?;
-
+      final favoriteProvider = context.read<FavoriteProvider>();
       setState(() {
-        _isFavorite = favoriteVendors?.contains(widget.vendorId) ?? false;
+        _isFavorite = favoriteProvider.isFavoriteVendor(widget.vendorId);
       });
     } catch (e) {
       debugPrint('❌ Erreur vérification favori: $e');
@@ -114,59 +105,43 @@ class _VendorShopScreenState extends State<VendorShopScreen> {
 
   Future<void> _toggleFavorite() async {
     try {
-      final authProvider = context.read<AuthProvider>();
-      final userId = authProvider.user?.id;
+      final favoriteProvider = context.read<FavoriteProvider>();
 
-      if (userId == null) {
+      // Utiliser le FavoriteProvider pour gérer les favoris vendeurs
+      await favoriteProvider.toggleFavoriteVendor(
+        widget.vendorId,
+        _vendorData?['businessName'] as String? ?? 'Vendeur',
+      );
+
+      setState(() {
+        _isFavorite = favoriteProvider.isFavoriteVendor(widget.vendorId);
+      });
+
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Vous devez être connecté'),
+          SnackBar(
+            content: Text(_isFavorite ? 'Ajouté aux favoris' : 'Retiré des favoris'),
+            backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur toggle favori: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: ${e.toString()}'),
             backgroundColor: AppColors.error,
           ),
         );
-        return;
       }
-
-      final userRef = FirebaseFirestore.instance
-          .collection(FirebaseCollections.users)
-          .doc(userId);
-
-      if (_isFavorite) {
-        // Retirer des favoris
-        await userRef.update({
-          'profile.acheteurProfile.favoriteVendors': FieldValue.arrayRemove([widget.vendorId])
-        });
-      } else {
-        // Ajouter aux favoris
-        await userRef.update({
-          'profile.acheteurProfile.favoriteVendors': FieldValue.arrayUnion([widget.vendorId])
-        });
-      }
-
-      setState(() {
-        _isFavorite = !_isFavorite;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_isFavorite ? 'Ajouté aux favoris' : 'Retiré des favoris'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-    } catch (e) {
-      debugPrint('❌ Erreur toggle favori: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur: ${e.toString()}'),
-          backgroundColor: AppColors.error,
-        ),
-      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: Text(_vendorData?['displayName'] ?? 'Boutique'),
         backgroundColor: AppColors.primary,
@@ -344,7 +319,7 @@ class _VendorShopScreenState extends State<VendorShopScreen> {
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    childAspectRatio: 0.7,
+                    childAspectRatio: 0.55, // ✅ CORRECTION: 0.55 pour carte complète avec tous les éléments
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
                   ),
@@ -364,77 +339,300 @@ class _VendorShopScreenState extends State<VendorShopScreen> {
   }
 
   Widget _buildProductCard(ProductModel product) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProductDetailScreen(productId: product.id),
+    return InkWell(
+      onTap: () {
+        context.push('/product/${product.id}');
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-          );
-        },
-        borderRadius: BorderRadius.circular(12),
+          ],
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image du produit
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                  color: Colors.grey[200],
+            // Image avec badges
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  child: Image.network(
+                    ImageHelper.getValidImageUrl(
+                      imageUrl: product.images.isNotEmpty ? product.images.first : null,
+                      category: product.category,
+                      index: product.hashCode % 4,
+                    ),
+                    height: 150,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        height: 150,
+                        color: Colors.grey[200],
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                          ),
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: 150,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(16),
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.image_outlined,
+                            size: 50,
+                            color: Colors.grey[300],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-                child: product.images.isNotEmpty
-                    ? ClipRRect(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                        child: Image.network(
-                          product.images.first,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Center(
-                              child: Icon(Icons.image_not_supported, size: 40, color: Colors.grey),
+
+                // Badge réduction dynamique
+                if (product.isDiscountActive)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: DiscountBadge(
+                      discountPercentage: product.discountPercentage,
+                      isActive: product.isDiscountActive,
+                      size: 50,
+                    ),
+                  ),
+
+                // Bouton favori
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Consumer<FavoriteProvider>(
+                    builder: (context, favoriteProvider, _) {
+                      final isFavorite = favoriteProvider.isFavorite(product.id);
+
+                      return GestureDetector(
+                        onTap: () async {
+                          try {
+                            await favoriteProvider.toggleFavorite(product.id, product.name);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    isFavorite
+                                      ? 'Retiré des favoris'
+                                      : 'Ajouté aux favoris',
+                                  ),
+                                  duration: const Duration(seconds: 1),
+                                  backgroundColor: isFavorite ? AppColors.info : AppColors.success,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Erreur: $e'),
+                                  backgroundColor: AppColors.error,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            isFavorite ? Icons.favorite : Icons.favorite_border,
+                            size: 18,
+                            color: isFavorite ? AppColors.error : Colors.grey[600],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+
+            // Infos produit
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Nom du vendeur avec badge vérifié
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            product.vendeurName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const VendorBadge(
+                          type: VendorBadgeType.verified,
+                          compact: true,
+                          iconSize: 12,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    // Nom du produit
+                    Text(
+                      product.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.star, size: 14, color: AppColors.warning),
+                        const SizedBox(width: 4),
+                        Text(
+                          '4.5 (89)',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    // Badge de stock
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: product.isOutOfStock
+                                ? AppColors.error.withValues(alpha: 0.1)
+                                : product.isLowStock
+                                    ? AppColors.warning.withValues(alpha: 0.1)
+                                    : AppColors.success.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                product.isOutOfStock
+                                    ? Icons.cancel_outlined
+                                    : product.isLowStock
+                                        ? Icons.warning_amber_outlined
+                                        : Icons.check_circle_outlined,
+                                size: 12,
+                                color: product.isOutOfStock
+                                    ? AppColors.error
+                                    : product.isLowStock
+                                        ? AppColors.warning
+                                        : AppColors.success,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                product.isOutOfStock
+                                    ? 'Rupture'
+                                    : product.isLowStock
+                                        ? 'Stock faible (${product.availableStock})'
+                                        : '${product.availableStock} en stock',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  color: product.isOutOfStock
+                                      ? AppColors.error
+                                      : product.isLowStock
+                                          ? AppColors.warning
+                                          : AppColors.success,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    // Prix et bouton
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            formatPriceWithCurrency(product.price, currency: 'FCFA'),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Consumer<CartProvider>(
+                          builder: (context, cartProvider, _) {
+                            return IconButton(
+                              onPressed: () async {
+                                await cartProvider.addProduct(product);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Produit ajouté au panier'),
+                                      duration: Duration(seconds: 1),
+                                      backgroundColor: AppColors.success,
+                                    ),
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.add_shopping_cart),
+                              color: AppColors.primary,
+                              iconSize: 22,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
                             );
                           },
                         ),
-                      )
-                    : const Center(
-                        child: Icon(Icons.image, size: 40, color: Colors.grey),
-                      ),
-              ),
-            ),
-
-            // Informations produit
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${product.price.toStringAsFixed(0)} FCFA',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],

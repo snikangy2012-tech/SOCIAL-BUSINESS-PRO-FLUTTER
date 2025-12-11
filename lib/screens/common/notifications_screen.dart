@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:social_business_pro/config/constants.dart';
 import '../../models/notification_model.dart';
 import '../../providers/auth_provider_firebase.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -486,7 +487,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     final unreadCount = _notifications.where((n) => !n.isRead).length;
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: Column(
           children: [
@@ -552,11 +553,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             color: Colors.white,
             child: Row(
               children: [
-                _buildFilterChip('Toutes', 'all', _notifications.length),
+                _buildFilterChip('Toutes', 'all', _notifications.length, showBadge: false),
                 const SizedBox(width: AppSpacing.sm),
-                _buildFilterChip('Non lues', 'unread', unreadCount),
+                _buildFilterChip('Non lues', 'unread', unreadCount, showBadge: true),
                 const SizedBox(width: AppSpacing.sm),
-                _buildFilterChip('Lues', 'read', _notifications.length - unreadCount),
+                _buildFilterChip('Lues', 'read', _notifications.length - unreadCount, showBadge: false),
               ],
             ),
           ),
@@ -587,7 +588,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, String value, int count) {
+  Widget _buildFilterChip(String label, String value, int count, {bool showBadge = true}) {
     final isSelected = _selectedFilter == value;
     return Expanded(
       child: ChoiceChip(
@@ -600,7 +601,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            if (count > 0) ...[
+            // Afficher le badge uniquement si showBadge est true ET count > 0
+            if (showBadge && count > 0) ...[
               const SizedBox(width: 4),
               Container(
                 padding: const EdgeInsets.symmetric(

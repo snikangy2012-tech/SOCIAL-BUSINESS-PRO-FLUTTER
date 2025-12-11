@@ -16,6 +16,7 @@ import '../../utils/test_data_helper.dart';
 import '../../utils/fix_orders_status.dart';
 import '../../utils/add_gps_to_orders.dart';
 import '../../utils/number_formatter.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class AvailableOrdersScreen extends StatefulWidget {
   const AvailableOrdersScreen({super.key});
@@ -349,13 +350,8 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
 
     try {
       // Assigner la commande au livreur
+      // NOTE: assignOrderToLivreur crée déjà le document de livraison automatiquement
       await OrderAssignmentService.assignOrderToLivreur(
-        orderId: orderId,
-        livreurId: user.id,
-      );
-
-      // Créer le document de livraison
-      await DeliveryService.createDeliveryFromOrder(
         orderId: orderId,
         livreurId: user.id,
       );
@@ -369,7 +365,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
         );
 
         // Naviguer vers le détail de la livraison
-        // La livraison vient d'être créée, on peut la récupérer
+        // La livraison a été créée par assignOrderToLivreur, on peut la récupérer
         final delivery = await DeliveryService.getDeliveryByOrderId(orderId);
         if (delivery != null && mounted) {
           context.go('/livreur/delivery-detail/${delivery.id}');
@@ -398,7 +394,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Commandes disponibles'),
         backgroundColor: AppColors.primary,
@@ -718,7 +714,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                   child: _buildDetailChip(
                     Icons.payments,
                     'Montant',
-                    '${order.totalAmount.toStringAsFixed(0)} FCFA',
+                    formatPriceWithCurrency(order.totalAmount, currency: 'FCFA'),
                     AppColors.success,
                   ),
                 ),

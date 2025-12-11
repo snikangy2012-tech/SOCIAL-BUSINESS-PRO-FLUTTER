@@ -8,6 +8,7 @@ import '../../config/constants.dart';
 import '../../config/payment_methods_config.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/firebase_service.dart';
+import '../widgets/system_ui_scaffold.dart';
 
 class VendeurPaymentSettingsScreen extends StatefulWidget {
   const VendeurPaymentSettingsScreen({super.key});
@@ -374,7 +375,7 @@ class _VendeurPaymentSettingsScreenState extends State<VendeurPaymentSettingsScr
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
+      return SystemUIScaffold(
         appBar: AppBar(
           title: const Text('Moyens de paiement'),
           backgroundColor: AppColors.primary,
@@ -384,7 +385,7 @@ class _VendeurPaymentSettingsScreenState extends State<VendeurPaymentSettingsScr
       );
     }
 
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Moyens de paiement'),
         backgroundColor: AppColors.primary,
