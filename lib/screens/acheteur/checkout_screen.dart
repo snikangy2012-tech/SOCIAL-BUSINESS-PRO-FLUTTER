@@ -18,11 +18,12 @@ import '../../services/stock_management_service.dart';
 import '../../services/audit_service.dart';
 import '../../services/vendor_location_service.dart';
 import '../../services/notification_service.dart';
+import '../../services/geolocation_service.dart';
 import '../../models/user_model.dart';
 import '../../models/audit_log_model.dart';
 import '../../utils/number_formatter.dart';
 import 'address_picker_screen.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -158,7 +159,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       });
 
       debugPrint('✅ Méthodes de paiement disponibles: $_availablePaymentMethods');
-
     } catch (e) {
       debugPrint('❌ Erreur chargement méthodes paiement: $e');
       setState(() {
@@ -184,9 +184,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         final addresses = profile['addresses'] as List<dynamic>? ?? [];
         if (addresses.isNotEmpty) {
           // Convertir en objets Address
-          _savedAddresses = addresses
-              .map((addr) => Address.fromMap(addr as Map<String, dynamic>))
-              .toList();
+          _savedAddresses =
+              addresses.map((addr) => Address.fromMap(addr as Map<String, dynamic>)).toList();
 
           debugPrint('✅ Loaded ${_savedAddresses.length} addresses from user profile');
 
@@ -306,7 +305,8 @@ Téléphone: ${_phoneController.text}
 Commune: ${_communeController.text}
 Adresse: ${_addressController.text}
 ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
-'''.trim();
+'''
+          .trim();
 
       // Grouper les items par vendeur (une commande par vendeur)
       final itemsByVendor = <String, List<CartItem>>{};
@@ -325,19 +325,19 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
         final vendeurId = entry.key;
         final items = entry.value;
 
-        // Calculer les montants
+        // Calculer le sous-total des articles
         final subtotal = items.fold(0.0, (sum, item) => sum + item.total);
-        const deliveryFee = 1500.0; // Frais fixe par vendeur
-        final total = subtotal + deliveryFee;
 
         // Convertir CartItem en Map pour Firestore
-        final orderItems = items.map((item) => {
-          'productId': item.productId,
-          'productName': item.productName,
-          'productImage': item.productImage,
-          'quantity': item.quantity,
-          'price': item.price,
-        }).toList();
+        final orderItems = items
+            .map((item) => {
+                  'productId': item.productId,
+                  'productName': item.productName,
+                  'productImage': item.productImage,
+                  'quantity': item.quantity,
+                  'price': item.price,
+                })
+            .toList();
 
         // ✅ RÉSERVER LE STOCK AVANT DE CRÉER LA COMMANDE
         final productsQuantities = <String, int>{};
@@ -416,7 +416,25 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
         // Récupérer les coordonnées de livraison depuis l'adresse sélectionnée
         final deliveryLatitude = _selectedAddress!.coordinates!.latitude;
         final deliveryLongitude = _selectedAddress!.coordinates!.longitude;
-        debugPrint('✅ Coordonnées de livraison depuis adresse enregistrée: $deliveryLatitude, $deliveryLongitude');
+        debugPrint(
+            '✅ Coordonnées de livraison depuis adresse enregistrée: $deliveryLatitude, $deliveryLongitude');
+
+        // ✅ CALCULER LA DISTANCE GPS entre la boutique et l'adresse de livraison
+        final distance = GeolocationService.calculateDistance(
+          pickupLatitude,
+          pickupLongitude,
+          deliveryLatitude,
+          deliveryLongitude,
+        );
+        debugPrint('📏 Distance calculée: ${distance.toStringAsFixed(2)} km');
+
+        // ✅ CALCULER LES FRAIS DE LIVRAISON selon la distance réelle
+        final deliveryFee = _calculateDeliveryFee(distance);
+        debugPrint('💰 Frais de livraison: ${deliveryFee.toStringAsFixed(0)} FCFA');
+
+        // Calculer le montant total
+        final total = subtotal + deliveryFee;
+        debugPrint('💵 Total commande: ${total.toStringAsFixed(0)} FCFA (Sous-total: ${subtotal.toStringAsFixed(0)} + Livraison: ${deliveryFee.toStringAsFixed(0)})');
 
         // Créer la commande dans Firestore
         final orderData = {
@@ -448,9 +466,7 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
         };
 
         // Enregistrer dans Firestore
-        final docRef = await _firestore
-            .collection(FirebaseCollections.orders)
-            .add(orderData);
+        final docRef = await _firestore.collection(FirebaseCollections.orders).add(orderData);
 
         createdOrders.add(docRef.id);
 
@@ -497,7 +513,8 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
             userId: vendeurId,
             type: 'new_order',
             title: 'Nouvelle commande !',
-            body: 'Commande #$displayNumber - ${formatPriceWithCurrency(total, currency: 'FCFA')} - ${items.length} article(s)',
+            body:
+                'Commande #$displayNumber - ${formatPriceWithCurrency(total, currency: 'FCFA')} - ${items.length} article(s)',
             data: {
               'orderId': docRef.id,
               'orderNumber': orderNumber,
@@ -652,6 +669,16 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
         setState(() => _isProcessing = false);
       }
     }
+  }
+
+  /// Calculer les frais de livraison basés sur la distance GPS
+  /// Utilise la même logique que delivery_service.dart
+  double _calculateDeliveryFee(double distance) {
+    // Tarifs par distance (paliers identiques à DeliveryService)
+    if (distance <= 10) return 1000;  // 1000 FCFA pour 0-10km
+    if (distance <= 20) return 1500;  // 1500 FCFA pour 10-20km
+    if (distance <= 30) return 2000;  // 2000 FCFA pour 20-30km
+    return 2000 + ((distance - 30) * 100); // 2000 FCFA + 100 FCFA/km au-delà de 30km
   }
 
   @override
@@ -1083,8 +1110,7 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
             ),
           ),
 
-        if (_availablePaymentMethods.contains('cash'))
-          const SizedBox(height: AppSpacing.md),
+        if (_availablePaymentMethods.contains('cash')) const SizedBox(height: AppSpacing.md),
 
         // Divider avec texte (seulement si Mobile Money disponible)
         if (_availablePaymentMethods.any((method) => method != 'cash'))
@@ -1184,37 +1210,39 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
         // Articles du panier
         _buildSummaryCard(
           'Articles (${cartProvider.itemCount})',
-          cartProvider.items.map((item) =>
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      '${item.quantity}x ${item.productName}',
-                      style: const TextStyle(fontSize: AppFontSizes.sm),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 2,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Flexible(
-                    child: Text(
-                      formatPriceWithCurrency(item.total, currency: 'FCFA'),
-                      style: const TextStyle(
-                        fontSize: AppFontSizes.sm,
-                        fontWeight: FontWeight.w600,
+          cartProvider.items
+              .map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          '${item.quantity}x ${item.productName}',
+                          style: const TextStyle(fontSize: AppFontSizes.sm),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                        ),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Flexible(
+                        child: Text(
+                          formatPriceWithCurrency(item.total, currency: 'FCFA'),
+                          style: const TextStyle(
+                            fontSize: AppFontSizes.sm,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-          ).toList(),
+                ),
+              )
+              .toList(),
           Icons.shopping_cart,
         ),
 
@@ -1228,8 +1256,7 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
             _buildSummaryItem('Téléphone', _phoneController.text),
             _buildSummaryItem('Commune', _communeController.text),
             _buildSummaryItem('Adresse', _addressController.text),
-            if (_notesController.text.isNotEmpty)
-              _buildSummaryItem('Notes', _notesController.text),
+            if (_notesController.text.isNotEmpty) _buildSummaryItem('Notes', _notesController.text),
           ],
           Icons.local_shipping,
         ),
