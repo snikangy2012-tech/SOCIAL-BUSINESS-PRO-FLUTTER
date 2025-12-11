@@ -2,12 +2,13 @@
 // Écran de gestion des administrateurs (SUPER ADMIN ONLY)
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../config/constants.dart';
 import '../../models/admin_role_model.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
+import '../../services/admin_creation_service.dart';
 
 class AdminManagementScreen extends StatefulWidget {
   const AdminManagementScreen({super.key});
@@ -18,7 +19,6 @@ class AdminManagementScreen extends StatefulWidget {
 
 class _AdminManagementScreenState extends State<AdminManagementScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   List<AdminUser> _admins = [];
   bool _isLoading = true;
@@ -40,9 +40,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
           .orderBy('createdAt', descending: true)
           .get();
 
-      final admins = snapshot.docs
-          .map((doc) => AdminUser.fromFirestore(doc))
-          .toList();
+      final admins = snapshot.docs.map((doc) => AdminUser.fromFirestore(doc)).toList();
 
       setState(() {
         _admins = admins;
@@ -91,7 +89,8 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           ),
                           onChanged: (value) {
                             setState(() => _searchQuery = value);
@@ -159,13 +158,9 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
                 // Avatar
                 CircleAvatar(
                   radius: 28,
-                  backgroundColor: admin.isSuperAdmin
-                      ? AppColors.primary
-                      : AppColors.secondary,
+                  backgroundColor: admin.isSuperAdmin ? AppColors.primary : AppColors.secondary,
                   child: Text(
-                    admin.displayName.isNotEmpty
-                        ? admin.displayName[0].toUpperCase()
-                        : 'A',
+                    admin.displayName.isNotEmpty ? admin.displayName[0].toUpperCase() : 'A',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -249,17 +244,13 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
                         : AppColors.error.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: admin.isActive
-                          ? AppColors.success
-                          : AppColors.error,
+                      color: admin.isActive ? AppColors.success : AppColors.error,
                     ),
                   ),
                   child: Text(
                     admin.isActive ? 'Actif' : 'Suspendu',
                     style: TextStyle(
-                      color: admin.isActive
-                          ? AppColors.success
-                          : AppColors.error,
+                      color: admin.isActive ? AppColors.success : AppColors.error,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
@@ -327,9 +318,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
                     ),
                     label: Text(admin.isActive ? 'Suspendre' : 'Activer'),
                     style: TextButton.styleFrom(
-                      foregroundColor: admin.isActive
-                          ? AppColors.error
-                          : AppColors.success,
+                      foregroundColor: admin.isActive ? AppColors.error : AppColors.success,
                     ),
                   ),
                 ],
@@ -479,7 +468,6 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
   void _showCreateAdminDialog() {
     final emailController = TextEditingController();
     final nameController = TextEditingController();
-    final passwordController = TextEditingController();
     AdminRoleType selectedRole = AdminRoleType.support;
 
     showDialog(
@@ -491,11 +479,34 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Info : mot de passe généré automatiquement
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.info.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 20, color: AppColors.info),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Un mot de passe sécurisé sera généré automatiquement',
+                          style: TextStyle(fontSize: 12, color: AppColors.info),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
                 TextField(
                   controller: nameController,
                   decoration: const InputDecoration(
                     labelText: 'Nom complet',
                     border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -504,17 +515,9 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Email',
                     border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email),
                   ),
                   keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: passwordController,
-                  decoration: const InputDecoration(
-                    labelText: 'Mot de passe',
-                    border: OutlineInputBorder(),
-                  ),
-                  obscureText: true,
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<AdminRoleType>(
@@ -522,6 +525,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Rôle',
                     border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.shield),
                   ),
                   items: AdminRole.getAllRoles()
                       .where((role) => role.type != AdminRoleType.superAdmin)
@@ -548,7 +552,6 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
               onPressed: () => _createAdmin(
                 emailController.text,
                 nameController.text,
-                passwordController.text,
                 selectedRole,
               ),
               style: ElevatedButton.styleFrom(
@@ -567,10 +570,9 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
   Future<void> _createAdmin(
     String email,
     String name,
-    String password,
     AdminRoleType role,
   ) async {
-    if (email.isEmpty || name.isEmpty || password.isEmpty) {
+    if (email.isEmpty || name.isEmpty) {
       _showError('Veuillez remplir tous les champs');
       return;
     }
@@ -578,26 +580,199 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
     try {
       Navigator.pop(context); // Fermer le dialogue
 
-      // Créer l'utilisateur dans Firebase Auth (via un Cloud Function dans une vraie app)
-      // Pour l'instant, on crée juste le document Firestore
-      final docRef = await _firestore.collection(FirebaseCollections.users).add({
-        'email': email,
-        'displayName': name,
-        'userType': 'admin',
-        'adminRole': role.name,
-        'isSuperAdmin': false,
-        'customPrivileges': [],
-        'isActive': true,
-        'createdAt': Timestamp.now(),
-        'updatedAt': Timestamp.now(),
-        'createdBy': _auth.currentUser?.uid,
-      });
+      // Afficher un indicateur de chargement
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Création de l\'administrateur...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
 
-      _showSuccess('Administrateur créé avec succès');
+      // Appeler le backend pour créer l'admin
+      final result = await AdminCreationService.createAdmin(
+        email: email,
+        displayName: name,
+        adminRole: role.name,
+      );
+
+      // Fermer l'indicateur de chargement
+      if (mounted) Navigator.pop(context);
+
+      // Afficher le mot de passe temporaire
+      if (mounted) {
+        _showPasswordDialog(
+          email: result['email'],
+          displayName: result['displayName'],
+          temporaryPassword: result['temporaryPassword'],
+        );
+      }
+
       _loadAdmins();
     } catch (e) {
+      // Fermer l'indicateur de chargement si ouvert
+      if (mounted) Navigator.pop(context);
+
+      // Afficher l'erreur
       _showError('Erreur lors de la création: $e');
+      debugPrint('❌ Erreur création admin: $e');
     }
+  }
+
+  // Afficher le dialogue avec le mot de passe temporaire
+  void _showPasswordDialog({
+    required String email,
+    required String displayName,
+    required String temporaryPassword,
+  }) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: AppColors.success),
+            SizedBox(width: 8),
+            Text('Administrateur Créé'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'L\'administrateur $displayName a été créé avec succès.',
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.warning),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.warning_amber, color: AppColors.warning, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'IMPORTANT',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.warning,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Ce mot de passe ne sera affiché qu\'une seule fois. Copiez-le et partagez-le de manière sécurisée avec l\'administrateur.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Email:',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                email,
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Mot de passe temporaire:',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.backgroundSecondary,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.primary),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        temporaryPassword,
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.copy, size: 20),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: temporaryPassword));
+                        _showSuccess('Mot de passe copié');
+                      },
+                      tooltip: 'Copier',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.info.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'L\'administrateur devra changer ce mot de passe lors de sa première connexion.',
+                  style: TextStyle(fontSize: 11, color: AppColors.info),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.check),
+            label: const Text('J\'ai noté le mot de passe'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // Dialogue de modification d'un admin
@@ -686,7 +861,8 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('${action.substring(0, 1).toUpperCase()}${action.substring(1)} cet administrateur ?'),
+        title: Text(
+            '${action.substring(0, 1).toUpperCase()}${action.substring(1)} cet administrateur ?'),
         content: Text('Voulez-vous vraiment $action ${admin.displayName} ?'),
         actions: [
           TextButton(
