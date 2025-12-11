@@ -4,12 +4,22 @@
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:social_business_pro/config/constants.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../providers/auth_provider_firebase.dart' as app_auth;
+import '../../widgets/system_ui_scaffold.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
-  const ChangePasswordScreen({super.key});
+  /// Si `isRequired` est true, le changement de mot de passe est obligatoire
+  /// (pas de bouton retour, pas d'annulation possible)
+  final bool isRequired;
+
+  const ChangePasswordScreen({
+    super.key,
+    this.isRequired = false,
+  });
 
   @override
   State<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
@@ -56,6 +66,23 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       // Mettre à jour le mot de passe
       await user.updatePassword(_newPasswordController.text.trim());
 
+      // Si changement obligatoire, mettre à jour Firestore
+      if (widget.isRequired) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({
+          'needsPasswordChange': false,
+          'passwordChangedAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        // Recharger les données utilisateur
+        if (mounted) {
+          await context.read<app_auth.AuthProvider>().refreshUser();
+        }
+      }
+
       if (mounted) {
         setState(() => _isLoading = false);
 
@@ -67,10 +94,32 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           ),
         );
 
-        // Retourner à l'écran précédent après un court délai
+        // Redirection selon le contexte
         Future.delayed(const Duration(seconds: 1), () {
           if (mounted) {
-            context.pop();
+            if (widget.isRequired) {
+              // Rediriger vers le dashboard approprié
+              final user = context.read<app_auth.AuthProvider>().user;
+              if (user != null) {
+                switch (user.userType) {
+                  case UserType.admin:
+                    context.go('/admin-dashboard');
+                    break;
+                  case UserType.vendeur:
+                    context.go('/vendeur-dashboard');
+                    break;
+                  case UserType.livreur:
+                    context.go('/livreur-dashboard');
+                    break;
+                  case UserType.acheteur:
+                    context.go('/acheteur-home');
+                    break;
+                }
+              }
+            } else {
+              // Retour normal
+              context.pop();
+            }
           }
         });
       }
@@ -120,11 +169,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
-        title: const Text('Modifier le mot de passe'),
+        title: Text(widget.isRequired
+          ? 'Changement de mot de passe obligatoire'
+          : 'Modifier le mot de passe'),
         centerTitle: true,
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
+        automaticallyImplyLeading: !widget.isRequired, // Empêcher le retour si obligatoire
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -141,25 +193,31 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(AppSpacing.md),
                         decoration: BoxDecoration(
-                          color: AppColors.info.withValues(alpha: 0.1),
+                          color: widget.isRequired
+                            ? AppColors.warning.withValues(alpha: 0.1)
+                            : AppColors.info.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(AppRadius.lg),
                           border: Border.all(
-                            color: AppColors.info.withValues(alpha: 0.3),
+                            color: widget.isRequired
+                              ? AppColors.warning.withValues(alpha: 0.3)
+                              : AppColors.info.withValues(alpha: 0.3),
                           ),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
                             Icon(
-                              Icons.info_outline,
-                              color: AppColors.info,
+                              widget.isRequired ? Icons.warning_amber_rounded : Icons.info_outline,
+                              color: widget.isRequired ? AppColors.warning : AppColors.info,
                               size: 24,
                             ),
-                            SizedBox(width: AppSpacing.md),
+                            const SizedBox(width: AppSpacing.md),
                             Expanded(
                               child: Text(
-                                'Votre mot de passe doit contenir au moins 6 caractères',
+                                widget.isRequired
+                                  ? 'Pour des raisons de sécurité, vous devez changer votre mot de passe avant de continuer. Votre mot de passe doit contenir au moins 6 caractères.'
+                                  : 'Votre mot de passe doit contenir au moins 6 caractères',
                                 style: TextStyle(
-                                  color: AppColors.info,
+                                  color: widget.isRequired ? AppColors.warning : AppColors.info,
                                   fontSize: AppFontSizes.md,
                                 ),
                               ),
@@ -189,9 +247,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                           prefixIcon: const Icon(Icons.lock_outline),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscureCurrentPassword
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
+                              _obscureCurrentPassword ? Icons.visibility_off : Icons.visibility,
                             ),
                             onPressed: () {
                               setState(() {
@@ -232,9 +288,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                           prefixIcon: const Icon(Icons.lock),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscureNewPassword
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
+                              _obscureNewPassword ? Icons.visibility_off : Icons.visibility,
                             ),
                             onPressed: () {
                               setState(() {
@@ -281,9 +335,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                           prefixIcon: const Icon(Icons.lock_reset),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscureConfirmPassword
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
+                              _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
                             ),
                             onPressed: () {
                               setState(() {
@@ -334,33 +386,34 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         ),
                       ),
 
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Bouton d'annulation
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () => context.pop(),
-                          icon: const Icon(Icons.cancel, size: 24),
-                          label: const Text(
-                            'Annuler',
-                            style: TextStyle(
-                              fontSize: AppFontSizes.lg,
-                              fontWeight: FontWeight.bold,
+                      // Bouton d'annulation (seulement si non obligatoire)
+                      if (!widget.isRequired) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () => context.pop(),
+                            icon: const Icon(Icons.cancel, size: 24),
+                            label: const Text(
+                              'Annuler',
+                              style: TextStyle(
+                                fontSize: AppFontSizes.lg,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.textSecondary,
-                            side: const BorderSide(color: AppColors.textSecondary),
-                            padding: const EdgeInsets.symmetric(
-                              vertical: AppSpacing.md,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppRadius.md),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.textSecondary,
+                              side: const BorderSide(color: AppColors.textSecondary),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: AppSpacing.md,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
 
                       const SizedBox(height: AppSpacing.xl),
 

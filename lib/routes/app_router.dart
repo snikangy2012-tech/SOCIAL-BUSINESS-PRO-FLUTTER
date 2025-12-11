@@ -47,7 +47,6 @@ import 'package:social_business_pro/screens/vendeur/payment_history_screen.dart'
 import 'package:social_business_pro/screens/subscription/subscription_dashboard_screen.dart';
 import 'package:social_business_pro/screens/subscription/subscription_plans_screen.dart';
 import 'package:social_business_pro/screens/auth/change_password_screen.dart';
-import 'package:social_business_pro/screens/auth/change_initial_password_screen.dart';
 import 'package:social_business_pro/screens/common/notifications_screen.dart';
 import 'package:social_business_pro/screens/common/user_settings_screen.dart';
 
@@ -184,7 +183,7 @@ class AppRouter {
         ),
         GoRoute(
             path: '/change-initial-password',
-            builder: (context, state) => const ChangeInitialPasswordScreen()
+            builder: (context, state) => const ChangePasswordScreen(isRequired: true)
         ),
         GoRoute(
             path: '/notifications',
