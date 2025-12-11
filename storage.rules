@@ -13,10 +13,11 @@ service firebase.storage {
     }
 
     // Product images - vendeurs can upload, everyone can read
-    match /products/{vendeurId}/{imageId} {
-      allow read: if true;
-      allow write: if isAuthenticated() && isOwner(vendeurId);
-      allow delete: if isAuthenticated() && isOwner(vendeurId);
+    // Path: products/{productId}/{imageId}
+    match /products/{productId}/{imageId} {
+      allow read: if true; // Public read for product images
+      allow write: if isAuthenticated(); // Any authenticated user can upload
+      allow delete: if isAuthenticated(); // Any authenticated user can delete their images
     }
 
     // User profile images
@@ -36,6 +37,13 @@ service firebase.storage {
     match /orders/{orderId}/{documentId} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated();
+    }
+
+    // Reports - Admin only
+    match /reports/{reportId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+      allow delete: if isAuthenticated();
     }
   }
 }

@@ -9,7 +9,7 @@ import '../../models/audit_log_model.dart';
 import '../../services/audit_service.dart';
 import '../../services/activity_export_service.dart';
 import '../../providers/auth_provider_firebase.dart' as auth;
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class MyActivityScreen extends StatefulWidget {
   const MyActivityScreen({super.key});
@@ -312,7 +312,11 @@ class _MyActivityScreenState extends State<MyActivityScreen> {
 
   Widget _buildStatsSection() {
     final totalLogs = _stats!['totalLogs'] as int;
-    final byCategory = _stats!['byCategory'] as Map<String, int>;
+    // Convertir Map<dynamic, dynamic> en Map<String, int>
+    final byCategoryRaw = _stats!['byCategory'] as Map<dynamic, dynamic>;
+    final byCategory = Map<String, int>.from(
+      byCategoryRaw.map((key, value) => MapEntry(key.toString(), value as int? ?? 0))
+    );
 
     return Card(
       child: Padding(
@@ -552,9 +556,7 @@ class _MyActivityScreenState extends State<MyActivityScreen> {
   Widget _buildPeriodOption(String label, String value) {
     return ListTile(
       title: Text(label),
-      trailing: _selectedPeriod == value
-          ? const Icon(Icons.check, color: AppColors.primary)
-          : null,
+      trailing: _selectedPeriod == value ? const Icon(Icons.check, color: AppColors.primary) : null,
       onTap: () {
         setState(() => _selectedPeriod = value);
         Navigator.pop(context);
@@ -740,9 +742,8 @@ class _MyActivityScreenState extends State<MyActivityScreen> {
     if (!ActivityExportService.validateExportData(logs: _logs, maxLogs: 500)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_logs.isEmpty
-              ? 'Aucune donnée à exporter'
-              : 'Trop de données à exporter (max: 500)'),
+          content: Text(
+              _logs.isEmpty ? 'Aucune donnée à exporter' : 'Trop de données à exporter (max: 500)'),
           backgroundColor: AppColors.error,
         ),
       );
