@@ -42,7 +42,7 @@ class _LivreurMainScreenState extends State<LivreurMainScreen> {
     }
 
     return PopScope(
-      canPop: true, // ✅ Permet la navigation retour (go_router gère les sous-pages)
+      canPop: false, // ✅ Permet la navigation retour (go_router gère les sous-pages)
       onPopInvokedWithResult: (bool didPop, dynamic result) async {
         if (didPop) return;
 
@@ -84,8 +84,8 @@ class _LivreurMainScreenState extends State<LivreurMainScreen> {
           systemNavigationBarContrastEnforced: true, // Force le contraste
           // Status bar pour écrans sans AppBar
           statusBarColor: Colors.transparent,
-          statusBarIconBrightness: Brightness.dark, // Icônes noires
-          statusBarBrightness: Brightness.light, // Pour iOS
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
         ),
         child: Scaffold(
           extendBody: false, // ✅ CRITIQUE: Empêche le contenu de passer sous la barre de navigation
