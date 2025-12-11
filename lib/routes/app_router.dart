@@ -6,6 +6,7 @@ import 'package:social_business_pro/screens/acheteur/payment_methods_screen.dart
 import 'package:social_business_pro/screens/acheteur/categories_screen.dart';
 import 'package:social_business_pro/screens/acheteur/favorite_screen.dart';
 import 'package:social_business_pro/screens/acheteur/product_search_screen.dart';
+import 'package:social_business_pro/screens/acheteur/my_reviews_screen.dart';
 import 'package:social_business_pro/screens/admin/admin_livreur_management_screen.dart';
 import 'package:social_business_pro/screens/admin/admin_livreur_detail_screen.dart';
 import 'package:social_business_pro/screens/admin/global_statistics_screen.dart';
@@ -24,6 +25,9 @@ import 'package:social_business_pro/screens/admin/settings_screen.dart';
 import 'package:social_business_pro/screens/admin/activity_log_screen.dart';
 import 'package:social_business_pro/screens/admin/admin_subscription_management_screen.dart';
 import 'package:social_business_pro/screens/admin/vendor_management_screen.dart';
+import 'package:social_business_pro/screens/admin/admin_product_management_screen.dart';
+import 'package:social_business_pro/screens/admin/admin_order_management_screen.dart';
+import 'package:social_business_pro/screens/admin/suspended_users_screen.dart';
 
 import 'package:social_business_pro/screens/vendeur/vendeur_main_screen.dart';
 import 'package:social_business_pro/screens/vendeur/add_product.dart';
@@ -38,10 +42,12 @@ import 'package:social_business_pro/screens/vendeur/sale_detail_screen.dart';
 import 'package:social_business_pro/screens/vendeur/payment_settings_screen.dart';
 import 'package:social_business_pro/screens/vendeur/vendeur_reviews_screen.dart';
 import 'package:social_business_pro/screens/vendeur/shop_setup_screen.dart';
+import 'package:social_business_pro/screens/vendeur/my_shop_screen.dart';
 import 'package:social_business_pro/screens/vendeur/payment_history_screen.dart';
 import 'package:social_business_pro/screens/subscription/subscription_dashboard_screen.dart';
 import 'package:social_business_pro/screens/subscription/subscription_plans_screen.dart';
 import 'package:social_business_pro/screens/auth/change_password_screen.dart';
+import 'package:social_business_pro/screens/auth/change_initial_password_screen.dart';
 import 'package:social_business_pro/screens/common/notifications_screen.dart';
 import 'package:social_business_pro/screens/common/user_settings_screen.dart';
 
@@ -86,7 +92,17 @@ class AppRouter {
 
         // Ajout de la vérification de nullité pour l'utilisateur
         if (user == null) return '/login';
-        
+
+        // ✅ VÉRIFIER SI L'UTILISATEUR DOIT CHANGER SON MOT DE PASSE INITIAL
+        // (Sauf s'il est déjà sur la page de changement de mot de passe)
+        if (currentpath != '/change-initial-password') {
+          final needsPasswordChange = user.profile['needsPasswordChange'] ?? false;
+          if (needsPasswordChange == true) {
+            debugPrint('🔐 Redirection vers changement de mot de passe initial');
+            return '/change-initial-password';
+          }
+        }
+
         if (currentpath == '/') {
           switch (user.userType) {
             case UserType.admin: return '/admin-dashboard';
@@ -167,6 +183,10 @@ class AppRouter {
             builder: (context, state) => const ChangePasswordScreen()
         ),
         GoRoute(
+            path: '/change-initial-password',
+            builder: (context, state) => const ChangeInitialPasswordScreen()
+        ),
+        GoRoute(
             path: '/notifications',
             builder: (context, state) => const NotificationsScreen()
         ),
@@ -183,6 +203,7 @@ class AppRouter {
         GoRoute(path: '/vendeur/profile', builder: (context, state) => const VendeurProfileScreen()),
         GoRoute(path: '/vendeur/payment-settings', builder: (context, state) => const VendeurPaymentSettingsScreen()),
         GoRoute(path: '/vendeur/reviews', builder: (context, state) => const VendeurReviewsScreen()),
+        GoRoute(path: '/vendeur/my-shop', builder: (context, state) => const MyShopScreen()),
         GoRoute(path: '/vendeur/shop-setup', builder: (context, state) => const ShopSetupScreen()),
         GoRoute(path: '/vendeur/payment-history', builder: (context, state) => const PaymentHistoryScreen()),
         GoRoute(path: '/vendeur/subscription', builder: (context, state) => const SubscriptionDashboardScreen()), // Tableau de bord par défaut
@@ -247,6 +268,7 @@ class AppRouter {
         GoRoute(path: '/acheteur/profile', builder: (context, state) => const AcheteurProfileScreen()),
         GoRoute(path: '/acheteur/addresses', builder: (context, state) => const AddressManagementScreen()),
         GoRoute(path: '/acheteur/payment-methods', builder: (context, state) => const PaymentMethodsScreen()),
+        GoRoute(path: '/acheteur/my-reviews', builder: (context, state) => const MyReviewsScreen()),
         GoRoute(path: '/acheteur/search', builder: (context, state) => const ProductSearchScreen()),
         GoRoute(path: '/product/:id', builder: (context, state) => ProductDetailScreen(productId: state.pathParameters['id']!)),
 
@@ -285,6 +307,9 @@ class AppRouter {
         GoRoute(path: '/admin/livreurs', builder: (context, state) => const AdminLivreurManagementScreen()),
         GoRoute(path: '/admin/livreur-detail/:id', builder: (context, state) => AdminLivreurDetailScreen(livreurId: state.pathParameters['id']!)),
         GoRoute(path: '/admin/kyc-validation', builder: (context, state) => const KYCValidationScreen()),
+        GoRoute(path: '/admin/product-management', builder: (context, state) => const AdminProductManagementScreen()),
+        GoRoute(path: '/admin/order-management', builder: (context, state) => const AdminOrderManagementScreen()),
+        GoRoute(path: '/admin/suspended-users', builder: (context, state) => const SuspendedUsersScreen()),
 
         // PARAMÈTRES UTILISATEUR (commun à tous)
         GoRoute(path: '/user-settings', builder: (context, state) => const UserSettingsScreen()),
