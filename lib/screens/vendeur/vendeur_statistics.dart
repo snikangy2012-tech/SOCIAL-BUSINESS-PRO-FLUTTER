@@ -5,12 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 
-
 import 'package:social_business_pro/config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/statistics_service.dart';
 import '../../models/statistics_model.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class Statistics extends StatefulWidget {
   const Statistics({super.key});
@@ -21,7 +20,7 @@ class Statistics extends StatefulWidget {
 
 class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
   late TabController _tabController;
-  
+
   // État
   String _selectedPeriod = '30d';
   String _selectedMetric = 'revenue';
@@ -60,10 +59,10 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
   Future<void> _loadStatistics() async {
     try {
       setState(() => _isLoading = true);
-      
+
       final authProvider = context.read<AuthProvider>();
       final vendorId = authProvider.user?.id;
-      
+
       if (vendorId != null) {
         final stats = await StatisticsService.getVendorStats(vendorId, _selectedPeriod);
         setState(() {
@@ -71,7 +70,7 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
         });
       }
     } catch (e) {
-     ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erreur chargement statistiques: $e'),
           backgroundColor: AppColors.error,
@@ -139,7 +138,7 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
                 children: [
                   // Sélecteur de période
                   _buildPeriodSelector(),
-                  
+
                   // Contenu des onglets
                   Expanded(
                     child: TabBarView(
@@ -170,13 +169,14 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
           children: _periods.map((period) {
             final isSelected = period['value'] == _selectedPeriod;
             return Container(
-              margin: const EdgeInsets.only(right: AppSpacing.sm, top: AppSpacing.sm, bottom: AppSpacing.sm),
+              margin: const EdgeInsets.only(
+                  right: AppSpacing.sm, top: AppSpacing.sm, bottom: AppSpacing.sm),
               child: FilterChip(
                 label: Text(period['label']!),
                 selected: isSelected,
                 onSelected: (_) => _changePeriod(period['value']!),
                 backgroundColor: Colors.white,
-                selectedColor: AppColors.primary.withValues(alpha:0.2),
+                selectedColor: AppColors.primary.withValues(alpha: 0.2),
                 labelStyle: TextStyle(
                   color: isSelected ? AppColors.primary : AppColors.textSecondary,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
@@ -200,14 +200,14 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
         children: [
           // Métriques principales
           _buildMetricsGrid(),
-          
+
           const SizedBox(height: AppSpacing.xl),
-          
+
           // Graphique principal
           _buildMainChart(),
-          
+
           const SizedBox(height: AppSpacing.xl),
-          
+
           // Résumé rapide
           _buildQuickSummary(),
         ],
@@ -218,7 +218,7 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
   // Grille des métriques
   Widget _buildMetricsGrid() {
     final overview = _statsData!.overview;
-    
+
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -262,7 +262,7 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
   // Carte métrique
   Widget _buildMetricCard(String title, String value, double change, IconData icon, Color color) {
     final isPositive = change >= 0;
-    
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -283,7 +283,8 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: (isPositive ? AppColors.success : AppColors.error).withValues(alpha:0.1),
+                    color:
+                        (isPositive ? AppColors.success : AppColors.error).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
                   child: Row(
@@ -356,9 +357,9 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
                 _buildMetricSelector(),
               ],
             ),
-            
+
             const SizedBox(height: AppSpacing.xl),
-            
+
             // Graphique
             SizedBox(
               height: 250,
@@ -384,7 +385,7 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
               selected: isSelected,
               onSelected: (_) => _changeMetric(metric['key']),
               backgroundColor: Colors.transparent,
-              selectedColor: metric['color'].withValues(alpha:0.2),
+              selectedColor: metric['color'].withValues(alpha: 0.2),
               labelStyle: TextStyle(
                 color: isSelected ? metric['color'] : AppColors.textSecondary,
                 fontSize: AppFontSizes.sm,
@@ -409,11 +410,11 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
 
     final chartData = _statsData!.chartData;
     final spots = <FlSpot>[];
-    
+
     for (int i = 0; i < chartData.length; i++) {
       final data = chartData[i];
       double value = 0;
-      
+
       switch (_selectedMetric) {
         case 'revenue':
           value = data.revenue;
@@ -425,12 +426,12 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
           value = data.views.toDouble();
           break;
       }
-      
+
       spots.add(FlSpot(i.toDouble(), value));
     }
 
     final metricInfo = _metrics.firstWhere((m) => m['key'] == _selectedMetric);
-    
+
     return LineChart(
       LineChartData(
         lineBarsData: [
@@ -442,7 +443,7 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
             isStrokeCapRound: true,
             belowBarData: BarAreaData(
               show: true,
-              color: metricInfo['color'].withValues(alpha:0.1),
+              color: metricInfo['color'].withValues(alpha: 0.1),
             ),
             dotData: const FlDotData(show: false),
           ),
@@ -518,7 +519,7 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
   // Résumé rapide
   Widget _buildQuickSummary() {
     final overview = _statsData!.overview;
-    
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -537,9 +538,7 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
                 color: AppColors.textPrimary,
               ),
             ),
-            
             const SizedBox(height: AppSpacing.lg),
-            
             _buildSummaryRow('Produit le plus vendu', overview.topProduct),
             _buildSummaryRow('Nombre de produits actifs', '${overview.activeProducts}'),
             _buildSummaryRow('Note moyenne', '${overview.averageRating}/5'),
@@ -624,9 +623,9 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
                 color: AppColors.textSecondary,
               ),
             ),
-            
+
             const SizedBox(width: AppSpacing.md),
-            
+
             // Informations du produit
             Expanded(
               child: Column(
@@ -642,9 +641,7 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  
                   const SizedBox(height: AppSpacing.xs),
-                  
                   Text(
                     product.category,
                     style: const TextStyle(
@@ -652,9 +649,7 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  
                   const SizedBox(height: AppSpacing.sm),
-                  
                   Row(
                     children: [
                       _buildProductMetric('${product.sales} ventes', AppColors.success),
@@ -665,7 +660,7 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
                 ],
               ),
             ),
-            
+
             // Revenus
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -678,9 +673,7 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
                     color: AppColors.primary,
                   ),
                 ),
-                
                 const SizedBox(height: AppSpacing.xs),
-                
                 Text(
                   '${product.conversionRate.toStringAsFixed(1)}% conv.',
                   style: const TextStyle(
@@ -704,7 +697,7 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
         vertical: 2,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha:0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
       child: Text(
@@ -723,16 +716,16 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
     if (_statsData?.customerStats == null) return const SizedBox.shrink();
 
     final customerStats = _statsData!.customerStats;
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         children: [
           // Statistiques clients générales
           _buildCustomerMetricsGrid(customerStats),
-          
+
           const SizedBox(height: AppSpacing.xl),
-          
+
           // Graphique de rétention (simulation)
           _buildRetentionChart(),
         ],
@@ -802,9 +795,7 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
                 color: AppColors.textPrimary,
               ),
             ),
-            
             const SizedBox(height: AppSpacing.lg),
-            
             SizedBox(
               height: 200,
               child: LineChart(
@@ -825,7 +816,7 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
                       barWidth: 3,
                       belowBarData: BarAreaData(
                         show: true,
-                        color: AppColors.primary.withValues(alpha:0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                       ),
                     ),
                   ],
@@ -851,16 +842,18 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
     if (_statsData?.socialStats == null) return const SizedBox.shrink();
 
     final socialStats = _statsData!.socialStats;
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         children: [
-          _buildSocialPlatformCard('Instagram', socialStats.instagram, Icons.camera_alt, const Color(0xFFE4405F)),
+          _buildSocialPlatformCard(
+              'Instagram', socialStats.instagram, Icons.camera_alt, const Color(0xFFE4405F)),
           const SizedBox(height: AppSpacing.md),
           _buildSocialPlatformCard('TikTok', socialStats.tiktok, Icons.music_video, Colors.black),
           const SizedBox(height: AppSpacing.md),
-          _buildSocialPlatformCard('Facebook', socialStats.facebook, Icons.facebook, const Color(0xFF4267B2)),
+          _buildSocialPlatformCard(
+              'Facebook', socialStats.facebook, Icons.facebook, const Color(0xFF4267B2)),
           const SizedBox(height: AppSpacing.md),
           _buildWhatsAppCard(socialStats.whatsapp),
         ],
@@ -869,7 +862,8 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
   }
 
   // Carte plateforme sociale
-  Widget _buildSocialPlatformCard(String platform, SocialMediaStat stats, IconData icon, Color color) {
+  Widget _buildSocialPlatformCard(
+      String platform, SocialMediaStat stats, IconData icon, Color color) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -900,14 +894,13 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
                 ),
               ],
             ),
-            
             const SizedBox(height: AppSpacing.lg),
-            
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _buildSocialMetric('Followers', '${stats.followers}', Icons.people),
-                _buildSocialMetric('Engagement', '${stats.engagement.toStringAsFixed(1)}%', Icons.favorite),
+                _buildSocialMetric(
+                    'Engagement', '${stats.engagement.toStringAsFixed(1)}%', Icons.favorite),
                 _buildSocialMetric('Clics', '${stats.clicks}', Icons.touch_app),
               ],
             ),
@@ -949,9 +942,7 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
                 ),
               ],
             ),
-            
             const SizedBox(height: AppSpacing.lg),
-            
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -1006,5 +997,4 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
     final date = DateTime.parse(dateStr);
     return '${date.day}/${date.month}';
   }
-
 }

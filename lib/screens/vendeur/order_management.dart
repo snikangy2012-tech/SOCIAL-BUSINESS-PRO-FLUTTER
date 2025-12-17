@@ -2,17 +2,19 @@
 // Gestion des commandes pour vendeurs - SOCIAL BUSINESS Pro
 
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:social_business_pro/config/constants.dart';
+import 'package:social_business_pro/utils/number_formatter.dart';
 import '../../models/order_model.dart';
 import '../../services/order_service.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../utils/order_status_helper.dart';
 import 'assign_livreur_screen.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class OrderManagement extends StatefulWidget {
   const OrderManagement({super.key, required String orderId});
@@ -77,19 +79,19 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
   Future<void> _loadOrders() async {
     try {
       setState(() => _isLoading = true);
-      
+
       final authProvider = context.read<AuthProvider>();
       final vendeurId = authProvider.user?.id;
-      
+
       if (vendeurId != null) {
         final orders = await OrderService.getVendorOrders(vendeurId);
         final stats = await OrderService.getOrderStats(vendeurId);
-        
+
         setState(() {
           _allOrders = orders;
           _stats = stats;
         });
-        
+
         _filterOrdersByStatus();
       }
     } catch (e) {
@@ -123,18 +125,16 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
             case 'en_cours':
               // Commandes en cours = confirmed, ready, preparing, in_delivery
               return status == 'confirmed' ||
-                     status == 'ready' ||
-                     status == 'preparing' ||
-                     status == 'in_delivery' ||
-                     status == 'in delivery' ||
-                     status == 'processing' ||
-                     status == 'en_cours';
+                  status == 'ready' ||
+                  status == 'preparing' ||
+                  status == 'in_delivery' ||
+                  status == 'in delivery' ||
+                  status == 'processing' ||
+                  status == 'en_cours';
 
             case 'livree':
               // Commandes livrées = delivered, completed, livree
-              return status == 'delivered' ||
-                     status == 'completed' ||
-                     status == 'livree';
+              return status == 'delivered' || status == 'completed' || status == 'livree';
 
             case 'retourne':
               // Commandes retournées (avec demande de remboursement)
@@ -142,9 +142,7 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
 
             case 'annulee':
               // Commandes annulées = cancelled, canceled, annulee
-              return status == 'cancelled' ||
-                     status == 'canceled' ||
-                     status == 'annulee';
+              return status == 'cancelled' || status == 'canceled' || status == 'annulee';
 
             default:
               return status == _selectedStatus;
@@ -167,7 +165,7 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
     try {
       await OrderService.updateOrderStatus(orderId, newStatus);
       _loadOrders(); // Recharger les commandes
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Statut mis à jour: $newStatus'),
@@ -189,12 +187,12 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
     return _allOrders.any((order) {
       final status = order.status.toLowerCase();
       return status == 'confirmed' ||
-             status == 'ready' ||
-             status == 'preparing' ||
-             status == 'in_delivery' ||
-             status == 'in delivery' ||
-             status == 'processing' ||
-             status == 'en_cours';
+          status == 'ready' ||
+          status == 'preparing' ||
+          status == 'in_delivery' ||
+          status == 'in delivery' ||
+          status == 'processing' ||
+          status == 'en_cours';
     });
   }
 
@@ -273,7 +271,7 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
       try {
         await OrderService.cancelOrder(order.id, 'Annulée par le vendeur');
         _loadOrders();
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Commande annulée'),
@@ -287,6 +285,86 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
             backgroundColor: AppColors.error,
           ),
         );
+      }
+    }
+  }
+
+  // Auto-livraison par le vendeur (pour commandes >= 50k)
+  Future<void> _vendorSelfDelivery(OrderModel order) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Livraison par vos soins'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Commande ${order.displayNumber} - ${formatPriceWithCurrency(order.totalAmount, currency: 'FCFA')}'),
+            const SizedBox(height: 12),
+            const Text(
+              'IMPORTANT:',
+              style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.warning),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Les commissions de vente ET de livraison seront déduites de vos revenus, comme si un livreur avait effectué la livraison.',
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Voulez-vous livrer cette commande vous-même ?',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.info),
+            child: const Text('Oui, je livre'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        // Marquer la commande comme auto-livrée par le vendeur
+        await FirebaseFirestore.instance
+            .collection(FirebaseCollections.orders)
+            .doc(order.id)
+            .update({
+          'isVendorDelivery': true,
+          'status': 'en_cours', // En cours de livraison par le vendeur
+          'livreurId': order.vendeurId, // Le vendeur est son propre livreur
+          'livreurName': order.vendeurName ?? 'Vendeur',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        _loadOrders();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Vous êtes maintenant en charge de la livraison'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint('❌ Erreur auto-livraison: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erreur: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
       }
     }
   }
@@ -331,16 +409,20 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
             icon: const Icon(Icons.refresh),
           ),
         ],
-        bottom: _isLoading ? null : TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: _statusTabs.map((status) => Tab(
-            text: _getStatusLabel(status),
-          )).toList(),
-        ),
+        bottom: _isLoading
+            ? null
+            : TabBar(
+                controller: _tabController,
+                isScrollable: true,
+                indicatorColor: Colors.white,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white70,
+                tabs: _statusTabs
+                    .map((status) => Tab(
+                          text: _getStatusLabel(status),
+                        ))
+                    .toList(),
+              ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -348,7 +430,7 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
               children: [
                 // Statistiques
                 _buildStatsSection(),
-                
+
                 // Liste des commandes
                 Expanded(
                   child: TabBarView(
@@ -373,7 +455,7 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
         borderRadius: BorderRadius.circular(AppRadius.lg),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -450,209 +532,215 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
   // Carte de commande
   Widget _buildOrderCard(OrderModel order) {
     final isSelected = _selectedOrderIds.contains(order.id);
-    final canBeSelected = _isSelectionMode && order.status.toLowerCase() == 'en_cours';
+    // Seules les commandes non assignées (en attente, confirmées) peuvent être sélectionnées
+    final status = order.status.toLowerCase();
+    final canBeSelected = _isSelectionMode &&
+                          (status == 'en_attente' || status == 'pending' ||
+                           status == 'confirmed' || status == 'preparing');
 
     return Card(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      elevation: isSelected ? 4 : 2,
-      color: isSelected ? AppColors.primary.withOpacity(0.1) : null,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        side: isSelected ? const BorderSide(color: AppColors.primary, width: 2) : BorderSide.none,
-      ),
-      child: InkWell(
-        onTap: canBeSelected
-            ? () => _toggleOrderSelection(order.id)
-            : () => _goToOrderDetail(order.id),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // En-tête
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  if (_isSelectionMode && canBeSelected)
-                    Checkbox(
-                      value: isSelected,
-                      onChanged: (value) => _toggleOrderSelection(order.id),
-                      activeColor: AppColors.primary,
+        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+        elevation: isSelected ? 4 : 2,
+        color: isSelected ? AppColors.primary.withOpacity(0.1) : null,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          side: isSelected ? const BorderSide(color: AppColors.primary, width: 2) : BorderSide.none,
+        ),
+        child: InkWell(
+          onTap: canBeSelected
+              ? () => _toggleOrderSelection(order.id)
+              : () => _goToOrderDetail(order.id),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // En-tête
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (_isSelectionMode && canBeSelected)
+                      Checkbox(
+                        value: isSelected,
+                        onChanged: (value) => _toggleOrderSelection(order.id),
+                        activeColor: AppColors.primary,
+                      ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Commande ${order.displayNumber}',
+                            style: const TextStyle(
+                              fontSize: AppFontSizes.md,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            _formatDate(order.createdAt),
+                            style: const TextStyle(
+                              fontSize: AppFontSizes.sm,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  Expanded(
-                    child: Column(
+                    _buildStatusBadge(order.status),
+                  ],
+                ),
+
+                const SizedBox(height: AppSpacing.md),
+
+                // Informations client
+                Row(
+                  children: [
+                    const Icon(Icons.person, size: 16, color: AppColors.textSecondary),
+                    const SizedBox(width: AppSpacing.xs),
+                    Text(
+                      order.buyerName,
+                      style: const TextStyle(
+                        fontSize: AppFontSizes.sm,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: AppSpacing.xs),
+
+                Row(
+                  children: [
+                    const Icon(Icons.phone, size: 16, color: AppColors.textSecondary),
+                    const SizedBox(width: AppSpacing.xs),
+                    Text(
+                      order.buyerPhone,
+                      style: const TextStyle(
+                        fontSize: AppFontSizes.sm,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: AppSpacing.md),
+
+                // Articles de la commande
+                Text(
+                  'Articles (${order.items.length})',
+                  style: const TextStyle(
+                    fontSize: AppFontSizes.sm,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+
+                const SizedBox(height: AppSpacing.xs),
+
+                ...order.items.take(2).map((item) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                      child: Row(
+                        children: [
+                          Text(
+                            '${item.quantity}x ',
+                            style: const TextStyle(
+                              fontSize: AppFontSizes.sm,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              item.productName,
+                              style: const TextStyle(
+                                fontSize: AppFontSizes.sm,
+                                color: AppColors.textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Text(
+                            '${(item.price * item.quantity).toStringAsFixed(0)} FCFA',
+                            style: const TextStyle(
+                              fontSize: AppFontSizes.sm,
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )),
+
+                if (order.items.length > 2)
+                  Text(
+                    '... et ${order.items.length - 2} autre(s) article(s)',
+                    style: const TextStyle(
+                      fontSize: AppFontSizes.xs,
+                      color: AppColors.textSecondary,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+
+                const SizedBox(height: AppSpacing.md),
+
+                // Total et actions
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Commande ${order.displayNumber}',
-                          style: const TextStyle(
-                            fontSize: AppFontSizes.md,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        Text(
-                          _formatDate(order.createdAt),
-                          style: const TextStyle(
+                        const Text(
+                          'Total',
+                          style: TextStyle(
                             fontSize: AppFontSizes.sm,
                             color: AppColors.textSecondary,
                           ),
                         ),
+                        Text(
+                          '${order.totalAmount.toStringAsFixed(0)} FCFA',
+                          style: const TextStyle(
+                            fontSize: AppFontSizes.lg,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                  _buildStatusBadge(order.status),
-                ],
-              ),
-            
-            const SizedBox(height: AppSpacing.md),
-            
-            // Informations client
-            Row(
-              children: [
-                const Icon(Icons.person, size: 16, color: AppColors.textSecondary),
-                const SizedBox(width: AppSpacing.xs),
-                Text(
-                  order.buyerName,
-                  style: const TextStyle(
-                    fontSize: AppFontSizes.sm,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: AppSpacing.xs),
-            
-            Row(
-              children: [
-                const Icon(Icons.phone, size: 16, color: AppColors.textSecondary),
-                const SizedBox(width: AppSpacing.xs),
-                Text(
-                  order.buyerPhone,
-                  style: const TextStyle(
-                    fontSize: AppFontSizes.sm,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: AppSpacing.md),
-            
-            // Articles de la commande
-            Text(
-              'Articles (${order.items.length})',
-              style: const TextStyle(
-                fontSize: AppFontSizes.sm,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            
-            const SizedBox(height: AppSpacing.xs),
-            
-            ...order.items.take(2).map((item) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-              child: Row(
-                children: [
-                  Text(
-                    '${item.quantity}x ',
-                    style: const TextStyle(
-                      fontSize: AppFontSizes.sm,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      item.productName,
-                      style: const TextStyle(
-                        fontSize: AppFontSizes.sm,
-                        color: AppColors.textSecondary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Text(
-                    '${(item.price * item.quantity).toStringAsFixed(0)} FCFA',
-                    style: const TextStyle(
-                      fontSize: AppFontSizes.sm,
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            )),
-            
-            if (order.items.length > 2)
-              Text(
-                '... et ${order.items.length - 2} autre(s) article(s)',
-                style: const TextStyle(
-                  fontSize: AppFontSizes.xs,
-                  color: AppColors.textSecondary,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            
-            const SizedBox(height: AppSpacing.md),
-            
-            // Total et actions
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Total',
-                      style: TextStyle(
-                        fontSize: AppFontSizes.sm,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    Text(
-                      '${order.totalAmount.toStringAsFixed(0)} FCFA',
-                      style: const TextStyle(
-                        fontSize: AppFontSizes.lg,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    // Bouton détail
-                    OutlinedButton(
-                      onPressed: () => _showOrderDetail(order),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.primary),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.xs,
+                    Row(
+                      children: [
+                        // Bouton détail
+                        OutlinedButton(
+                          onPressed: () => _showOrderDetail(order),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AppColors.primary),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
+                              vertical: AppSpacing.xs,
+                            ),
+                          ),
+                          child: const Text(
+                            'Détail',
+                            style: TextStyle(color: AppColors.primary),
+                          ),
                         ),
-                      ),
-                      child: const Text(
-                        'Détail',
-                        style: TextStyle(color: AppColors.primary),
-                      ),
+
+                        const SizedBox(width: AppSpacing.xs),
+
+                        // Actions selon le statut
+                        Flexible(
+                          child: _buildStatusAction(order),
+                        ),
+                      ],
                     ),
-                    
-                    const SizedBox(width: AppSpacing.xs),
-                    
-                    // Actions selon le statut
-                    _buildStatusAction(order),
                   ],
                 ),
               ],
             ),
-          ],
-        ),
-      ),
-    ));
+          ),
+        ));
   }
 
   // Badge de statut
@@ -689,6 +777,29 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
               ),
             ),
             const SizedBox(width: 8),
+            // Bouton "Je livre" pour commandes >= 50k FCFA
+            if (order.totalAmount >= 50000) ...[
+              TextButton(
+                onPressed: () => _vendorSelfDelivery(order),
+                style: TextButton.styleFrom(
+                  backgroundColor: AppColors.info,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.local_shipping, size: 16),
+                    SizedBox(width: 4),
+                    Text('Je livre', style: TextStyle(fontSize: 13)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
             TextButton(
               onPressed: () => _cancelOrder(order),
               child: const Text('Annuler', style: TextStyle(color: AppColors.error, fontSize: 13)),
@@ -733,7 +844,7 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
           Icon(
             Icons.receipt_long_outlined,
             size: 80,
-            color: AppColors.textSecondary.withValues(alpha:0.5),
+            color: AppColors.textSecondary.withValues(alpha: 0.5),
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
@@ -782,7 +893,7 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              
+
               // Contenu
               Expanded(
                 child: _buildOrderDetailContent(order, scrollController),
@@ -829,17 +940,17 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
               _buildStatusBadge(order.status),
             ],
           ),
-          
+
           const SizedBox(height: AppSpacing.xl),
-          
+
           // Informations client
           _buildDetailSection('Informations client', [
             _buildDetailRow('Nom', order.buyerName),
             _buildDetailRow('Téléphone', order.buyerPhone),
           ]),
-          
+
           const SizedBox(height: AppSpacing.lg),
-          
+
           // Adresse de livraison
           if (order.deliveryAddress.isNotEmpty)
             _buildDetailSection('Adresse de livraison', [
@@ -851,62 +962,62 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
                 ),
               ),
             ]),
-          
+
           const SizedBox(height: AppSpacing.lg),
-          
+
           // Articles commandés
           _buildDetailSection('Articles commandés', [
             ...order.items.map((item) => Container(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: AppColors.border)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.productName,
-                          style: const TextStyle(
-                            fontSize: AppFontSizes.md,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        Text(
-                          'Quantité: ${item.quantity}',
-                          style: const TextStyle(
-                            fontSize: AppFontSizes.sm,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        Text(
-                          'Prix unitaire: ${item.price.toStringAsFixed(0)} FCFA',
-                          style: const TextStyle(
-                            fontSize: AppFontSizes.sm,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                  decoration: const BoxDecoration(
+                    border: Border(bottom: BorderSide(color: AppColors.border)),
                   ),
-                  Text(
-                    '${(item.price * item.quantity).toStringAsFixed(0)} FCFA',
-                    style: const TextStyle(
-                      fontSize: AppFontSizes.md,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.productName,
+                              style: const TextStyle(
+                                fontSize: AppFontSizes.md,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              'Quantité: ${item.quantity}',
+                              style: const TextStyle(
+                                fontSize: AppFontSizes.sm,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            Text(
+                              'Prix unitaire: ${item.price.toStringAsFixed(0)} FCFA',
+                              style: const TextStyle(
+                                fontSize: AppFontSizes.sm,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '${(item.price * item.quantity).toStringAsFixed(0)} FCFA',
+                        style: const TextStyle(
+                          fontSize: AppFontSizes.md,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            )),
+                )),
           ]),
-          
+
           const SizedBox(height: AppSpacing.lg),
-          
+
           // Récapitulatif des prix
           _buildDetailSection('Récapitulatif', [
             _buildDetailRow('Sous-total', '${order.subtotal.toStringAsFixed(0)} FCFA'),
@@ -937,9 +1048,9 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
               ],
             ),
           ]),
-          
+
           const SizedBox(height: AppSpacing.xl),
-          
+
           // Actions
           if (order.status.toLowerCase() != 'livree' && order.status.toLowerCase() != 'annulee')
             SizedBox(
@@ -996,7 +1107,6 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
     );
   }
 
-
   // Obtenir le label du statut pour les onglets (SIMPLIFIÉ)
   String _getStatusLabel(String status) {
     switch (status) {
@@ -1038,4 +1148,3 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} à ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 }
-

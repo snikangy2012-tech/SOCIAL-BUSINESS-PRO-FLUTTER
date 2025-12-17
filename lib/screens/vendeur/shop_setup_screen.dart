@@ -11,7 +11,7 @@ import '../../config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../models/user_model.dart';
 import '../../services/geolocation_service.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class ShopSetupScreen extends StatefulWidget {
   const ShopSetupScreen({super.key});
@@ -31,6 +31,7 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
   final _businessNameController = TextEditingController();
   final _businessDescriptionController = TextEditingController();
   final _businessAddressController = TextEditingController();
+  final _businessPhoneController = TextEditingController();
   final _freeDeliveryThresholdController = TextEditingController();
 
   // Valeurs du formulaire
@@ -59,6 +60,7 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
   void dispose() {
     _businessNameController.dispose();
     _businessDescriptionController.dispose();
+    _businessPhoneController.dispose();
     _businessAddressController.dispose();
     _freeDeliveryThresholdController.dispose();
     _pageController.dispose();
@@ -79,10 +81,8 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
       }
 
       // Charger le profil depuis Firestore
-      final userDoc = await FirebaseFirestore.instance
-          .collection(FirebaseCollections.users)
-          .doc(user.id)
-          .get();
+      final userDoc =
+          await FirebaseFirestore.instance.collection(FirebaseCollections.users).doc(user.id).get();
 
       if (userDoc.exists) {
         final userData = userDoc.data()!;
@@ -96,10 +96,9 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
 
             // Pré-remplir le formulaire
             _businessNameController.text = _existingProfile!.businessName;
-            _businessDescriptionController.text =
-                _existingProfile!.businessDescription ?? '';
-            _businessAddressController.text =
-                _existingProfile!.businessAddress ?? '';
+            _businessDescriptionController.text = _existingProfile!.businessDescription ?? '';
+            _businessAddressController.text = _existingProfile!.businessAddress ?? '';
+            _businessPhoneController.text = _existingProfile!.businessPhone ?? '';
             _businessType = _existingProfile!.businessType;
 
             // ✅ Valider que la catégorie existe dans le dropdown
@@ -124,7 +123,8 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
             // Charger la position GPS de la boutique si elle existe
             // Priorité 1: businessLatitude/businessLongitude (nouveau système)
             // Priorité 2: shopLocation (ancien système pour compatibilité)
-            if (_existingProfile!.businessLatitude != null && _existingProfile!.businessLongitude != null) {
+            if (_existingProfile!.businessLatitude != null &&
+                _existingProfile!.businessLongitude != null) {
               _shopLocation = LocationCoords(
                 latitude: _existingProfile!.businessLatitude!,
                 longitude: _existingProfile!.businessLongitude!,
@@ -243,6 +243,9 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
         businessDescription: _businessDescriptionController.text.trim().isEmpty
             ? null
             : _businessDescriptionController.text.trim(),
+        businessPhone: _businessPhoneController.text.trim().isEmpty
+            ? null
+            : _businessPhoneController.text.trim(),
         businessCategory: _businessCategory,
         businessAddress: _businessAddressController.text.trim().isEmpty
             ? null
@@ -273,15 +276,13 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
       };
 
       // Mettre à jour Firestore avec le profil vendeur complet (avec shopLocation)
-      await FirebaseFirestore.instance
-          .collection(FirebaseCollections.users)
-          .doc(user.id)
-          .update({
+      await FirebaseFirestore.instance.collection(FirebaseCollections.users).doc(user.id).update({
         'profile.vendeurProfile': profileMap,
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      debugPrint('✅ Profil boutique sauvegardé avec GPS: ${_shopLocation!.latitude}, ${_shopLocation!.longitude}');
+      debugPrint(
+          '✅ Profil boutique sauvegardé avec GPS: ${_shopLocation!.latitude}, ${_shopLocation!.longitude}');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -357,9 +358,7 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
 
     return SystemUIScaffold(
       appBar: AppBar(
-        title: Text(_existingProfile != null
-            ? 'Modifier ma Boutique'
-            : 'Créer ma Boutique'),
+        title: Text(_existingProfile != null ? 'Modifier ma Boutique' : 'Créer ma Boutique'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
@@ -416,9 +415,7 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: isCompleted || isActive
-                              ? AppColors.primary
-                              : Colors.grey[300],
+                          color: isCompleted || isActive ? AppColors.primary : Colors.grey[300],
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -431,9 +428,7 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
                               : Text(
                                   '${index + 1}',
                                   style: TextStyle(
-                                    color: isActive
-                                        ? Colors.white
-                                        : Colors.grey[600],
+                                    color: isActive ? Colors.white : Colors.grey[600],
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -444,11 +439,8 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
                         _getStepTitle(index),
                         style: TextStyle(
                           fontSize: 12,
-                          color: isActive
-                              ? AppColors.primary
-                              : Colors.grey[600],
-                          fontWeight:
-                              isActive ? FontWeight.bold : FontWeight.normal,
+                          color: isActive ? AppColors.primary : Colors.grey[600],
+                          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -459,9 +451,7 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
                   Container(
                     height: 2,
                     width: 12,
-                    color: isCompleted
-                        ? AppColors.primary
-                        : Colors.grey[300],
+                    color: isCompleted ? AppColors.primary : Colors.grey[300],
                   ),
               ],
             ),
@@ -524,6 +514,29 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
               }
               if (value.trim().length < 3) {
                 return 'Le nom doit contenir au moins 3 caractères';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Téléphone de la boutique
+          TextFormField(
+            controller: _businessPhoneController,
+            decoration: const InputDecoration(
+              labelText: 'Téléphone de la boutique',
+              hintText: 'Ex: 07 XX XX XX XX',
+              prefixIcon: Icon(Icons.phone),
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.phone,
+            validator: (value) {
+              if (value != null && value.trim().isNotEmpty) {
+                // Vérifier format ivoirien (commence par 0, 10 chiffres)
+                final cleaned = value.replaceAll(RegExp(r'\s+'), '');
+                if (cleaned.length != 10 || !cleaned.startsWith('0')) {
+                  return 'Format invalide (10 chiffres commençant par 0)';
+                }
               }
               return null;
             },
@@ -645,7 +658,9 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
                       : const Icon(Icons.my_location),
-                  label: Text(_isLoadingLocation ? 'Récupération en cours...' : 'Utiliser ma position actuelle'),
+                  label: Text(_isLoadingLocation
+                      ? 'Récupération en cours...'
+                      : 'Utiliser ma position actuelle'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -670,7 +685,9 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Position enregistrée', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.success)),
+                            const Text('Position enregistrée',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold, color: AppColors.success)),
                             Text(
                               'Lat: ${_shopLocation!.latitude.toStringAsFixed(6)}, Lng: ${_shopLocation!.longitude.toStringAsFixed(6)}',
                               style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
@@ -695,7 +712,8 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
                       children: [
                         Icon(Icons.location_off, size: 80, color: Colors.grey[400]),
                         const SizedBox(height: 16),
-                        const Text('Aucune position définie', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const Text('Aucune position définie',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 8),
                         const Text(
                           'Cliquez sur "Utiliser ma position actuelle" pour définir l\'emplacement de votre boutique',
@@ -716,17 +734,20 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
                       onMapCreated: (controller) => _mapController = controller,
                       onTap: (LatLng position) {
                         setState(() {
-                          _shopLocation = LocationCoords(latitude: position.latitude, longitude: position.longitude);
+                          _shopLocation = LocationCoords(
+                              latitude: position.latitude, longitude: position.longitude);
                           _hasClickedMap = true; // Masquer le message après premier clic
                         });
-                        debugPrint('📍 Nouvelle position: ${position.latitude}, ${position.longitude}');
+                        debugPrint(
+                            '📍 Nouvelle position: ${position.latitude}, ${position.longitude}');
                       },
                       markers: {
                         Marker(
                           markerId: const MarkerId('shop_location'),
                           position: LatLng(_shopLocation!.latitude, _shopLocation!.longitude),
                           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-                          infoWindow: const InfoWindow(title: 'Ma Boutique', snippet: 'Position de votre boutique'),
+                          infoWindow: const InfoWindow(
+                              title: 'Ma Boutique', snippet: 'Position de votre boutique'),
                         ),
                       },
                       myLocationEnabled: true,
@@ -748,7 +769,9 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
                               children: const [
                                 Icon(Icons.info_outline, color: AppColors.primary, size: 20),
                                 SizedBox(width: 8),
-                                Expanded(child: Text('Cliquez sur la carte pour changer la position', style: TextStyle(fontSize: 12))),
+                                Expanded(
+                                    child: Text('Cliquez sur la carte pour changer la position',
+                                        style: TextStyle(fontSize: 12))),
                               ],
                             ),
                           ),
@@ -788,8 +811,7 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
             maxLines: 5,
             decoration: const InputDecoration(
               labelText: 'Description (optionnel)',
-              hintText:
-                  'Décrivez votre boutique et ce que vous proposez...',
+              hintText: 'Décrivez votre boutique et ce que vous proposez...',
               alignLabelWithHint: true,
               border: OutlineInputBorder(),
             ),
@@ -924,8 +946,7 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
               hintText: 'Ex: 10000 (optionnel)',
               prefixIcon: Icon(Icons.local_shipping),
               border: OutlineInputBorder(),
-              helperText:
-                  'Offrez la livraison gratuite au-delà d\'un certain montant',
+              helperText: 'Offrez la livraison gratuite au-delà d\'un certain montant',
             ),
             validator: (value) {
               if (value != null && value.trim().isNotEmpty) {
@@ -1032,20 +1053,15 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
                 ),
                 const SizedBox(height: 12),
                 _buildSummaryRow('Nom', _businessNameController.text),
-                _buildSummaryRow(
-                    'Type', _businessType == 'individual'
-                        ? 'Individuel'
-                        : 'Société'),
+                _buildSummaryRow('Type', _businessType == 'individual' ? 'Individuel' : 'Société'),
                 _buildSummaryRow('Catégorie', _businessCategory),
                 _buildSummaryRow(
                     'Position GPS',
                     _shopLocation != null
                         ? '${_shopLocation!.latitude.toStringAsFixed(4)}, ${_shopLocation!.longitude.toStringAsFixed(4)}'
                         : '❌ Non définie'),
-                _buildSummaryRow(
-                    'Zones', '${_selectedZones.length} zone(s)'),
-                _buildSummaryRow(
-                    'Prix livraison', 'Calcul automatique selon distance'),
+                _buildSummaryRow('Zones', '${_selectedZones.length} zone(s)'),
+                _buildSummaryRow('Prix livraison', 'Calcul automatique selon distance'),
                 if (_shopLocation == null)
                   const Padding(
                     padding: EdgeInsets.only(top: 8),
@@ -1131,9 +1147,7 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
             if (_currentStep > 0) const SizedBox(width: 16),
             Expanded(
               child: ElevatedButton(
-                onPressed: _isSaving
-                    ? null
-                    : (_currentStep < 4 ? _nextStep : _saveProfile),
+                onPressed: _isSaving ? null : (_currentStep < 4 ? _nextStep : _saveProfile),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
@@ -1141,18 +1155,18 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
                 ),
                 child: _isSaving
                     ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Text(_currentStep < 4 ? 'Suivant' : 'Enregistrer'),
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(_currentStep < 4 ? 'Suivant' : 'Enregistrer'),
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }

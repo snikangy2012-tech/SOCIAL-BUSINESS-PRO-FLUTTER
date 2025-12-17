@@ -16,7 +16,7 @@ import '../../providers/favorite_provider.dart';
 import '../../widgets/custom_widgets.dart';
 import '../../utils/image_helper.dart';
 import '../../utils/number_formatter.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class CategoriesScreen extends StatefulWidget {
   final String? initialCategory;
@@ -86,14 +86,13 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   }
 
   List<ProductModel> _getProductsForCategory(String categoryId, {String? subcategory}) {
-    var filtered = _allProducts
-        .where((product) => product.category.toLowerCase() == categoryId.toLowerCase());
+    var filtered =
+        _allProducts.where((product) => product.category.toLowerCase() == categoryId.toLowerCase());
 
     // Filtrer par sous-catégorie si spécifiée
     if (subcategory != null && subcategory != 'Toutes') {
-      filtered = filtered.where((product) =>
-        product.subCategory?.toLowerCase() == subcategory.toLowerCase()
-      );
+      filtered = filtered
+          .where((product) => product.subCategory?.toLowerCase() == subcategory.toLowerCase());
     }
 
     return filtered.toList();
@@ -233,7 +232,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     ),
                   ),
                   selected: isSelected,
-                  selectedTileColor: AppColors.primaryLight.withValues(alpha:0.3),
+                  selectedTileColor: AppColors.primaryLight.withValues(alpha: 0.3),
                   onTap: () {
                     setState(() {
                       _selectedCategory = category.id;
@@ -257,11 +256,12 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final selectedCategoryData = ProductCategories.allCategories
-        .firstWhere((cat) => cat.id == _selectedCategory);
+    final selectedCategoryData =
+        ProductCategories.allCategories.firstWhere((cat) => cat.id == _selectedCategory);
 
     // Obtenir les sous-catégories disponibles pour cette catégorie
-    final availableSubcategories = ['Toutes'] + ProductSubcategories.getSubcategories(_selectedCategory);
+    final availableSubcategories =
+        ['Toutes'] + ProductSubcategories.getSubcategories(_selectedCategory);
 
     final categoryProducts = _getProductsForCategory(
       _selectedCategory,
@@ -302,11 +302,11 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                       crossAxisCount: 2,
                       crossAxisSpacing: AppSpacing.md,
                       mainAxisSpacing: AppSpacing.md,
-                      childAspectRatio: 0.55, // ✅ CORRECTION: 0.55 pour carte complète avec tous les éléments
+                      childAspectRatio:
+                          0.55, // ✅ CORRECTION: 0.55 pour carte complète avec tous les éléments
                     ),
                     delegate: SliverChildBuilderDelegate(
-                      (context, index) =>
-                          _buildProductCard(categoryProducts[index]),
+                      (context, index) => _buildProductCard(categoryProducts[index]),
                       childCount: categoryProducts.length,
                     ),
                   ),
@@ -370,7 +370,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         gradient: LinearGradient(
           colors: [
             AppColors.primary,
-            AppColors.primary.withValues(alpha:0.7),
+            AppColors.primary.withValues(alpha: 0.7),
           ],
         ),
       ),
@@ -380,7 +380,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha:0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -407,7 +407,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 Text(
                   '${_categoryCounts[category.id] ?? 0} produits disponibles',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha:0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
                 ),
@@ -579,9 +579,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    isFavorite
-                                      ? 'Retiré des favoris'
-                                      : 'Ajouté aux favoris',
+                                    isFavorite ? 'Retiré des favoris' : 'Ajouté aux favoris',
                                   ),
                                   duration: const Duration(seconds: 1),
                                   backgroundColor: isFavorite ? AppColors.info : AppColors.success,

@@ -13,7 +13,7 @@ import '../../services/review_service.dart';
 import '../../services/vendor_stats_service.dart';
 import '../../utils/order_status_helper.dart';
 import '../../utils/number_formatter.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class VendeurDashboard extends StatefulWidget {
   const VendeurDashboard({super.key});
@@ -68,25 +68,25 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
 
   Future<void> _loadDashboardData() async {
     debugPrint('📊 === DÉBUT CHARGEMENT DASHBOARD ===');
-    
+
     if (!mounted) {
       debugPrint('❌ Widget non monté, abandon');
       return;
     }
-    
+
     setState(() => _isLoading = true);
-    
+
     try {
       final authProvider = context.read<auth.AuthProvider>();
       final user = authProvider.user;
-      
+
       debugPrint('👤 User: ${user?.displayName}');
       debugPrint('📋 UserType: ${user?.userType.value}');
-      
+
       if (user == null) {
         throw Exception('Utilisateur non connecté');
       }
-      
+
       if (user.userType != UserType.vendeur) {
         debugPrint('❌ Type incorrect: ${user.userType.value}');
         throw Exception('Accès non autorisé');
@@ -135,12 +135,11 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
 
         _recentOrders = recentOrders;
       });
-      
+
       debugPrint('✅ Données chargées avec succès');
-      
     } catch (e) {
       debugPrint('❌ Erreur chargement: $e');
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -176,7 +175,7 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
               end: Alignment.bottomRight,
               colors: [
                 AppColors.primary,
-                AppColors.primary.withValues(alpha:0.7),
+                AppColors.primary.withValues(alpha: 0.7),
               ],
             ),
           ),
@@ -191,7 +190,7 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha:0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -303,7 +302,7 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
                         Text(
                           'Bienvenue ! 👋',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha:0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                             fontSize: 16,
                           ),
                         ),
@@ -330,13 +329,13 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
                           end: Alignment.bottomRight,
                           colors: [
                             AppColors.success,
-                            AppColors.success.withValues(alpha:0.8),
+                            AppColors.success.withValues(alpha: 0.8),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.success.withValues(alpha:0.3),
+                            color: AppColors.success.withValues(alpha: 0.3),
                             blurRadius: 15,
                             offset: const Offset(0, 8),
                           ),
@@ -351,7 +350,7 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
                                 Text(
                                   'Revenus du mois',
                                   style: TextStyle(
-                                    color: Colors.white.withValues(alpha:0.9),
+                                    color: Colors.white.withValues(alpha: 0.9),
                                     fontSize: 14,
                                   ),
                                 ),
@@ -372,7 +371,7 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha:0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: const Icon(
@@ -382,6 +381,64 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
                             ),
                           ),
                         ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // 💳 Bouton Paiement Commissions
+                    Card(
+                      elevation: 2,
+                      child: InkWell(
+                        onTap: () => context.go('/vendeur/commission-payment'),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.payment,
+                                  color: AppColors.primary,
+                                  size: 28,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Payer mes commissions',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      'Effectuer un versement Mobile Money',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.arrow_forward_ios,
+                                color: Colors.grey,
+                                size: 16,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
 
@@ -476,7 +533,7 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
                                   borderRadius: BorderRadius.circular(16),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha:0.04),
+                                      color: Colors.black.withValues(alpha: 0.04),
                                       blurRadius: 10,
                                       offset: const Offset(0, 2),
                                     ),
@@ -487,7 +544,7 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
                                   leading: Container(
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: _getStatusColor(order.status).withValues(alpha:0.1),
+                                      color: _getStatusColor(order.status).withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Icon(
@@ -522,7 +579,8 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
                                           vertical: 4,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: _getStatusColor(order.status).withValues(alpha:0.1),
+                                          color:
+                                              _getStatusColor(order.status).withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: Text(
@@ -576,7 +634,7 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha:0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -601,7 +659,7 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha:0.1),
+                    color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(icon, color: color, size: 20),

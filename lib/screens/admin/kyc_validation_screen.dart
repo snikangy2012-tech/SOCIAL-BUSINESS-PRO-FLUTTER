@@ -9,7 +9,7 @@ import '../../models/user_model.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/kyc_verification_service.dart';
 import '../../widgets/custom_widgets.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class KYCValidationScreen extends StatefulWidget {
   const KYCValidationScreen({super.key});
@@ -204,9 +204,7 @@ class _KYCValidationScreenState extends State<KYCValidationScreen> {
                   radius: 24,
                   backgroundColor: userTypeColor.withOpacity(0.2),
                   child: Text(
-                    user.displayName.isNotEmpty
-                        ? user.displayName[0].toUpperCase()
-                        : 'U',
+                    user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : 'U',
                     style: TextStyle(
                       fontSize: AppFontSizes.lg,
                       fontWeight: FontWeight.bold,

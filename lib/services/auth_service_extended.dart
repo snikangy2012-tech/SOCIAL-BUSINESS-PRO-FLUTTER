@@ -160,14 +160,15 @@ class AuthServiceExtended {
       );
 
       if (user != null) {
-        // Envoyer OTP de vérification par email
-        await sendEmailVerification();
-        
+        // 🚧 PHASE DE DÉVELOPPEMENT : Envoi email de vérification désactivé
+        // TODO: Réactiver en production
+        // await sendEmailVerification();
+
         return {
           'success': true,
           'user': user,
-          'requiresVerification': true,
-          'message': 'Compte créé ! Vérifiez votre email pour activer votre compte.',
+          // 'requiresVerification': true, // Désactivé en dev
+          'message': 'Compte créé avec succès !',
         };
       }
       
@@ -188,6 +189,9 @@ class AuthServiceExtended {
       );
 
       if (user != null) {
+        // 🚧 PHASE DE DÉVELOPPEMENT : Vérification email désactivée
+        // TODO: Réactiver en production
+        /*
         // Vérifier si l'email est vérifié
         final currentUser = _auth.currentUser;
         if (currentUser != null && !currentUser.emailVerified) {
@@ -197,8 +201,10 @@ class AuthServiceExtended {
             'message': 'Email non vérifié. Vérifiez votre boîte email.',
           };
         }
+        */
 
         // ✅ Vérifier et créer le document Firestore si nécessaire
+        final currentUser = _auth.currentUser;
         if (currentUser != null) {
           await _ensureFirestoreDocument(currentUser);
         }

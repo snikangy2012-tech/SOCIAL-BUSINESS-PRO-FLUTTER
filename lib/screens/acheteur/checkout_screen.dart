@@ -19,6 +19,7 @@ import '../../services/audit_service.dart';
 import '../../services/vendor_location_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/geolocation_service.dart';
+import '../../services/qr_code_service.dart';
 import '../../models/user_model.dart';
 import '../../models/audit_log_model.dart';
 import '../../utils/number_formatter.dart';
@@ -53,6 +54,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _isLoadingPaymentMethods = false;
   List<Address> _savedAddresses = []; // Adresses enregistrées
   Address? _selectedAddress; // Adresse sélectionnée
+  String _deliveryMethod = 'home_delivery'; // 'home_delivery' ou 'store_pickup'
 
   @override
   void initState() {
@@ -227,7 +229,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _validateStep() {
     switch (_currentStep) {
       case 0:
-        return _formKey.currentState?.validate() ?? false;
+        // Pour la livraison à domicile, vérifier le formulaire ET l'adresse
+        if (_deliveryMethod == 'home_delivery') {
+          final formValid = _formKey.currentState?.validate() ?? false;
+          if (!formValid) return false;
+
+          // Vérifier qu'une adresse avec GPS est sélectionnée
+          if (_selectedAddress == null || _selectedAddress!.coordinates == null) {
+            return false;
+          }
+        }
+        // Pour le retrait en boutique, pas de validation spéciale
+        return true;
       case 1:
         return _selectedPaymentMethod != null;
       default:
@@ -388,49 +401,72 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
         final pickupLatitude = pickupCoords?['latitude'] ?? 5.316667;
         final pickupLongitude = pickupCoords?['longitude'] ?? -4.033333;
 
-        // ✅ VALIDATION STRICTE : Adresse avec coordonnées GPS OBLIGATOIRE
-        if (_selectedAddress == null || _selectedAddress!.coordinates == null) {
-          // ⚠️ LIBÉRER LE STOCK RÉSERVÉ car la validation a échoué
-          debugPrint('⚠️ Validation GPS échouée, libération du stock réservé...');
-          await StockManagementService.releaseStockBatch(
-            productsQuantities: productsQuantities,
+        // Variables pour les coordonnées et frais
+        double deliveryLatitude;
+        double deliveryLongitude;
+        double deliveryFee;
+        String? pickupQRCode;
+
+        // ✅ CLICK & COLLECT: Pas besoin d'adresse de livraison
+        if (_deliveryMethod == 'store_pickup') {
+          // Pour le retrait en boutique, utiliser les coordonnées de la boutique
+          deliveryLatitude = pickupLatitude;
+          deliveryLongitude = pickupLongitude;
+          deliveryFee = 0.0; // Gratuit pour le retrait en boutique
+
+          // Générer le QR code pour le retrait
+          pickupQRCode = QRCodeService.generatePickupQRCode(
+            orderId: 'TEMP_${now.millisecondsSinceEpoch}', // Sera mis à jour après création
+            buyerId: user.id,
           );
 
-          setState(() => _isProcessing = false);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  '❌ Veuillez sélectionner une adresse avec coordonnées GPS.\n'
-                  'Utilisez une adresse enregistrée ou ajoutez-en une nouvelle via votre profil.',
-                ),
-                backgroundColor: AppColors.error,
-                duration: Duration(seconds: 5),
-              ),
+          debugPrint('🏪 Click & Collect: Frais de livraison = 0 FCFA');
+          debugPrint('📱 QR Code généré pour le retrait');
+        } else {
+          // ✅ LIVRAISON À DOMICILE: Validation GPS OBLIGATOIRE
+          if (_selectedAddress == null || _selectedAddress!.coordinates == null) {
+            // ⚠️ LIBÉRER LE STOCK RÉSERVÉ car la validation a échoué
+            debugPrint('⚠️ Validation GPS échouée, libération du stock réservé...');
+            await StockManagementService.releaseStockBatch(
+              productsQuantities: productsQuantities,
             );
+
+            setState(() => _isProcessing = false);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    '❌ Veuillez sélectionner une adresse avec coordonnées GPS.\n'
+                    'Utilisez une adresse enregistrée ou ajoutez-en une nouvelle via votre profil.',
+                  ),
+                  backgroundColor: AppColors.error,
+                  duration: Duration(seconds: 5),
+                ),
+              );
+            }
+            debugPrint('❌ Commande bloquée: Aucune adresse avec coordonnées GPS sélectionnée');
+            return;
           }
-          debugPrint('❌ Commande bloquée: Aucune adresse avec coordonnées GPS sélectionnée');
-          return;
+
+          // Récupérer les coordonnées de livraison depuis l'adresse sélectionnée
+          deliveryLatitude = _selectedAddress!.coordinates!.latitude;
+          deliveryLongitude = _selectedAddress!.coordinates!.longitude;
+          debugPrint(
+              '✅ Coordonnées de livraison depuis adresse enregistrée: $deliveryLatitude, $deliveryLongitude');
+
+          // ✅ CALCULER LA DISTANCE GPS entre la boutique et l'adresse de livraison
+          final distance = GeolocationService.calculateDistance(
+            pickupLatitude,
+            pickupLongitude,
+            deliveryLatitude,
+            deliveryLongitude,
+          );
+          debugPrint('📏 Distance calculée: ${distance.toStringAsFixed(2)} km');
+
+          // ✅ CALCULER LES FRAIS DE LIVRAISON selon la distance réelle
+          deliveryFee = _calculateDeliveryFee(distance);
+          debugPrint('💰 Frais de livraison: ${deliveryFee.toStringAsFixed(0)} FCFA');
         }
-
-        // Récupérer les coordonnées de livraison depuis l'adresse sélectionnée
-        final deliveryLatitude = _selectedAddress!.coordinates!.latitude;
-        final deliveryLongitude = _selectedAddress!.coordinates!.longitude;
-        debugPrint(
-            '✅ Coordonnées de livraison depuis adresse enregistrée: $deliveryLatitude, $deliveryLongitude');
-
-        // ✅ CALCULER LA DISTANCE GPS entre la boutique et l'adresse de livraison
-        final distance = GeolocationService.calculateDistance(
-          pickupLatitude,
-          pickupLongitude,
-          deliveryLatitude,
-          deliveryLongitude,
-        );
-        debugPrint('📏 Distance calculée: ${distance.toStringAsFixed(2)} km');
-
-        // ✅ CALCULER LES FRAIS DE LIVRAISON selon la distance réelle
-        final deliveryFee = _calculateDeliveryFee(distance);
-        debugPrint('💰 Frais de livraison: ${deliveryFee.toStringAsFixed(0)} FCFA');
 
         // Calculer le montant total
         final total = subtotal + deliveryFee;
@@ -463,6 +499,11 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
           'pickupLongitude': pickupLongitude,
           'deliveryLatitude': deliveryLatitude,
           'deliveryLongitude': deliveryLongitude,
+          // ✅ Click & Collect fields
+          'deliveryMethod': _deliveryMethod, // 'home_delivery' ou 'store_pickup'
+          'pickupQRCode': pickupQRCode, // Code QR pour retrait en boutique (null si livraison)
+          'pickupReadyAt': null, // Sera défini quand le vendeur marque "prêt"
+          'pickedUpAt': null, // Sera défini quand le client récupère
         };
 
         // Enregistrer dans Firestore
@@ -471,6 +512,38 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
         createdOrders.add(docRef.id);
 
         debugPrint('✅ Commande créée: ${docRef.id} pour vendeur: $vendeurId');
+
+        // ✅ CLICK & COLLECT: Mettre à jour le QR code avec l'ID réel de la commande
+        if (_deliveryMethod == 'store_pickup') {
+          final finalQRCode = QRCodeService.generatePickupQRCode(
+            orderId: docRef.id,
+            buyerId: user.id,
+          );
+          await docRef.update({'pickupQRCode': finalQRCode});
+          debugPrint('✅ QR Code mis à jour avec orderId: ${docRef.id}');
+
+          // 📱 ENVOYER NOTIFICATION À L'ACHETEUR avec le QR code
+          try {
+            await NotificationService().createNotification(
+              userId: user.id,
+              type: 'pickup_qr_ready',
+              title: '📱 Votre QR Code de retrait est prêt',
+              body: 'Commande #$displayNumber - Présentez ce code au vendeur lors du retrait',
+              data: {
+                'orderId': docRef.id,
+                'orderNumber': orderNumber,
+                'displayNumber': displayNumber,
+                'qrCode': finalQRCode,
+                'route': '/acheteur/pickup-qr/${docRef.id}',
+                'action': 'view_qr_code',
+              },
+            );
+            debugPrint('✅ Notification QR code envoyée à l\'acheteur');
+          } catch (e) {
+            debugPrint('❌ Erreur envoi notification QR: $e');
+            // L'erreur n'empêche pas la commande d'être créée
+          }
+        }
 
         // Logger l'achat dans Analytics
         await _analytics.logPurchase(
@@ -830,7 +903,117 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
         ),
         const SizedBox(height: AppSpacing.md),
 
-        // Bouton de sélection d'adresse moderne
+        // ✅ CHOIX DU MODE DE LIVRAISON
+        const Text(
+          'Mode de livraison',
+          style: TextStyle(
+            fontSize: AppFontSizes.md,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+
+        // Option 1: Livraison à domicile
+        Card(
+          elevation: _deliveryMethod == 'home_delivery' ? 4 : 1,
+          child: RadioListTile<String>(
+            value: 'home_delivery',
+            groupValue: _deliveryMethod,
+            onChanged: (value) {
+              setState(() => _deliveryMethod = value!);
+            },
+            title: const Text(
+              'Livraison à domicile',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: const Text('Un livreur vous apporte votre commande'),
+            secondary: Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: const Icon(
+                Icons.local_shipping,
+                color: AppColors.primary,
+                size: 28,
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: AppSpacing.sm),
+
+        // Option 2: Retrait en boutique (Click & Collect)
+        Card(
+          elevation: _deliveryMethod == 'store_pickup' ? 4 : 1,
+          child: RadioListTile<String>(
+            value: 'store_pickup',
+            groupValue: _deliveryMethod,
+            onChanged: (value) {
+              setState(() => _deliveryMethod = value!);
+            },
+            title: Row(
+              children: [
+                const Text(
+                  'Retrait en boutique',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.success,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'GRATUIT',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            subtitle: const Text('Récupérez votre commande chez le vendeur'),
+            secondary: Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: AppColors.success.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: const Icon(
+                Icons.store,
+                color: AppColors.success,
+                size: 28,
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: AppSpacing.lg),
+
+        // Afficher la sélection d'adresse seulement si livraison à domicile
+        if (_deliveryMethod == 'home_delivery') ...[
+          const Text(
+            'Adresse de livraison',
+            style: TextStyle(
+              fontSize: AppFontSizes.md,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+
+          // Bouton de sélection d'adresse moderne
         Card(
           elevation: 2,
           child: InkWell(
@@ -923,68 +1106,113 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
           ),
         ),
 
-        const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.md),
 
-        Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              // Nom complet
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nom complet *',
-                  hintText: 'Ex: Jean Kouassi',
-                  prefixIcon: Icon(Icons.person),
-                  border: OutlineInputBorder(),
+          Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                // Nom complet
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nom complet *',
+                    hintText: 'Ex: Jean Kouassi',
+                    prefixIcon: Icon(Icons.person),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Veuillez saisir votre nom';
+                    }
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Veuillez saisir votre nom';
-                  }
-                  return null;
-                },
-              ),
 
-              const SizedBox(height: AppSpacing.md),
+                const SizedBox(height: AppSpacing.md),
 
-              // Téléphone
-              TextFormField(
-                controller: _phoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Téléphone *',
-                  hintText: 'Ex: 0749705404',
-                  prefixIcon: Icon(Icons.phone),
-                  border: OutlineInputBorder(),
+                // Téléphone
+                TextFormField(
+                  controller: _phoneController,
+                  decoration: const InputDecoration(
+                    labelText: 'Téléphone *',
+                    hintText: 'Ex: 0749705404',
+                    prefixIcon: Icon(Icons.phone),
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.phone,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Veuillez saisir votre numéro';
+                    }
+                    if (value.length < 10) {
+                      return 'Numéro invalide';
+                    }
+                    return null;
+                  },
                 ),
-                keyboardType: TextInputType.phone,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Veuillez saisir votre numéro';
-                  }
-                  if (value.length < 10) {
-                    return 'Numéro invalide';
-                  }
-                  return null;
-                },
-              ),
 
-              const SizedBox(height: AppSpacing.md),
+                const SizedBox(height: AppSpacing.md),
 
-              // Notes (optionnel)
-              TextFormField(
-                controller: _notesController,
-                decoration: const InputDecoration(
-                  labelText: 'Instructions de livraison (optionnel)',
-                  hintText: 'Ex: Appeler en arrivant, bâtiment B...',
-                  prefixIcon: Icon(Icons.note),
-                  border: OutlineInputBorder(),
+                // Notes (optionnel)
+                TextFormField(
+                  controller: _notesController,
+                  decoration: const InputDecoration(
+                    labelText: 'Instructions de livraison (optionnel)',
+                    hintText: 'Ex: Appeler en arrivant, bâtiment B...',
+                    prefixIcon: Icon(Icons.note),
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 2,
                 ),
-                maxLines: 2,
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        ], // Fin du if (_deliveryMethod == 'home_delivery')
+
+        // Informations communes (affichées pour les deux modes)
+        if (_deliveryMethod == 'store_pickup') ...[
+          const SizedBox(height: AppSpacing.md),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.info.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline, color: AppColors.info, size: 20),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Retrait en boutique',
+                        style: TextStyle(
+                          fontSize: AppFontSizes.md,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.info,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Vous recevrez un code QR par notification. '
+                        'Présentez-le au vendeur lors du retrait de votre commande.',
+                        style: TextStyle(
+                          fontSize: AppFontSizes.sm,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1250,15 +1478,23 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
 
         // Infos livraison
         _buildSummaryCard(
-          'Livraison',
+          _deliveryMethod == 'store_pickup' ? 'Retrait' : 'Livraison',
           [
-            _buildSummaryItem('Nom', _nameController.text),
-            _buildSummaryItem('Téléphone', _phoneController.text),
-            _buildSummaryItem('Commune', _communeController.text),
-            _buildSummaryItem('Adresse', _addressController.text),
-            if (_notesController.text.isNotEmpty) _buildSummaryItem('Notes', _notesController.text),
+            _buildSummaryItem(
+              'Mode',
+              _deliveryMethod == 'store_pickup'
+                  ? '🏪 Retrait en boutique (GRATUIT)'
+                  : '🚚 Livraison à domicile',
+            ),
+            if (_deliveryMethod == 'home_delivery') ...[
+              _buildSummaryItem('Nom', _nameController.text),
+              _buildSummaryItem('Téléphone', _phoneController.text),
+              _buildSummaryItem('Commune', _communeController.text),
+              _buildSummaryItem('Adresse', _addressController.text),
+              if (_notesController.text.isNotEmpty) _buildSummaryItem('Notes', _notesController.text),
+            ],
           ],
-          Icons.local_shipping,
+          _deliveryMethod == 'store_pickup' ? Icons.store : Icons.local_shipping,
         ),
 
         const SizedBox(height: AppSpacing.md),

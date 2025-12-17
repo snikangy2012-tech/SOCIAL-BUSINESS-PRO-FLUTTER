@@ -39,9 +39,12 @@ class GlobalReportService {
     Map<String, dynamic>? filters,
     ReportConfig? config,
   }) async {
+    late String reportId; // Déclarer avant le try pour accès dans catch
+    bool reportCreated = false; // Flag pour savoir si le rapport a été créé
+
     try {
       // 1. Créer l'entrée dans Firestore
-      final reportId = await _createReportEntry(
+      reportId = await _createReportEntry(
         reportType: reportType,
         generatedBy: generatedBy,
         period: period,
@@ -49,6 +52,7 @@ class GlobalReportService {
         targetUserId: targetUserId,
         filters: filters,
       );
+      reportCreated = true; // Marquer que le rapport a été créé
 
       debugPrint('📊 Génération rapport $reportId démarrée...');
 
@@ -118,18 +122,20 @@ class GlobalReportService {
     } catch (e) {
       debugPrint('❌ Erreur génération rapport: $e');
 
-      // Marquer le rapport comme échoué
-      try {
-        await FirebaseFirestore.instance
-            .collection(_reportsCollection)
-            .doc(reportId)
-            .update({
-          'status': ReportStatus.failed.name,
-          'error': e.toString(),
-          'errorTimestamp': FieldValue.serverTimestamp(),
-        });
-      } catch (updateError) {
-        debugPrint('❌ Erreur mise à jour statut erreur: $updateError');
+      // Marquer le rapport comme échoué (seulement si le rapport a été créé)
+      if (reportCreated) {
+        try {
+          await FirebaseFirestore.instance
+              .collection(_reportsCollection)
+              .doc(reportId)
+              .update({
+            'status': ReportStatus.failed.name,
+            'error': e.toString(),
+            'errorTimestamp': FieldValue.serverTimestamp(),
+          });
+        } catch (updateError) {
+          debugPrint('❌ Erreur mise à jour statut erreur: $updateError');
+        }
       }
 
       rethrow;

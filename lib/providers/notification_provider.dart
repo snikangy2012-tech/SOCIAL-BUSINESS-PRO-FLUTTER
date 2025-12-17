@@ -11,12 +11,27 @@ class NotificationProvider extends ChangeNotifier {
   int _unreadCount = 0;
   String? _userId;
   StreamSubscription<QuerySnapshot>? _notificationSubscription;
+  bool _isInitialized = false;
 
   int get unreadCount => _unreadCount;
 
   /// Initialiser le provider avec l'ID utilisateur
   Future<void> initialize(String userId) async {
+    // ✅ Protection contre la ré-initialisation multiple
+    if (_isInitialized && _userId == userId) {
+      debugPrint('⚠️ NotificationProvider déjà initialisé pour $userId');
+      return;
+    }
+
+    // Si changement d'utilisateur, nettoyer l'ancien listener
+    if (_userId != null && _userId != userId) {
+      debugPrint('🔄 Changement d\'utilisateur: $_userId → $userId');
+      _notificationSubscription?.cancel();
+      _unreadCount = 0;
+    }
+
     _userId = userId;
+    _isInitialized = true;
     await _loadUnreadCount();
     _listenToNotifications();
   }
@@ -103,6 +118,9 @@ class NotificationProvider extends ChangeNotifier {
   @override
   void dispose() {
     _notificationSubscription?.cancel();
+    _isInitialized = false;
+    _userId = null;
+    _unreadCount = 0;
     super.dispose();
   }
 }

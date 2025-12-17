@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:social_business_pro/config/constants.dart';
 import '../../utils/system_ui_helper.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -52,9 +52,9 @@ class _SplashScreenState extends State<SplashScreen> {
               size: 100,
               color: Colors.white,
             ),
-            
+
             SizedBox(height: AppSpacing.lg),
-            
+
             // Nom de l'app
             Text(
               AppConstants.appName,
@@ -65,9 +65,9 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
               textAlign: TextAlign.center,
             ),
-            
+
             SizedBox(height: AppSpacing.sm),
-            
+
             // Slogan
             Text(
               AppConstants.slogan,
@@ -77,17 +77,17 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
               textAlign: TextAlign.center,
             ),
-            
+
             SizedBox(height: AppSpacing.xl),
-            
+
             // Indicateur de chargement
             CircularProgressIndicator(
               color: Colors.white,
               strokeWidth: 3,
             ),
-            
+
             SizedBox(height: AppSpacing.md),
-            
+
             // Texte de chargement
             Text(
               'Chargement...',

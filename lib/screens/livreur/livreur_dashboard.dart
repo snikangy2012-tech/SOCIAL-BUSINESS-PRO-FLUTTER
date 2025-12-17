@@ -10,7 +10,7 @@ import '../../providers/notification_provider.dart';
 import '../../services/livreur_stats_service.dart';
 import '../../services/review_service.dart';
 import '../../utils/number_formatter.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class DeliveryDashboard extends StatefulWidget {
   const DeliveryDashboard({super.key});
@@ -114,8 +114,8 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
       }
 
       debugPrint('✅ Dashboard livreur chargé avec succès');
-      debugPrint('📊 Stats: ${_stats['todayDeliveries']} livraisons, ${_stats['todayEarnings']} FCFA, Note: ${_stats['avgRating']}');
-
+      debugPrint(
+          '📊 Stats: ${_stats['todayDeliveries']} livraisons, ${_stats['todayEarnings']} FCFA, Note: ${_stats['avgRating']}');
     } catch (e) {
       debugPrint('❌ Erreur chargement dashboard: $e');
 
@@ -147,7 +147,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
           context.go('/');
         }
       });
-      
+
       return SystemUIScaffold(
         body: Center(child: CircularProgressIndicator()),
       );
@@ -158,7 +158,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
         body: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [AppColors.primary, AppColors.primary.withValues(alpha:0.7)],
+              colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.7)],
             ),
           ),
           child: const Center(
@@ -192,7 +192,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
               context.go('/');
             },
           ),
-          
+
           // Bouton notifications avec badge
           Consumer<NotificationProvider>(
             builder: (context, notificationProvider, child) {
@@ -254,8 +254,8 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: (_isAvailable ? AppColors.success : Colors.grey)
-                            .withValues(alpha:0.1),
+                        color:
+                            (_isAvailable ? AppColors.success : Colors.grey).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
@@ -278,9 +278,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            _isAvailable
-                                ? 'Vous recevez des demandes'
-                                : 'Vous êtes hors ligne',
+                            _isAvailable ? 'Vous recevez des demandes' : 'Vous êtes hors ligne',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[600],
@@ -300,8 +298,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                                   ? 'Vous êtes maintenant disponible'
                                   : 'Vous êtes maintenant hors ligne',
                             ),
-                            backgroundColor:
-                                value ? AppColors.success : Colors.grey,
+                            backgroundColor: value ? AppColors.success : Colors.grey,
                             duration: const Duration(seconds: 2),
                           ),
                         );
@@ -348,6 +345,64 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // 💳 Bouton Dépôt Paiements
+            Card(
+              elevation: 2,
+              child: InkWell(
+                onTap: () => context.go('/livreur/payment-deposit'),
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.account_balance_wallet,
+                          color: AppColors.success,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Effectuer un dépôt',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Reverser les montants collectés',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.grey,
+                        size: 16,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
 
@@ -552,7 +607,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -788,5 +843,4 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
       ),
     );
   }
-
 }

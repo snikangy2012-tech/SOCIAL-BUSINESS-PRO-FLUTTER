@@ -13,7 +13,7 @@ import '../../services/audit_service.dart';
 import '../../models/audit_log_model.dart';
 import '../../config/product_categories.dart';
 import '../../config/product_subcategories.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class EditProduct extends StatefulWidget {
   final String productId;
@@ -29,9 +29,9 @@ class EditProduct extends StatefulWidget {
 
 class _EditProductState extends State<EditProduct> {
   final _formKey = GlobalKey<FormState>();
- 
+
   final ProductService _productService = ProductService();
-  
+
   // Controllers
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -79,9 +79,9 @@ class _EditProductState extends State<EditProduct> {
 
     try {
       final product = await _productService.getProduct(widget.productId).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () => null,
-      );
+            const Duration(seconds: 10),
+            onTimeout: () => null,
+          );
 
       if (product == null) {
         debugPrint('⚠️ Produit non trouvé, utilisation de données mock');
@@ -131,11 +131,12 @@ class _EditProductState extends State<EditProduct> {
           // Filtrer les images valides (URLs Firebase Storage uniquement)
           _existingImages = product.images.where((url) {
             return url.contains('firebasestorage.googleapis.com') ||
-                   (url.startsWith('http://') || url.startsWith('https://'));
+                (url.startsWith('http://') || url.startsWith('https://'));
           }).toList();
 
           if (_existingImages.length != product.images.length) {
-            debugPrint('⚠️ ${product.images.length - _existingImages.length} image(s) invalide(s) ignorée(s)');
+            debugPrint(
+                '⚠️ ${product.images.length - _existingImages.length} image(s) invalide(s) ignorée(s)');
           }
 
           _tags = List.from(product.tags);
@@ -145,14 +146,13 @@ class _EditProductState extends State<EditProduct> {
 
         debugPrint('✅ Produit chargé depuis Firestore');
       }
-
     } catch (e) {
       debugPrint('❌ Erreur chargement: $e');
       debugPrint('📦 Utilisation de données mock');
-      
+
       if (mounted) {
         _loadMockData();
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('⚠️ Mode démo - Données factices'),
@@ -264,9 +264,7 @@ class _EditProductState extends State<EditProduct> {
         'subCategory': _selectedSubcategory == 'Autre (à préciser)'
             ? _otherSubcategory.trim()
             : _selectedSubcategory,
-        'brand': _brandController.text.trim().isEmpty
-            ? null
-            : _brandController.text.trim(),
+        'brand': _brandController.text.trim().isEmpty ? null : _brandController.text.trim(),
         'tags': _tags,
         'isActive': _isActive,
       };
@@ -276,14 +274,16 @@ class _EditProductState extends State<EditProduct> {
       debugPrint('   - Images existantes: ${_existingImages.length}');
       debugPrint('   - Nouvelles images: ${_newImages.length}');
 
-      await _productService.updateProductWithImages(
-        productId: widget.productId,
-        updates: updates,
-        existingImageUrls: _existingImages,
-        newImages: _newImages.isNotEmpty ? _newImages : null,
-      ).timeout(
-        const Duration(seconds: 30), // Timeout plus long pour l'upload
-      );
+      await _productService
+          .updateProductWithImages(
+            productId: widget.productId,
+            updates: updates,
+            existingImageUrls: _existingImages,
+            newImages: _newImages.isNotEmpty ? _newImages : null,
+          )
+          .timeout(
+            const Duration(seconds: 30), // Timeout plus long pour l'upload
+          );
 
       // Logger la modification du produit
       if (authProvider.user != null) {
@@ -323,13 +323,12 @@ class _EditProductState extends State<EditProduct> {
         );
         context.pop(true);
       }
-
     } catch (e) {
       debugPrint('❌ Erreur sauvegarde: $e');
-      
+
       if (mounted) {
         await Future.delayed(const Duration(milliseconds: 500));
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('⚠️ Mode démo - Modifications simulées'),
@@ -387,9 +386,9 @@ class _EditProductState extends State<EditProduct> {
                   return null;
                 },
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Catégorie - ✅ DROPDOWN CORRIGÉ
               DropdownButtonFormField<String>(
                 initialValue: _selectedCategory,
@@ -431,8 +430,8 @@ class _EditProductState extends State<EditProduct> {
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.list),
                   ),
-                  items: ProductSubcategories.getSubcategories(_selectedCategory)
-                      .map((subcategory) {
+                  items:
+                      ProductSubcategories.getSubcategories(_selectedCategory).map((subcategory) {
                     return DropdownMenuItem<String>(
                       value: subcategory,
                       child: Text(subcategory),
@@ -487,7 +486,7 @@ class _EditProductState extends State<EditProduct> {
                 ),
                 const SizedBox(height: 16),
               ],
-              
+
               // Description
               TextFormField(
                 controller: _descriptionController,
@@ -538,7 +537,8 @@ class _EditProductState extends State<EditProduct> {
 
                     // Images existantes
                     if (_existingImages.isNotEmpty) ...[
-                      const Text('Images actuelles:', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      const Text('Images actuelles:',
+                          style: TextStyle(fontSize: 12, color: Colors.grey)),
                       const SizedBox(height: 8),
                       SizedBox(
                         height: 100,
@@ -591,7 +591,8 @@ class _EditProductState extends State<EditProduct> {
 
                     // Nouvelles images
                     if (_newImages.isNotEmpty) ...[
-                      const Text('Nouvelles images:', style: TextStyle(fontSize: 12, color: Colors.green)),
+                      const Text('Nouvelles images:',
+                          style: TextStyle(fontSize: 12, color: Colors.green)),
                       const SizedBox(height: 8),
                       SizedBox(
                         height: 100,
@@ -675,9 +676,9 @@ class _EditProductState extends State<EditProduct> {
                   return null;
                 },
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Stock
               TextFormField(
                 controller: _stockController,
@@ -695,9 +696,9 @@ class _EditProductState extends State<EditProduct> {
                   return null;
                 },
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Brand
               TextFormField(
                 controller: _brandController,
@@ -707,9 +708,9 @@ class _EditProductState extends State<EditProduct> {
                   prefixIcon: Icon(Icons.business),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Tags
               TextFormField(
                 controller: _tagsController,
@@ -721,14 +722,15 @@ class _EditProductState extends State<EditProduct> {
                 ),
                 onChanged: (value) {
                   setState(() {
-                    _tags = value.split(',')
+                    _tags = value
+                        .split(',')
                         .map((tag) => tag.trim())
                         .where((tag) => tag.isNotEmpty)
                         .toList();
                   });
                 },
               ),
-              
+
               // Prévisualisation tags
               if (_tags.isNotEmpty) ...[
                 const SizedBox(height: 12),
@@ -745,15 +747,15 @@ class _EditProductState extends State<EditProduct> {
                           _tagsController.text = _tags.join(', ');
                         });
                       },
-                      backgroundColor: AppColors.primary.withValues(alpha:0.1),
+                      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                       labelStyle: const TextStyle(color: AppColors.primary),
                     );
                   }).toList(),
                 ),
               ],
-              
+
               const SizedBox(height: 24),
-              
+
               // Switch actif/inactif
               SwitchListTile(
                 title: const Text('Produit actif'),
@@ -763,9 +765,9 @@ class _EditProductState extends State<EditProduct> {
                 },
                 activeThumbColor: AppColors.success,
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Bouton Sauvegarder
               ElevatedButton(
                 onPressed: _isSaving ? null : _saveProduct,

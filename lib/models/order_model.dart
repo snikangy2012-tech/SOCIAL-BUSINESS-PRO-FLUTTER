@@ -30,6 +30,8 @@ class OrderModel {
   final double? deliveryLatitude;
   final double? deliveryLongitude;
   final String? livreurId; // ID du livreur assigné
+  final String? livreurName; // Nom du livreur
+  final String? livreurPhone; // Téléphone du livreur
 
   // Champs pour les remboursements
   final String? refundId; // ID du remboursement associé
@@ -41,6 +43,13 @@ class OrderModel {
   final String? vendeurShopName; // Nom de la boutique
   final String? vendeurPhone; // Téléphone du vendeur
   final String? vendeurLocation; // Localisation de la boutique (ex: "Cocody, Angré")
+  final bool isVendorDelivery; // Le vendeur livre lui-même (pour commandes >50k)
+
+  // Click & Collect (Retrait en boutique)
+  final String deliveryMethod; // 'home_delivery' | 'store_pickup' | 'vendor_delivery'
+  final String? pickupQRCode; // QR code pour validation retrait en boutique
+  final DateTime? pickupReadyAt; // Date/heure où la commande est prête pour retrait
+  final DateTime? pickedUpAt; // Date/heure de récupération effective par le client
 
   OrderModel({
     required this.id,
@@ -68,6 +77,8 @@ class OrderModel {
     this.deliveryLatitude,
     this.deliveryLongitude,
     this.livreurId,
+    this.livreurName,
+    this.livreurPhone,
     this.refundId,
     this.refundStatus,
     this.paymentMethod,
@@ -75,6 +86,11 @@ class OrderModel {
     this.vendeurShopName,
     this.vendeurPhone,
     this.vendeurLocation,
+    this.isVendorDelivery = false,
+    this.deliveryMethod = 'home_delivery',
+    this.pickupQRCode,
+    this.pickupReadyAt,
+    this.pickedUpAt,
   });
 
   // ✅ MÉTHODE À AJOUTER : Créer OrderModel depuis Firestore DocumentSnapshot
@@ -109,6 +125,8 @@ class OrderModel {
       deliveryLatitude: data['deliveryLatitude']?.toDouble(),
       deliveryLongitude: data['deliveryLongitude']?.toDouble(),
       livreurId: data['livreurId'],
+      livreurName: data['livreurName'],
+      livreurPhone: data['livreurPhone'],
       refundId: data['refundId'],
       refundStatus: data['refundStatus'],
       paymentMethod: data['paymentMethod'],
@@ -116,6 +134,11 @@ class OrderModel {
       vendeurShopName: data['vendeurShopName'],
       vendeurPhone: data['vendeurPhone'],
       vendeurLocation: data['vendeurLocation'],
+      isVendorDelivery: data['isVendorDelivery'] ?? false,
+      deliveryMethod: data['deliveryMethod'] ?? 'home_delivery',
+      pickupQRCode: data['pickupQRCode'],
+      pickupReadyAt: _timestampToDateTime(data['pickupReadyAt']),
+      pickedUpAt: _timestampToDateTime(data['pickedUpAt']),
     );
   }
 
@@ -146,6 +169,8 @@ class OrderModel {
       'deliveryLatitude': deliveryLatitude,
       'deliveryLongitude': deliveryLongitude,
       'livreurId': livreurId,
+      'livreurName': livreurName,
+      'livreurPhone': livreurPhone,
       'refundId': refundId,
       'refundStatus': refundStatus,
       'paymentMethod': paymentMethod,
@@ -153,6 +178,11 @@ class OrderModel {
       'vendeurShopName': vendeurShopName,
       'vendeurPhone': vendeurPhone,
       'vendeurLocation': vendeurLocation,
+      'isVendorDelivery': isVendorDelivery,
+      'deliveryMethod': deliveryMethod,
+      'pickupQRCode': pickupQRCode,
+      'pickupReadyAt': pickupReadyAt != null ? Timestamp.fromDate(pickupReadyAt!) : null,
+      'pickedUpAt': pickedUpAt != null ? Timestamp.fromDate(pickedUpAt!) : null,
     };
   }
 
@@ -198,6 +228,8 @@ class OrderModel {
     double? deliveryLatitude,
     double? deliveryLongitude,
     String? livreurId,
+    String? livreurName,
+    String? livreurPhone,
     String? refundId,
     String? refundStatus,
     String? paymentMethod,
@@ -205,6 +237,11 @@ class OrderModel {
     String? vendeurShopName,
     String? vendeurPhone,
     String? vendeurLocation,
+    bool? isVendorDelivery,
+    String? deliveryMethod,
+    String? pickupQRCode,
+    DateTime? pickupReadyAt,
+    DateTime? pickedUpAt,
   }) {
     return OrderModel(
       id: id ?? this.id,
@@ -231,6 +268,8 @@ class OrderModel {
       deliveryLatitude: deliveryLatitude ?? this.deliveryLatitude,
       deliveryLongitude: deliveryLongitude ?? this.deliveryLongitude,
       livreurId: livreurId ?? this.livreurId,
+      livreurName: livreurName ?? this.livreurName,
+      livreurPhone: livreurPhone ?? this.livreurPhone,
       refundId: refundId ?? this.refundId,
       refundStatus: refundStatus ?? this.refundStatus,
       paymentMethod: paymentMethod ?? this.paymentMethod,
@@ -238,6 +277,11 @@ class OrderModel {
       vendeurShopName: vendeurShopName ?? this.vendeurShopName,
       vendeurPhone: vendeurPhone ?? this.vendeurPhone,
       vendeurLocation: vendeurLocation ?? this.vendeurLocation,
+      isVendorDelivery: isVendorDelivery ?? this.isVendorDelivery,
+      deliveryMethod: deliveryMethod ?? this.deliveryMethod,
+      pickupQRCode: pickupQRCode ?? this.pickupQRCode,
+      pickupReadyAt: pickupReadyAt ?? this.pickupReadyAt,
+      pickedUpAt: pickedUpAt ?? this.pickedUpAt,
     );
   }
 

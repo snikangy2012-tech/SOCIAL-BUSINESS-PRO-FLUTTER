@@ -10,7 +10,7 @@ import '../../providers/auth_provider_firebase.dart';
 import '../../services/review_service.dart';
 import '../../widgets/rating_stars.dart';
 import '../../widgets/review_list.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class VendeurReviewsScreen extends StatefulWidget {
   const VendeurReviewsScreen({super.key});

@@ -12,7 +12,7 @@ import '../../providers/auth_provider_firebase.dart';
 import '../../models/order_model.dart';
 import '../../utils/order_status_helper.dart';
 import '../../utils/number_formatter.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class VendeurFinanceScreen extends StatefulWidget {
   const VendeurFinanceScreen({super.key});
@@ -21,7 +21,8 @@ class VendeurFinanceScreen extends StatefulWidget {
   State<VendeurFinanceScreen> createState() => _VendeurFinanceScreenState();
 }
 
-class _VendeurFinanceScreenState extends State<VendeurFinanceScreen> with SingleTickerProviderStateMixin {
+class _VendeurFinanceScreenState extends State<VendeurFinanceScreen>
+    with SingleTickerProviderStateMixin {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   List<OrderModel> _allSales = [];
@@ -76,9 +77,7 @@ class _VendeurFinanceScreenState extends State<VendeurFinanceScreen> with Single
           .orderBy('createdAt', descending: true)
           .get();
 
-      _allSales = querySnapshot.docs
-          .map((doc) => OrderModel.fromFirestore(doc))
-          .toList();
+      _allSales = querySnapshot.docs.map((doc) => OrderModel.fromFirestore(doc)).toList();
 
       _calculateStatistics();
 
@@ -131,8 +130,8 @@ class _VendeurFinanceScreenState extends State<VendeurFinanceScreen> with Single
         return _allSales.where((sale) {
           final saleDate = sale.createdAt;
           return saleDate.year == now.year &&
-                 saleDate.month == now.month &&
-                 saleDate.day == now.day;
+              saleDate.month == now.month &&
+              saleDate.day == now.day;
         }).toList();
 
       case 2: // Semaine
@@ -168,12 +167,12 @@ class _VendeurFinanceScreenState extends State<VendeurFinanceScreen> with Single
         return filtered.where((s) {
           final st = s.status.toLowerCase();
           return st == 'confirmed' ||
-                 st == 'preparing' ||
-                 st == 'ready' ||
-                 st == 'in_delivery' ||
-                 st == 'in delivery' ||
-                 st == 'processing' ||
-                 st == 'en_cours';
+              st == 'preparing' ||
+              st == 'ready' ||
+              st == 'in_delivery' ||
+              st == 'in delivery' ||
+              st == 'processing' ||
+              st == 'en_cours';
         }).toList();
       case 'completed':
         return filtered.where((s) {

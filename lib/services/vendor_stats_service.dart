@@ -166,6 +166,7 @@ class VendorStatsService {
         recentOrders.add(RecentOrderData(
           id: order.id,
           orderNumber: order.orderNumber,
+          displayNumber: order.displayNumber,
           customerName: customerName,
           amount: order.totalAmount,
           status: order.status,
@@ -225,7 +226,8 @@ class VendorStats {
 /// Classe pour les données de commande récente
 class RecentOrderData {
   final String id;
-  final String orderNumber;
+  final String orderNumber; // Pour les logs système
+  final int displayNumber; // Numéro séquentiel affiché (1, 2, 3...)
   final String customerName;
   final num amount;
   final String status;
@@ -234,6 +236,7 @@ class RecentOrderData {
   RecentOrderData({
     required this.id,
     required this.orderNumber,
+    required this.displayNumber,
     required this.customerName,
     required this.amount,
     required this.status,

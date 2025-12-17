@@ -57,6 +57,7 @@ class UserModel {
   final bool isVerified;
   final VerificationStatus verificationStatus;
   final bool isActive;
+  final bool isSuperAdmin; // Super administrateur avec tous les privilèges
   final List<String> deviceTokens;
   final UserPreferences preferences;
   final Map<String, dynamic> profile;
@@ -73,6 +74,7 @@ class UserModel {
     this.isVerified = false,
     this.verificationStatus = VerificationStatus.notVerified,
     this.isActive = true,
+    this.isSuperAdmin = false,
     this.deviceTokens = const [],
     required this.preferences,
     required this.profile,
@@ -100,6 +102,7 @@ class UserModel {
         orElse: () => VerificationStatus.notVerified,
       ),
       isActive: data['isActive'] ?? true,
+      isSuperAdmin: data['isSuperAdmin'] ?? false,
       deviceTokens: _parseStringList(data['deviceTokens']),
       preferences: UserPreferences.fromMap(data['preferences'] ?? {}),
       profile: Map<String, dynamic>.from(data['profile'] ?? {}),
@@ -126,6 +129,7 @@ class UserModel {
         orElse: () => VerificationStatus.notVerified,
       ),
       isActive: data['isActive'] ?? true,
+      isSuperAdmin: data['isSuperAdmin'] ?? false,
       deviceTokens: _parseStringList(data['deviceTokens']),
       preferences: UserPreferences.fromMap(data['preferences'] ?? {}),
       profile: Map<String, dynamic>.from(data['profile'] ?? {}),
@@ -145,6 +149,7 @@ class UserModel {
       'isVerified': isVerified,
       'verificationStatus': verificationStatus.toString().split('.').last,
       'isActive': isActive,
+      'isSuperAdmin': isSuperAdmin,
       'deviceTokens': deviceTokens,
       'preferences': preferences.toMap(),
       'profile': profile,
@@ -242,6 +247,10 @@ class VendeurProfile {
   final String? businessDescription;
   final String businessCategory;
   final String? businessAddress;
+  final String? businessPhone;     // 📞 Téléphone de la boutique
+  final double? businessLatitude;  // 📍 Coordonnées GPS de la boutique
+  final double? businessLongitude; // 📍 Coordonnées GPS de la boutique
+  final String? shopImageUrl;      // 🖼️ Image de la boutique
   final List<String> deliveryZones;
   final double deliveryPrice;
   final double? freeDeliveryThreshold;
@@ -261,6 +270,10 @@ class VendeurProfile {
     this.businessDescription,
     required this.businessCategory,
     this.businessAddress,
+    this.businessPhone,
+    this.businessLatitude,
+    this.businessLongitude,
+    this.shopImageUrl,
     this.deliveryZones = const [],
     this.deliveryPrice = 0,
     this.freeDeliveryThreshold,
@@ -282,6 +295,10 @@ class VendeurProfile {
       businessDescription: data['businessDescription'],
       businessCategory: data['businessCategory'] ?? '',
       businessAddress: data['businessAddress'],
+      businessPhone: data['businessPhone'],
+      businessLatitude: data['businessLatitude']?.toDouble(),
+      businessLongitude: data['businessLongitude']?.toDouble(),
+      shopImageUrl: data['shopImageUrl'],
       deliveryZones: _parseStringList(data['deliveryZones']),
       deliveryPrice: (data['deliveryPrice'] ?? 0).toDouble(),
       freeDeliveryThreshold: data['freeDeliveryThreshold']?.toDouble(),
@@ -304,6 +321,10 @@ class VendeurProfile {
       'businessDescription': businessDescription,
       'businessCategory': businessCategory,
       'businessAddress': businessAddress,
+      'businessPhone': businessPhone,
+      'businessLatitude': businessLatitude,
+      'businessLongitude': businessLongitude,
+      'shopImageUrl': shopImageUrl,
       'deliveryZones': deliveryZones,
       'deliveryPrice': deliveryPrice,
       'freeDeliveryThreshold': freeDeliveryThreshold,

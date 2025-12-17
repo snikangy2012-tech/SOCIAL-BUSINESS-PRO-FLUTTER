@@ -44,6 +44,8 @@ import 'package:social_business_pro/screens/vendeur/vendeur_reviews_screen.dart'
 import 'package:social_business_pro/screens/vendeur/shop_setup_screen.dart';
 import 'package:social_business_pro/screens/vendeur/my_shop_screen.dart';
 import 'package:social_business_pro/screens/vendeur/payment_history_screen.dart';
+import 'package:social_business_pro/screens/vendeur/commission_payment_screen.dart';
+import 'package:social_business_pro/screens/livreur/payment_deposit_screen.dart';
 import 'package:social_business_pro/screens/subscription/subscription_dashboard_screen.dart';
 import 'package:social_business_pro/screens/subscription/subscription_plans_screen.dart';
 import 'package:social_business_pro/screens/auth/change_password_screen.dart';
@@ -209,6 +211,7 @@ class AppRouter {
         GoRoute(path: '/vendeur/vendeur-statistics', builder: (context, state) => const Statistics()),
         GoRoute(path: '/vendeur/products', builder: (context, state) => ProductManagement(storeId: authProvider.user?.id ?? '')),
         GoRoute(path: '/vendeur/refunds', builder: (context, state) => const RefundManagementScreen()),
+        GoRoute(path: '/vendeur/commission-payment', builder: (context, state) => const CommissionPaymentScreen()),
 
         // ABONNEMENTS (Transversal: vendeurs et livreurs)
         GoRoute(
@@ -290,6 +293,7 @@ class AppRouter {
         GoRoute(path: '/livreur/documents', builder: (context, state) => const DocumentsManagementScreen()),
         GoRoute(path: '/livreur/reviews', builder: (context, state) => const LivreurReviewsScreen()),
         GoRoute(path: '/livreur/subscription', builder: (context, state) => const SubscriptionDashboardScreen()),
+        GoRoute(path: '/livreur/payment-deposit', builder: (context, state) => const PaymentDepositScreen()),
        
 
         // ADMIN

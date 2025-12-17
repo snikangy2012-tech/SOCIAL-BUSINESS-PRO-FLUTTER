@@ -11,7 +11,7 @@ import 'dart:async';
 import 'package:social_business_pro/config/constants.dart';
 import '../../services/auth_service_extended.dart';
 import '../../widgets/custom_widgets.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
   final String verificationType; // 'sms' ou 'email'
@@ -92,7 +92,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   void _startCountdown() {
     _canResend = false;
     _countdown = 60;
-    
+
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         if (_countdown > 0) {
@@ -125,21 +125,18 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
         // ✅ SI WEB avec confirmationResult
         if (kIsWeb && widget.confirmationResult != null) {
           debugPrint('🌐 Vérification OTP Web avec confirmationResult');
-          
+
           try {
             // Confirmer le code
             final credential = await widget.confirmationResult.confirm(
               _otpController.text.trim(),
             );
-            
+
             if (credential.user != null) {
               debugPrint('✅ OTP validé - Création profil Firestore');
-              
+
               // Créer le profil dans Firestore
-              await FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(credential.user!.uid)
-                  .set({
+              await FirebaseFirestore.instance.collection('users').doc(credential.user!.uid).set({
                 'uid': credential.user!.uid,
                 'phone': widget.contact,
                 'displayName': widget.name ?? 'Utilisateur',
@@ -148,7 +145,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                 'createdAt': FieldValue.serverTimestamp(),
                 'updatedAt': FieldValue.serverTimestamp(),
               });
-              
+
               result = {
                 'success': true,
                 'message': 'Inscription réussie !',
@@ -158,7 +155,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
             }
           } catch (e) {
             debugPrint('❌ Erreur vérification OTP Web: $e');
-            
+
             result = {
               'success': false,
               'message': e.toString().contains('invalid-verification-code')
@@ -179,9 +176,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
         final isVerified = await AuthServiceExtended.checkEmailVerified();
         result = {
           'success': isVerified,
-          'message': isVerified 
-              ? 'Email vérifié avec succès !'
-              : 'Email non encore vérifié.',
+          'message': isVerified ? 'Email vérifié avec succès !' : 'Email non encore vérifié.',
         };
       }
 
@@ -298,13 +293,11 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha:0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppRadius.xl),
                 ),
                 child: Icon(
-                  widget.verificationType == 'sms' 
-                      ? Icons.sms 
-                      : Icons.email,
+                  widget.verificationType == 'sms' ? Icons.sms : Icons.email,
                   size: 60,
                   color: AppColors.primary,
                 ),
@@ -368,9 +361,9 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        
+
                         const SizedBox(height: AppSpacing.lg),
-                        
+
                         // Champ PIN
                         PinCodeTextField(
                           appContext: context,
@@ -428,9 +421,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                           size: 48,
                           color: AppColors.info,
                         ),
-                        
                         const SizedBox(height: AppSpacing.md),
-                        
                         const Text(
                           'Vérifiez votre boîte email',
                           style: TextStyle(
@@ -438,9 +429,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        
                         const SizedBox(height: AppSpacing.sm),
-                        
                         const Text(
                           'Cliquez sur le lien de vérification dans l\'email que nous vous avons envoyé.',
                           style: TextStyle(
@@ -448,9 +437,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                           ),
                           textAlign: TextAlign.center,
                         ),
-
                         const SizedBox(height: AppSpacing.xl),
-
                         CustomButton(
                           text: 'J\'ai vérifié mon email',
                           icon: Icons.check_circle,
@@ -471,9 +458,9 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(AppSpacing.md),
                   decoration: BoxDecoration(
-                    color: AppColors.error.withValues(alpha:0.1),
+                    color: AppColors.error.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppRadius.md),
-                    border: Border.all(color: AppColors.error.withValues(alpha:0.3)),
+                    border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
@@ -530,9 +517,9 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
               Container(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: AppColors.info.withValues(alpha:0.1),
+                  color: AppColors.info.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppRadius.md),
-                  border: Border.all(color: AppColors.info.withValues(alpha:0.3)),
+                  border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   children: [
@@ -609,7 +596,8 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                               // Ouvrir WhatsApp support
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Support WhatsApp: ${AppConstants.supportWhatsApp}'),
+                                  content:
+                                      Text('Support WhatsApp: ${AppConstants.supportWhatsApp}'),
                                 ),
                               );
                             },

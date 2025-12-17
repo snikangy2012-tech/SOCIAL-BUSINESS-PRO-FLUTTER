@@ -13,7 +13,7 @@ import '../../config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/kyc_verification_service.dart';
 import '../../widgets/custom_widgets.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class KYCUploadScreen extends StatefulWidget {
   const KYCUploadScreen({super.key});
@@ -368,8 +368,7 @@ class _KYCUploadScreenState extends State<KYCUploadScreen> {
   /// Vérifier si on peut soumettre les documents
   bool _canSubmit() {
     // CNI et Selfie obligatoires
-    return (_cniFile != null || _cniUrl != null) &&
-        (_selfieFile != null || _selfieUrl != null);
+    return (_cniFile != null || _cniUrl != null) && (_selfieFile != null || _selfieUrl != null);
   }
 
   /// Sélectionner un document
@@ -493,11 +492,8 @@ class _KYCUploadScreenState extends State<KYCUploadScreen> {
   Future<String> _uploadFile(XFile file, String docType, String userId) async {
     try {
       final fileName = '${docType}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child('kyc_documents')
-          .child(userId)
-          .child(fileName);
+      final ref =
+          FirebaseStorage.instance.ref().child('kyc_documents').child(userId).child(fileName);
 
       debugPrint('📤 Upload $docType vers Firebase Storage...');
 

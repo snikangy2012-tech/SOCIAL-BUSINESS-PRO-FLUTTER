@@ -4,7 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:social_business_pro/config/constants.dart';
 import 'package:social_business_pro/services/subscription_service.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class MigrationToolsScreen extends StatefulWidget {
   const MigrationToolsScreen({super.key});
@@ -206,20 +206,14 @@ class _MigrationToolsScreenState extends State<MigrationToolsScreen> {
                       : AppColors.error.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppRadius.md),
                   border: Border.all(
-                    color: _migrationResult.startsWith('✅')
-                        ? AppColors.success
-                        : AppColors.error,
+                    color: _migrationResult.startsWith('✅') ? AppColors.success : AppColors.error,
                   ),
                 ),
                 child: Row(
                   children: [
                     Icon(
-                      _migrationResult.startsWith('✅')
-                          ? Icons.check_circle
-                          : Icons.error,
-                      color: _migrationResult.startsWith('✅')
-                          ? AppColors.success
-                          : AppColors.error,
+                      _migrationResult.startsWith('✅') ? Icons.check_circle : Icons.error,
+                      color: _migrationResult.startsWith('✅') ? AppColors.success : AppColors.error,
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(

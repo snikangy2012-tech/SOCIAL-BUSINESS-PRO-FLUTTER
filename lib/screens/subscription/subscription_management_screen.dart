@@ -6,7 +6,7 @@ import 'package:social_business_pro/config/constants.dart';
 import '../../models/subscription_model.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../providers/subscription_provider.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class SubscriptionManagementScreen extends StatelessWidget {
   const SubscriptionManagementScreen({super.key});
@@ -23,7 +23,8 @@ class SubscriptionManagementScreen extends StatelessWidget {
       ),
       body: Consumer<SubscriptionProvider>(
         builder: (context, subscriptionProvider, child) {
-          if (subscriptionProvider.isLoadingSubscription || subscriptionProvider.isLoadingLivreurSubscription) {
+          if (subscriptionProvider.isLoadingSubscription ||
+              subscriptionProvider.isLoadingLivreurSubscription) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -187,7 +188,11 @@ class SubscriptionManagementScreen extends StatelessWidget {
             price: 'Gratuit',
             commission: '25%',
             unlockCondition: 'Débloqué dès le départ',
-            features: ['Commission 25% par livraison', 'Zone de livraison normale', 'Support par FAQ'],
+            features: [
+              'Commission 25% par livraison',
+              'Zone de livraison normale',
+              'Support par FAQ'
+            ],
             color: Colors.grey,
           ),
           const SizedBox(height: 16),
@@ -199,7 +204,12 @@ class SubscriptionManagementScreen extends StatelessWidget {
             price: '10,000 FCFA/mois',
             commission: '20%',
             unlockCondition: '50 livraisons + Note 4.0★',
-            features: ['Commission réduite 20%', 'Zone étendue', 'Badge PRO', 'Statistiques avancées'],
+            features: [
+              'Commission réduite 20%',
+              'Zone étendue',
+              'Badge PRO',
+              'Statistiques avancées'
+            ],
             color: Colors.blue,
           ),
           const SizedBox(height: 16),
@@ -211,7 +221,13 @@ class SubscriptionManagementScreen extends StatelessWidget {
             price: '30,000 FCFA/mois',
             commission: '15%',
             unlockCondition: '200 livraisons + Note 4.5★',
-            features: ['Commission optimale 15%', 'Priorité maximale', 'Badge PREMIUM', 'Support 24/7', 'Statistiques complètes'],
+            features: [
+              'Commission optimale 15%',
+              'Priorité maximale',
+              'Badge PREMIUM',
+              'Support 24/7',
+              'Statistiques complètes'
+            ],
             color: Colors.amber.shade700,
           ),
         ],
@@ -219,7 +235,8 @@ class SubscriptionManagementScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCurrentLivreurSubscriptionCard(BuildContext context, LivreurSubscription? subscription) {
+  Widget _buildCurrentLivreurSubscriptionCard(
+      BuildContext context, LivreurSubscription? subscription) {
     if (subscription == null) {
       return const Card(
         child: Padding(
@@ -253,7 +270,8 @@ class SubscriptionManagementScreen extends StatelessWidget {
           children: [
             Text(
               'Plan Actuel: ${subscription.tierName}',
-              style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+              style:
+                  const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
@@ -263,12 +281,15 @@ class SubscriptionManagementScreen extends StatelessWidget {
             const Divider(color: Colors.white54, height: 32),
             _buildInfoRow(Icons.local_shipping, 'Livraisons: ${subscription.currentDeliveries}'),
             const SizedBox(height: 12),
-            _buildInfoRow(Icons.star, 'Note moyenne: ${subscription.currentRating.toStringAsFixed(1)}★'),
+            _buildInfoRow(
+                Icons.star, 'Note moyenne: ${subscription.currentRating.toStringAsFixed(1)}★'),
             const SizedBox(height: 12),
-            _buildInfoRow(Icons.percent, 'Commission: ${(subscription.commissionRate * 100).toStringAsFixed(0)}%'),
+            _buildInfoRow(Icons.percent,
+                'Commission: ${(subscription.commissionRate * 100).toStringAsFixed(0)}%'),
             if (subscription.monthlyPrice > 0) ...[
               const SizedBox(height: 12),
-              _buildInfoRow(Icons.payments, '${subscription.monthlyPrice.toStringAsFixed(0)} FCFA/mois'),
+              _buildInfoRow(
+                  Icons.payments, '${subscription.monthlyPrice.toStringAsFixed(0)} FCFA/mois'),
             ],
             if (subscription.endDate != null) ...[
               const SizedBox(height: 12),
@@ -311,7 +332,8 @@ class SubscriptionManagementScreen extends StatelessWidget {
                       if (subscription.currentDeliveries >= 50 && subscription.currentRating >= 4.0)
                         const Text(
                           '✅ Niveau PRO débloqué! Vous pouvez souscrire.',
-                          style: TextStyle(color: Colors.greenAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              color: Colors.greenAccent, fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                     ],
                     if (subscription.tier == LivreurTier.pro) ...[
@@ -325,10 +347,12 @@ class SubscriptionManagementScreen extends StatelessWidget {
                           '• Note minimum: 4.5★ (actuelle: ${subscription.currentRating.toStringAsFixed(1)}★)',
                           style: const TextStyle(color: Colors.white70, fontSize: 12),
                         ),
-                      if (subscription.currentDeliveries >= 200 && subscription.currentRating >= 4.5)
+                      if (subscription.currentDeliveries >= 200 &&
+                          subscription.currentRating >= 4.5)
                         const Text(
                           '✅ Niveau PREMIUM débloqué! Vous pouvez souscrire.',
-                          style: TextStyle(color: Colors.greenAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              color: Colors.greenAccent, fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                     ],
                   ],
@@ -362,13 +386,15 @@ class SubscriptionManagementScreen extends StatelessWidget {
         unlockStatus = LivreurTierUnlockStatus.unlocked; // STARTER toujours débloqué
       } else if (tier == LivreurTier.pro) {
         if (subscription.currentDeliveries >= 50 && subscription.currentRating >= 4.0) {
-          unlockStatus = subscription.tier == LivreurTier.pro && subscription.unlockStatus == LivreurTierUnlockStatus.subscribed
+          unlockStatus = subscription.tier == LivreurTier.pro &&
+                  subscription.unlockStatus == LivreurTierUnlockStatus.subscribed
               ? LivreurTierUnlockStatus.subscribed
               : LivreurTierUnlockStatus.unlocked;
         }
       } else if (tier == LivreurTier.premium) {
         if (subscription.currentDeliveries >= 200 && subscription.currentRating >= 4.5) {
-          unlockStatus = subscription.tier == LivreurTier.premium && subscription.unlockStatus == LivreurTierUnlockStatus.subscribed
+          unlockStatus = subscription.tier == LivreurTier.premium &&
+                  subscription.unlockStatus == LivreurTierUnlockStatus.subscribed
               ? LivreurTierUnlockStatus.subscribed
               : LivreurTierUnlockStatus.unlocked;
         }

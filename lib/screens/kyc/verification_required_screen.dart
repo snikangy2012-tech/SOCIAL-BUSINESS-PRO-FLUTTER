@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 import '../../config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../widgets/custom_widgets.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class VerificationRequiredScreen extends StatelessWidget {
   final UserType userType;
@@ -143,19 +143,13 @@ class VerificationRequiredScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildBlockedFeature(
-                              isVendeur
-                                  ? 'Ajout de produits'
-                                  : 'Acceptation de livraisons',
+                              isVendeur ? 'Ajout de produits' : 'Acceptation de livraisons',
                             ),
                             _buildBlockedFeature(
-                              isVendeur
-                                  ? 'Publication de produits'
-                                  : 'Gestion des livraisons',
+                              isVendeur ? 'Publication de produits' : 'Gestion des livraisons',
                             ),
                             _buildBlockedFeature(
-                              isVendeur
-                                  ? 'Gestion des commandes'
-                                  : 'Réception de paiements',
+                              isVendeur ? 'Gestion des commandes' : 'Réception de paiements',
                             ),
                             _buildBlockedFeature(
                               isVendeur
@@ -197,9 +191,7 @@ class VerificationRequiredScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: AppSpacing.md),
-
                       if (isVendeur) ...[
                         // Documents vendeur
                         _buildRequiredDocument(
@@ -254,9 +246,7 @@ class VerificationRequiredScreen extends StatelessWidget {
 
               // Bouton principal
               CustomButton(
-                text: isVendeur
-                    ? 'Compléter ma vérification'
-                    : 'Uploader mes documents',
+                text: isVendeur ? 'Compléter ma vérification' : 'Uploader mes documents',
                 icon: Icons.upload_file,
                 onPressed: () {
                   if (isVendeur) {

@@ -10,7 +10,7 @@ import '../../config/constants.dart';
 import '../../models/order_model.dart';
 import '../../utils/order_status_helper.dart';
 import '../../utils/number_formatter.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class SaleDetailScreen extends StatefulWidget {
   final String saleId;
@@ -43,10 +43,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     try {
       debugPrint('📄 Chargement détails vente: ${widget.saleId}');
 
-      final doc = await _db
-          .collection(FirebaseCollections.orders)
-          .doc(widget.saleId)
-          .get();
+      final doc = await _db.collection(FirebaseCollections.orders).doc(widget.saleId).get();
 
       if (!doc.exists) {
         throw Exception('Vente introuvable');
@@ -142,6 +139,25 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
               _buildInfoRow('Nom', _sale!.buyerName),
               _buildInfoRow('Téléphone', _sale!.buyerPhone),
               _buildInfoRow('Adresse de livraison', _sale!.deliveryAddress),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Informations boutique (ramassage)
+          _buildSection(
+            'Informations Boutique (Ramassage)',
+            Icons.store,
+            [
+              if (_sale!.vendeurShopName != null)
+                _buildInfoRow('Nom de la boutique', _sale!.vendeurShopName!),
+              if (_sale!.vendeurPhone != null)
+                _buildInfoRow('Téléphone', _sale!.vendeurPhone!),
+              if (_sale!.pickupLatitude != null && _sale!.pickupLongitude != null)
+                _buildInfoRow(
+                  'Coordonnées GPS',
+                  '${_sale!.pickupLatitude!.toStringAsFixed(6)}, ${_sale!.pickupLongitude!.toStringAsFixed(6)}',
+                ),
             ],
           ),
 
@@ -488,14 +504,14 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
               Icons.update,
               AppColors.info,
             ),
-          if (_sale!.deliveredAt != null)
+          if (_sale!.deliveredAt != null && _sale!.status == 'livree')
             _buildTimelineItem(
               'Livrée',
               _sale!.deliveredAt!,
               Icons.check_circle,
               AppColors.success,
             ),
-          if (_sale!.cancelledAt != null)
+          if (_sale!.cancelledAt != null && _sale!.status == 'annulee')
             _buildTimelineItem(
               'Annulée',
               _sale!.cancelledAt!,

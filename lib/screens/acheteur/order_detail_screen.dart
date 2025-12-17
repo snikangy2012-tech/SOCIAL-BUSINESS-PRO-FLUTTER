@@ -15,7 +15,7 @@ import '../../widgets/review_dialog.dart';
 import '../../utils/order_status_helper.dart';
 import '../../utils/number_formatter.dart';
 import 'request_refund_screen.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class AcheteurOrderDetailScreen extends StatefulWidget {
   final String orderId;
@@ -178,9 +178,7 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
                             style: TextStyle(
                               fontSize: AppFontSizes.md,
                               fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                              color: isCompleted
-                                  ? AppColors.textPrimary
-                                  : AppColors.textSecondary,
+                              color: isCompleted ? AppColors.textPrimary : AppColors.textSecondary,
                             ),
                           ),
                           if (isCurrent && _order!.updatedAt != null)
@@ -381,7 +379,8 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
                                 // Prix
                                 Flexible(
                                   child: Text(
-                                    formatPriceWithCurrency(item.price * item.quantity, currency: 'FCFA'),
+                                    formatPriceWithCurrency(item.price * item.quantity,
+                                        currency: 'FCFA'),
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: AppFontSizes.md,
@@ -840,74 +839,74 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
 
                 // Noter les produits
                 ..._order!.items.map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      final reviewService = ReviewService();
+                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final reviewService = ReviewService();
 
-                      // Vérifier si déjà noté
-                      final hasReviewed = await reviewService.hasUserReviewed(
-                        _order!.buyerId,
-                        item.productId,
-                        'product',
-                      );
-
-                      if (!mounted) return;
-
-                      if (hasReviewed) {
-                        // Charger l'avis existant pour modification
-                        final existingReview = await reviewService.getUserReview(
-                          _order!.buyerId,
-                          item.productId,
-                          'product',
-                        );
-
-                        if (!mounted) return;
-
-                        final result = await ReviewDialog.show(
-                          context,
-                          targetId: item.productId,
-                          targetType: 'product',
-                          targetName: item.productName,
-                          existingReview: existingReview,
-                        );
-
-                        if (result == true && mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Avis modifié avec succès'),
-                              backgroundColor: AppColors.success,
-                            ),
+                          // Vérifier si déjà noté
+                          final hasReviewed = await reviewService.hasUserReviewed(
+                            _order!.buyerId,
+                            item.productId,
+                            'product',
                           );
-                        }
-                      } else {
-                        // Nouveau avis
-                        final result = await ReviewDialog.show(
-                          context,
-                          targetId: item.productId,
-                          targetType: 'product',
-                          targetName: item.productName,
-                        );
 
-                        if (result == true && mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Avis publié avec succès'),
-                              backgroundColor: AppColors.success,
-                            ),
-                          );
-                        }
-                      }
-                    },
-                    icon: const Icon(Icons.star_rate),
-                    label: Text('Noter ${item.productName}'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.warning,
-                      side: const BorderSide(color: AppColors.warning),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                )),
+                          if (!mounted) return;
+
+                          if (hasReviewed) {
+                            // Charger l'avis existant pour modification
+                            final existingReview = await reviewService.getUserReview(
+                              _order!.buyerId,
+                              item.productId,
+                              'product',
+                            );
+
+                            if (!mounted) return;
+
+                            final result = await ReviewDialog.show(
+                              context,
+                              targetId: item.productId,
+                              targetType: 'product',
+                              targetName: item.productName,
+                              existingReview: existingReview,
+                            );
+
+                            if (result == true && mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Avis modifié avec succès'),
+                                  backgroundColor: AppColors.success,
+                                ),
+                              );
+                            }
+                          } else {
+                            // Nouveau avis
+                            final result = await ReviewDialog.show(
+                              context,
+                              targetId: item.productId,
+                              targetType: 'product',
+                              targetName: item.productName,
+                            );
+
+                            if (result == true && mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Avis publié avec succès'),
+                                  backgroundColor: AppColors.success,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.star_rate),
+                        label: Text('Noter ${item.productName}'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.warning,
+                          side: const BorderSide(color: AppColors.warning),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    )),
 
                 // Noter le vendeur
                 SizedBox(

@@ -15,7 +15,7 @@ import 'package:social_business_pro/config/constants.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../utils/number_formatter.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class DeliveryDetailScreen extends StatefulWidget {
   final String deliveryId;
@@ -140,10 +140,12 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
 
       // Mettre à jour la position dans Firestore
       if (_delivery != null) {
-        _deliveryService.updateLivreurLocation(
+        _deliveryService
+            .updateLivreurLocation(
           deliveryId: widget.deliveryId,
           position: position,
-        ).catchError((error) {
+        )
+            .catchError((error) {
           debugPrint('Erreur mise à jour position: $error');
         });
       }
@@ -251,7 +253,8 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
       if (lat != null && lng != null) {
         if (_currentPosition != null) {
           // Avec point de départ (position actuelle du livreur)
-          url = 'https://www.google.com/maps/dir/?api=1&origin=${_currentPosition!.latitude},${_currentPosition!.longitude}&destination=$lat,$lng&travelmode=driving';
+          url =
+              'https://www.google.com/maps/dir/?api=1&origin=${_currentPosition!.latitude},${_currentPosition!.longitude}&destination=$lat,$lng&travelmode=driving';
         } else {
           // Sans point de départ (Google Maps utilisera la position actuelle de l'appareil)
           url = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving';
@@ -259,12 +262,15 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
       }
       // Cas 2: Coordonnées GPS manquantes → utiliser l'adresse textuelle
       else if (street != null && street.isNotEmpty) {
-        debugPrint('⚠️ Coordonnées GPS manquantes, utilisation de l\'adresse textuelle pour $destination');
+        debugPrint(
+            '⚠️ Coordonnées GPS manquantes, utilisation de l\'adresse textuelle pour $destination');
         final encodedAddress = Uri.encodeComponent(street);
         if (_currentPosition != null) {
-          url = 'https://www.google.com/maps/dir/?api=1&origin=${_currentPosition!.latitude},${_currentPosition!.longitude}&destination=$encodedAddress&travelmode=driving';
+          url =
+              'https://www.google.com/maps/dir/?api=1&origin=${_currentPosition!.latitude},${_currentPosition!.longitude}&destination=$encodedAddress&travelmode=driving';
         } else {
-          url = 'https://www.google.com/maps/dir/?api=1&destination=$encodedAddress&travelmode=driving';
+          url =
+              'https://www.google.com/maps/dir/?api=1&destination=$encodedAddress&travelmode=driving';
         }
       }
       // Cas 3: Ni GPS ni adresse → erreur
@@ -279,7 +285,8 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
         debugPrint('✅ Google Maps ouvert avec succès vers $destination');
       } else {
-        _showErrorSnackBar('Impossible d\'ouvrir Google Maps. Vérifiez que l\'application est installée.');
+        _showErrorSnackBar(
+            'Impossible d\'ouvrir Google Maps. Vérifiez que l\'application est installée.');
       }
     } catch (e) {
       debugPrint('❌ Erreur ouverture Google Maps: $e');
@@ -657,12 +664,16 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
                               ),
                               _buildInfoCard(
                                 'Téléphone',
-                                _delivery?.deliveryAddress['phone'] as String? ?? _order?.buyerPhone ?? 'N/A',
+                                _delivery?.deliveryAddress['phone'] as String? ??
+                                    _order?.buyerPhone ??
+                                    'N/A',
                                 Icons.phone,
                               ),
                               _buildInfoCard(
                                 'Adresse',
-                                _delivery?.deliveryAddress['address'] as String? ?? _order?.deliveryAddress ?? 'N/A',
+                                _delivery?.deliveryAddress['address'] as String? ??
+                                    _order?.deliveryAddress ??
+                                    'N/A',
                                 Icons.location_on,
                               ),
                               const SizedBox(height: 16),
@@ -689,7 +700,8 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
                               ),
                               _buildInfoCard(
                                 'Frais de livraison',
-                                formatPriceWithCurrency(_delivery?.deliveryFee ?? 0, currency: 'FCFA'),
+                                formatPriceWithCurrency(_delivery?.deliveryFee ?? 0,
+                                    currency: 'FCFA'),
                                 Icons.local_shipping,
                                 hasLongValue: true,
                               ),

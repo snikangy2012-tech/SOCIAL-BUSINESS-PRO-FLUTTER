@@ -8,7 +8,7 @@ import 'package:intl/intl.dart';
 import '../../config/constants.dart';
 import '../../models/delivery_model.dart';
 import '../../services/delivery_grouping_service.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class GroupedDeliveriesScreen extends StatelessWidget {
   final List<DeliveryModel> deliveries;

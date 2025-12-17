@@ -8,7 +8,7 @@ import '../../config/constants.dart';
 import '../../config/payment_methods_config.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/firebase_service.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class VendeurPaymentSettingsScreen extends StatefulWidget {
   const VendeurPaymentSettingsScreen({super.key});
@@ -292,7 +292,8 @@ class _VendeurPaymentSettingsScreenState extends State<VendeurPaymentSettingsScr
                             errorBuilder: (context, error, stackTrace) {
                               return Icon(
                                 _getMethodIcon(methodId),
-                                color: isEnabled ? _getMethodColor(methodId) : AppColors.textSecondary,
+                                color:
+                                    isEnabled ? _getMethodColor(methodId) : AppColors.textSecondary,
                                 size: 24,
                               );
                             },

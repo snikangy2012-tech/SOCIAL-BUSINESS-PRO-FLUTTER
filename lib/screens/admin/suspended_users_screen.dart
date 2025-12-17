@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../config/constants.dart';
 import '../../models/user_model.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class SuspendedUsersScreen extends StatefulWidget {
   const SuspendedUsersScreen({super.key});
@@ -682,8 +682,8 @@ class _SuspendedUsersScreenState extends State<SuspendedUsersScreen> {
                         children: [
                           CircleAvatar(
                             radius: 50,
-                            backgroundColor: _getUserTypeColor(user.userType)
-                                .withValues(alpha: 0.2),
+                            backgroundColor:
+                                _getUserTypeColor(user.userType).withValues(alpha: 0.2),
                             child: Icon(
                               _getUserTypeIcon(user.userType),
                               color: _getUserTypeColor(user.userType),
@@ -705,8 +705,7 @@ class _SuspendedUsersScreenState extends State<SuspendedUsersScreen> {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: _getUserTypeColor(user.userType)
-                                  .withValues(alpha: 0.1),
+                              color: _getUserTypeColor(user.userType).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(AppRadius.sm),
                             ),
                             child: Text(
@@ -725,8 +724,7 @@ class _SuspendedUsersScreenState extends State<SuspendedUsersScreen> {
                     // Informations principales
                     _buildSectionTitle('Informations'),
                     _buildInfoRow('Email', user.email),
-                    if (user.phoneNumber != null)
-                      _buildInfoRow('Téléphone', user.phoneNumber!),
+                    if (user.phoneNumber != null) _buildInfoRow('Téléphone', user.phoneNumber!),
                     _buildInfoRow('ID', user.id),
                     _buildInfoRow(
                       'Créé le',
@@ -836,10 +834,7 @@ class _SuspendedUsersScreenState extends State<SuspendedUsersScreen> {
 
     try {
       // Réactiver l'utilisateur dans Firestore
-      await FirebaseFirestore.instance
-          .collection(FirebaseCollections.users)
-          .doc(user.id)
-          .update({
+      await FirebaseFirestore.instance.collection(FirebaseCollections.users).doc(user.id).update({
         'isActive': true,
         'updatedAt': FieldValue.serverTimestamp(),
         'profile.suspensionReason': FieldValue.delete(), // Supprimer la raison

@@ -10,7 +10,7 @@ import '../../providers/auth_provider_firebase.dart' as auth;
 import '../../providers/subscription_provider.dart';
 import '../../services/delivery_service.dart';
 import '../../models/delivery_model.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class LivreurEarningsScreen extends StatefulWidget {
   const LivreurEarningsScreen({super.key});
@@ -75,19 +75,18 @@ class _LivreurEarningsScreenState extends State<LivreurEarningsScreen> {
       switch (_selectedPeriod) {
         case 'today':
           return delivery.deliveredAt != null &&
-                 delivery.deliveredAt!.year == now.year &&
-                 delivery.deliveredAt!.month == now.month &&
-                 delivery.deliveredAt!.day == now.day;
+              delivery.deliveredAt!.year == now.year &&
+              delivery.deliveredAt!.month == now.month &&
+              delivery.deliveredAt!.day == now.day;
 
         case 'week':
           final weekStart = now.subtract(Duration(days: now.weekday - 1));
-          return delivery.deliveredAt != null &&
-                 delivery.deliveredAt!.isAfter(weekStart);
+          return delivery.deliveredAt != null && delivery.deliveredAt!.isAfter(weekStart);
 
         case 'month':
           return delivery.deliveredAt != null &&
-                 delivery.deliveredAt!.year == now.year &&
-                 delivery.deliveredAt!.month == now.month;
+              delivery.deliveredAt!.year == now.year &&
+              delivery.deliveredAt!.month == now.month;
 
         case 'all':
         default:

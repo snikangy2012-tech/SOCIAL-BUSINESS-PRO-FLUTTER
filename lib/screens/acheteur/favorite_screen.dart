@@ -16,7 +16,7 @@ import '../../services/firebase_service.dart';
 import '../../utils/number_formatter.dart';
 import 'vendors_list_screen.dart';
 import 'vendor_shop_screen.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class FavoriteScreen extends StatefulWidget {
   const FavoriteScreen({super.key});
@@ -67,9 +67,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> with SingleTickerProvid
     setState(() => _isLoadingProducts = true);
     try {
       final allProducts = await _productService.getProducts();
-      _favoriteProducts = allProducts
-          .where((p) => favoriteProvider.isFavorite(p.id))
-          .toList();
+      _favoriteProducts = allProducts.where((p) => favoriteProvider.isFavorite(p.id)).toList();
     } catch (e) {
       debugPrint('❌ Erreur chargement produits favoris: $e');
     } finally {

@@ -11,7 +11,7 @@ import '../../providers/auth_provider_firebase.dart';
 import '../../services/firebase_service.dart';
 import '../../services/notification_service.dart';
 import 'package:social_business_pro/config/constants.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class DocumentsManagementScreen extends StatefulWidget {
   const DocumentsManagementScreen({super.key});
@@ -295,18 +295,14 @@ class _DocumentsManagementScreenState extends State<DocumentsManagementScreen> {
                               Icon(
                                 hasDocument ? Icons.check_circle : Icons.pending,
                                 size: 14,
-                                color: hasDocument
-                                    ? AppColors.success
-                                    : AppColors.warning,
+                                color: hasDocument ? AppColors.success : AppColors.warning,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 hasDocument ? 'Uploadé' : 'En attente',
                                 style: TextStyle(
                                   fontSize: AppFontSizes.xs,
-                                  color: hasDocument
-                                      ? AppColors.success
-                                      : AppColors.warning,
+                                  color: hasDocument ? AppColors.success : AppColors.warning,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -399,9 +395,7 @@ class _DocumentsManagementScreenState extends State<DocumentsManagementScreen> {
                           minHeight: 8,
                           backgroundColor: AppColors.border,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            progress == 1.0
-                                ? AppColors.success
-                                : AppColors.primary,
+                            progress == 1.0 ? AppColors.success : AppColors.primary,
                           ),
                         ),
                       ),

@@ -15,7 +15,7 @@ import '../../services/product_service.dart';
 import '../../widgets/custom_widgets.dart';
 import '../../utils/image_helper.dart';
 import '../../utils/number_formatter.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class VendorShopScreen extends StatefulWidget {
   final String vendorId;
@@ -220,9 +220,8 @@ class _VendorShopScreenState extends State<VendorShopScreen> {
                   backgroundImage: _vendorData?['photoURL'] != null
                       ? NetworkImage(_vendorData!['photoURL'])
                       : null,
-                  child: _vendorData?['photoURL'] == null
-                      ? const Icon(Icons.store, size: 50)
-                      : null,
+                  child:
+                      _vendorData?['photoURL'] == null ? const Icon(Icons.store, size: 50) : null,
                 ),
                 const SizedBox(height: 16),
 
@@ -319,7 +318,8 @@ class _VendorShopScreenState extends State<VendorShopScreen> {
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    childAspectRatio: 0.55, // ✅ CORRECTION: 0.55 pour carte complète avec tous les éléments
+                    childAspectRatio:
+                        0.55, // ✅ CORRECTION: 0.55 pour carte complète avec tous les éléments
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
                   ),
@@ -437,9 +437,7 @@ class _VendorShopScreenState extends State<VendorShopScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    isFavorite
-                                      ? 'Retiré des favoris'
-                                      : 'Ajouté aux favoris',
+                                    isFavorite ? 'Retiré des favoris' : 'Ajouté aux favoris',
                                   ),
                                   duration: const Duration(seconds: 1),
                                   backgroundColor: isFavorite ? AppColors.info : AppColors.success,

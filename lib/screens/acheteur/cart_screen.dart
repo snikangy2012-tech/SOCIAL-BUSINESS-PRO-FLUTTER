@@ -9,7 +9,7 @@ import 'package:social_business_pro/config/constants.dart';
 import '../../providers/cart_provider.dart';
 import '../../services/analytics_service.dart';
 import '../../utils/number_formatter.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -271,9 +271,7 @@ class _CartScreenState extends State<CartScreen> {
             // Bouton +
             IconButton(
               icon: const Icon(Icons.add_circle_outline),
-              color: item.quantity < item.maxStock
-                  ? AppColors.primary
-                  : AppColors.textLight,
+              color: item.quantity < item.maxStock ? AppColors.primary : AppColors.textLight,
               onPressed: item.quantity < item.maxStock
                   ? () async {
                       try {

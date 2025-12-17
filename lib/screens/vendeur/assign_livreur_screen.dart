@@ -11,7 +11,7 @@ import '../../models/order_model.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/livreur_selection_service.dart';
 import '../../services/order_assignment_service.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class AssignLivreurScreen extends StatefulWidget {
   final List<String> orderIds; // Liste des commandes à assigner
@@ -58,10 +58,8 @@ class _AssignLivreurScreenState extends State<AssignLivreurScreen> {
       }
 
       // Récupérer le profil vendeur pour obtenir les coordonnées
-      final userDoc = await FirebaseFirestore.instance
-          .collection(FirebaseCollections.users)
-          .doc(userId)
-          .get();
+      final userDoc =
+          await FirebaseFirestore.instance.collection(FirebaseCollections.users).doc(userId).get();
       final userData = userDoc.data();
       final profile = userData?['profile'] as Map<String, dynamic>?;
       final vendeurProfile = profile?['vendeurProfile'] as Map<String, dynamic>?;
@@ -364,12 +362,9 @@ class _AssignLivreurScreenState extends State<AssignLivreurScreen> {
                   // Photo ou ic�ne
                   CircleAvatar(
                     radius: 30,
-                    backgroundImage: livreur.photoUrl != null
-                        ? NetworkImage(livreur.photoUrl!)
-                        : null,
-                    child: livreur.photoUrl == null
-                        ? const Icon(Icons.person, size: 30)
-                        : null,
+                    backgroundImage:
+                        livreur.photoUrl != null ? NetworkImage(livreur.photoUrl!) : null,
+                    child: livreur.photoUrl == null ? const Icon(Icons.person, size: 30) : null,
                   ),
                   const SizedBox(width: 12),
 

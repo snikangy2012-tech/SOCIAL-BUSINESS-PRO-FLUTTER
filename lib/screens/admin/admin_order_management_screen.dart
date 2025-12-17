@@ -8,7 +8,7 @@ import 'package:intl/intl.dart';
 import '../../config/constants.dart';
 import '../../models/order_model.dart';
 import '../../utils/order_status_helper.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class AdminOrderManagementScreen extends StatefulWidget {
   const AdminOrderManagementScreen({super.key});
@@ -153,9 +153,7 @@ class _AdminOrderManagementScreenState extends State<AdminOrderManagementScreen>
 
   Widget _buildQuickStats() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection(FirebaseCollections.orders)
-          .snapshots(),
+      stream: FirebaseFirestore.instance.collection(FirebaseCollections.orders).snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const SizedBox();
@@ -386,7 +384,12 @@ class _AdminOrderManagementScreenState extends State<AdminOrderManagementScreen>
     // Filtre de statut
     if (_selectedStatus != 'Tous') {
       final statusValue = _statusMapping[_selectedStatus];
-      if (order.status != statusValue) return false;
+      if (statusValue != null && statusValue.isNotEmpty) {
+        // Comparaison insensible à la casse
+        final orderStatusLower = order.status.toLowerCase();
+        final filterStatusLower = statusValue.toLowerCase();
+        if (orderStatusLower != filterStatusLower) return false;
+      }
     }
 
     return true;
@@ -644,8 +647,7 @@ class _AdminOrderManagementScreenState extends State<AdminOrderManagementScreen>
                     // Informations vendeur
                     if (order.vendeurName != null || order.vendeurShopName != null) ...[
                       _buildSectionTitle('Informations vendeur'),
-                      if (order.vendeurName != null)
-                        _buildInfoRow('Vendeur', order.vendeurName!),
+                      if (order.vendeurName != null) _buildInfoRow('Vendeur', order.vendeurName!),
                       if (order.vendeurShopName != null)
                         _buildInfoRow('Boutique', order.vendeurShopName!),
                       if (order.vendeurPhone != null)
@@ -841,7 +843,8 @@ class _AdminOrderManagementScreenState extends State<AdminOrderManagementScreen>
     );
   }
 
-  Widget _buildPriceRow(String label, double amount, {bool isTotal = false, bool isDiscount = false}) {
+  Widget _buildPriceRow(String label, double amount,
+      {bool isTotal = false, bool isDiscount = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
@@ -898,10 +901,7 @@ class _AdminOrderManagementScreenState extends State<AdminOrderManagementScreen>
     if (confirm != true) return;
 
     try {
-      await FirebaseFirestore.instance
-          .collection(FirebaseCollections.orders)
-          .doc(order.id)
-          .update({
+      await FirebaseFirestore.instance.collection(FirebaseCollections.orders).doc(order.id).update({
         'status': 'cancelled',
         'cancellationReason': 'Annulée par l\'administrateur',
         'cancelledAt': FieldValue.serverTimestamp(),

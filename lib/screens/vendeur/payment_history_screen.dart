@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 import '../../config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../models/payment_model.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class PaymentHistoryScreen extends StatefulWidget {
   const PaymentHistoryScreen({super.key});
@@ -64,10 +64,14 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
               items: const [
-                DropdownMenuItem(value: '7', child: Text('7 jours', overflow: TextOverflow.ellipsis)),
-                DropdownMenuItem(value: '30', child: Text('30 jours', overflow: TextOverflow.ellipsis)),
-                DropdownMenuItem(value: '90', child: Text('3 mois', overflow: TextOverflow.ellipsis)),
-                DropdownMenuItem(value: 'all', child: Text('Tout', overflow: TextOverflow.ellipsis)),
+                DropdownMenuItem(
+                    value: '7', child: Text('7 jours', overflow: TextOverflow.ellipsis)),
+                DropdownMenuItem(
+                    value: '30', child: Text('30 jours', overflow: TextOverflow.ellipsis)),
+                DropdownMenuItem(
+                    value: '90', child: Text('3 mois', overflow: TextOverflow.ellipsis)),
+                DropdownMenuItem(
+                    value: 'all', child: Text('Tout', overflow: TextOverflow.ellipsis)),
               ],
               onChanged: (value) {
                 setState(() => _selectedPeriod = value!);
@@ -109,9 +113,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
           return const SizedBox(height: 100);
         }
 
-        final payments = snapshot.data!.docs
-            .map((doc) => PaymentModel.fromFirestore(doc))
-            .toList();
+        final payments = snapshot.data!.docs.map((doc) => PaymentModel.fromFirestore(doc)).toList();
 
         final totalValidated = payments
             .where((p) => p.status == 'completed')
@@ -256,9 +258,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
           );
         }
 
-        final payments = snapshot.data!.docs
-            .map((doc) => PaymentModel.fromFirestore(doc))
-            .toList();
+        final payments = snapshot.data!.docs.map((doc) => PaymentModel.fromFirestore(doc)).toList();
 
         return ListView.builder(
           itemCount: payments.length,

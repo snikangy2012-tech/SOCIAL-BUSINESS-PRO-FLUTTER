@@ -11,7 +11,7 @@ import '../../services/auth_service_extended.dart';
 import '../../widgets/custom_widgets.dart';
 import '../../services/auth_service_web.dart';
 import '../../utils/permissions_helper.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class RegisterScreenExtended extends StatefulWidget {
   const RegisterScreenExtended({super.key});
@@ -27,7 +27,7 @@ class _RegisterScreenExtendedState extends State<RegisterScreenExtended> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  
+
   UserType _selectedUserType = UserType.acheteur;
   String _selectedCountryCode = '+225'; // Côte d'Ivoire par défaut
   bool _acceptTerms = false;
@@ -91,27 +91,27 @@ class _RegisterScreenExtendedState extends State<RegisterScreenExtended> {
       }
 
       if (result['success'] && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Compte créé avec succès ! 🎉\n'
-            'Connectez-vous maintenant avec vos identifiants.',
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Compte créé avec succès ! 🎉\n'
+              'Connectez-vous maintenant avec vos identifiants.',
+            ),
+            backgroundColor: AppColors.success,
+            duration: Duration(seconds: 4),
           ),
-          backgroundColor: AppColors.success,
-          duration: Duration(seconds: 4),
-        ),
-      );
+        );
 
-      debugPrint('✅ Inscription terminée - Type: ${_selectedUserType.value} enregistré');
+        debugPrint('✅ Inscription terminée - Type: ${_selectedUserType.value} enregistré');
 
-      // Attendre 2 secondes pour que l'utilisateur lise le message
-      await Future.delayed(const Duration(seconds: 2));
+        // Attendre 2 secondes pour que l'utilisateur lise le message
+        await Future.delayed(const Duration(seconds: 2));
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      // Rediriger vers la page de connexion
-      // L'utilisateur va se connecter et sera automatiquement redirigé vers son dashboard
-      context.go('/login');
+        // Rediriger vers la page de connexion
+        // L'utilisateur va se connecter et sera automatiquement redirigé vers son dashboard
+        context.go('/login');
       } else {
         throw Exception(result['message'] ?? 'Erreur d\'inscription');
       }
@@ -181,7 +181,6 @@ class _RegisterScreenExtendedState extends State<RegisterScreenExtended> {
           _errorMessage = result['message'] ?? 'Erreur d\'envoi du SMS';
         });
       }
-      
     } catch (e) {
       debugPrint('❌ Erreur: $e');
       setState(() {
@@ -211,9 +210,7 @@ class _RegisterScreenExtendedState extends State<RegisterScreenExtended> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                result['isNewUser'] 
-                    ? 'Compte créé avec Google !'
-                    : 'Connexion Google réussie !',
+                result['isNewUser'] ? 'Compte créé avec Google !' : 'Connexion Google réussie !',
               ),
               backgroundColor: AppColors.success,
             ),
@@ -261,7 +258,7 @@ class _RegisterScreenExtendedState extends State<RegisterScreenExtended> {
               children: [
                 // Logo compact
                 const AppLogo(size: 80, showText: false),
-                
+
                 const SizedBox(height: AppSpacing.lg),
 
                 // Titre
@@ -294,20 +291,20 @@ class _RegisterScreenExtendedState extends State<RegisterScreenExtended> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        
                         const SizedBox(height: AppSpacing.md),
-                        
                         CustomButton(
                           text: 'Continuer avec Google',
                           icon: Icons.g_mobiledata,
                           backgroundColor: AppColors.info,
                           isLoading: _isLoading && _verificationMethod == 'google',
-                          onPressed: _isLoading ? null : () {
-                            setState(() {
-                              _verificationMethod = 'google';
-                            });
-                            _handleGoogleSignIn();
-                          },
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  setState(() {
+                                    _verificationMethod = 'google';
+                                  });
+                                  _handleGoogleSignIn();
+                                },
                         ),
                       ],
                     ),
@@ -429,14 +426,14 @@ class _RegisterScreenExtendedState extends State<RegisterScreenExtended> {
                                     showOnlyCountryWhenClosed: false,
                                     alignLeft: false,
                                   ),
-                                  
+
                                   // Séparateur
                                   Container(
                                     height: 40,
                                     width: 1,
                                     color: AppColors.border,
                                   ),
-                                  
+
                                   // Champ téléphone
                                   Expanded(
                                     child: TextFormField(
@@ -522,7 +519,6 @@ class _RegisterScreenExtendedState extends State<RegisterScreenExtended> {
                                 ),
                               ),
                               const SizedBox(height: AppSpacing.sm),
-                              
                               Row(
                                 children: [
                                   Expanded(
@@ -544,7 +540,6 @@ class _RegisterScreenExtendedState extends State<RegisterScreenExtended> {
                                       contentPadding: EdgeInsets.zero,
                                     ),
                                   ),
-                                  
                                   Expanded(
                                     child: RadioListTile<String>(
                                       title: const Row(
@@ -608,7 +603,7 @@ class _RegisterScreenExtendedState extends State<RegisterScreenExtended> {
 
                         // Bouton d'inscription
                         CustomButton(
-                          text: _verificationMethod == 'sms' 
+                          text: _verificationMethod == 'sms'
                               ? 'Créer compte et vérifier par SMS'
                               : 'Créer compte et vérifier par Email',
                           icon: _verificationMethod == 'sms' ? Icons.sms : Icons.email,
@@ -618,13 +613,15 @@ class _RegisterScreenExtendedState extends State<RegisterScreenExtended> {
                               : _selectedUserType == UserType.acheteur
                                   ? AppColors.secondary
                                   : AppColors.success,
-                          onPressed: _isLoading ? null : () {
-                            if (_verificationMethod == 'sms') {
-                              _handlePhoneRegister();
-                            } else {
-                              _handleEmailRegister();
-                            }
-                          },
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  if (_verificationMethod == 'sms') {
+                                    _handlePhoneRegister();
+                                  } else {
+                                    _handleEmailRegister();
+                                  }
+                                },
                         ),
 
                         // Message d'erreur
@@ -634,9 +631,9 @@ class _RegisterScreenExtendedState extends State<RegisterScreenExtended> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(AppSpacing.md),
                             decoration: BoxDecoration(
-                              color: AppColors.error.withValues(alpha:0.1),
+                              color: AppColors.error.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(AppRadius.md),
-                              border: Border.all(color: AppColors.error.withValues(alpha:0.3)),
+                              border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
                             ),
                             child: Row(
                               children: [
@@ -679,9 +676,7 @@ class _RegisterScreenExtendedState extends State<RegisterScreenExtended> {
                           fontSize: AppFontSizes.md,
                         ),
                       ),
-                      
                       const SizedBox(height: AppSpacing.md),
-                      
                       CustomButton(
                         text: 'Se connecter',
                         icon: Icons.login,

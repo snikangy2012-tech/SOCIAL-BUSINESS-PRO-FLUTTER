@@ -7,7 +7,7 @@ import '../../services/product_service.dart';
 import 'package:social_business_pro/config/constants.dart';
 import '../../config/product_categories.dart';
 import '../../utils/number_formatter.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class ProductSearchScreen extends StatefulWidget {
   const ProductSearchScreen({super.key});
@@ -74,8 +74,7 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
             product.category.toLowerCase().contains(query);
 
         // Filtre par catégorie
-        final matchesCategory = _selectedCategory == null ||
-            product.category == _selectedCategory;
+        final matchesCategory = _selectedCategory == null || product.category == _selectedCategory;
 
         // Filtre par prix
         final matchesPrice = product.price >= _minPrice && product.price <= _maxPrice;
@@ -373,9 +372,7 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: product.isOutOfStock
-                            ? AppColors.error
-                            : AppColors.warning,
+                        color: product.isOutOfStock ? AppColors.error : AppColors.warning,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Row(
@@ -389,9 +386,7 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            product.isOutOfStock
-                                ? 'Rupture'
-                                : 'Stock: ${product.availableStock}',
+                            product.isOutOfStock ? 'Rupture' : 'Stock: ${product.availableStock}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10,
@@ -617,7 +612,8 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
                                   padding: const EdgeInsets.all(16),
                                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: 2,
-                                    childAspectRatio: 0.55, // ✅ CORRECTION: 0.55 pour carte complète avec tous les éléments
+                                    childAspectRatio:
+                                        0.55, // ✅ CORRECTION: 0.55 pour carte complète avec tous les éléments
                                     crossAxisSpacing: 12,
                                     mainAxisSpacing: 12,
                                   ),

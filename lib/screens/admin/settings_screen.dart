@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:social_business_pro/config/constants.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -32,10 +32,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('settings')
-          .doc('platform')
-          .get();
+      final doc = await FirebaseFirestore.instance.collection('settings').doc('platform').get();
 
       if (doc.exists) {
         final data = doc.data()!;
@@ -59,10 +56,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await FirebaseFirestore.instance
-          .collection('settings')
-          .doc('platform')
-          .set({
+      await FirebaseFirestore.instance.collection('settings').doc('platform').set({
         'maintenanceMode': _maintenanceMode,
         'allowRegistrations': _allowRegistrations,
         'requireEmailVerification': _requireEmailVerification,
@@ -138,9 +132,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: AppSpacing.xl),
-
                   _buildSection(
                     'Limites et restrictions',
                     [
@@ -158,9 +150,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: AppSpacing.xl),
-
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -232,7 +222,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           textAlign: TextAlign.center,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+            contentPadding:
+                EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
           ),
           onChanged: (val) {
             final parsed = double.tryParse(val);

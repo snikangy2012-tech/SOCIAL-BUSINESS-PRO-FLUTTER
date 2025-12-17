@@ -1,14 +1,17 @@
-/// Utilitaire pour formater les numéros d'affichage des livraisons et commandes
+/// Utilitaire pour formater les numéros d'affichage et les montants
 ///
-/// Ce fichier fournit des fonctions helper pour convertir les IDs Firestore
-/// en numéros d'affichage incrémentaux lisibles pour l'utilisateur.
+/// Ce fichier fournit des fonctions helper pour:
+/// - Convertir les IDs Firestore en numéros d'affichage incrémentaux
+/// - Formater les prix avec séparateur de milliers
 ///
 /// Exemples:
 /// - Livraison: "abc123xyz" → "LIV-001"
 /// - Commande: "def456uvw" → "CMD-001"
+/// - Prix: 1500000 → "1 500 000"
 library;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 /// Cache pour stocker les mappings ID → numéro d'affichage
 /// Format: { 'deliveries': { 'id1': 1, 'id2': 2 }, 'orders': { 'id1': 1, 'id2': 2 } }
@@ -122,6 +125,41 @@ void clearDeliveryNumberCache() {
 /// Efface seulement le cache des commandes
 void clearOrderNumberCache() {
   _displayNumberCache['orders']!.clear();
+}
+
+/// Formate un montant avec séparateur de milliers
+///
+/// Paramètres:
+/// - amount: Le montant à formater (double ou int)
+/// - decimals: Nombre de décimales à afficher (par défaut 0)
+/// - separator: Séparateur de milliers (par défaut espace)
+///
+/// Exemples:
+/// - formatPrice(1500000) → "1 500 000"
+/// - formatPrice(1500000.50, decimals: 2) → "1 500 000.50"
+/// - formatPrice(999) → "999"
+String formatPrice(num amount, {int decimals = 0, String separator = ' '}) {
+  final formatter = NumberFormat('#,###', 'fr_FR');
+
+  if (decimals > 0) {
+    final rounded = amount.toStringAsFixed(decimals);
+    final parts = rounded.split('.');
+    final integerPart = int.parse(parts[0]);
+    final formattedInteger = formatter.format(integerPart).replaceAll(',', separator);
+    return '$formattedInteger.${parts[1]}';
+  } else {
+    final rounded = amount.round();
+    return formatter.format(rounded).replaceAll(',', separator);
+  }
+}
+
+/// Formate un prix avec la devise FCFA
+///
+/// Exemples:
+/// - formatPriceWithCurrency(1500000) → "1 500 000 F"
+/// - formatPriceWithCurrency(1500000, currency: 'FCFA') → "1 500 000 FCFA"
+String formatPriceWithCurrency(num amount, {String currency = 'F'}) {
+  return '${formatPrice(amount)} $currency';
 }
 
 // --- Fonctions helper privées ---

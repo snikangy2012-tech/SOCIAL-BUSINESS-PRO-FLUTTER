@@ -10,7 +10,7 @@ import '../../services/product_service.dart';
 import '../../services/order_service.dart';
 import '../../services/review_service.dart';
 import 'package:social_business_pro/config/constants.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class VendorManagementScreen extends StatefulWidget {
   const VendorManagementScreen({super.key});
@@ -19,7 +19,8 @@ class VendorManagementScreen extends StatefulWidget {
   State<VendorManagementScreen> createState() => _VendorManagementScreenState();
 }
 
-class _VendorManagementScreenState extends State<VendorManagementScreen> with SingleTickerProviderStateMixin {
+class _VendorManagementScreenState extends State<VendorManagementScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   final ReviewService _reviewService = ReviewService();
@@ -78,9 +79,7 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> with Si
           .where('userType', isEqualTo: 'vendeur')
           .get();
 
-      final vendors = querySnapshot.docs
-          .map((doc) => UserModel.fromFirestore(doc))
-          .toList();
+      final vendors = querySnapshot.docs.map((doc) => UserModel.fromFirestore(doc)).toList();
 
       // Charger les notes de chaque vendeur
       final ratings = <String, double>{};
@@ -159,7 +158,8 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> with Si
       if (mounted) {
         messenger.showSnackBar(
           SnackBar(
-            content: Text('Vendeur ${newStatus == 'approved' ? 'approuvé' : newStatus == 'suspended' ? 'suspendu' : 'mis à jour'}'),
+            content: Text(
+                'Vendeur ${newStatus == 'approved' ? 'approuvé' : newStatus == 'suspended' ? 'suspendu' : 'mis à jour'}'),
             backgroundColor: newStatus == 'approved' ? Colors.green : Colors.orange,
           ),
         );
@@ -238,7 +238,9 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> with Si
                         : null,
                     child: vendor.profile['photoUrl'] == null
                         ? Text(
-                            vendor.displayName.isNotEmpty ? vendor.displayName[0].toUpperCase() : 'V',
+                            vendor.displayName.isNotEmpty
+                                ? vendor.displayName[0].toUpperCase()
+                                : 'V',
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,

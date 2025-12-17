@@ -7,7 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../config/constants.dart';
 import '../../services/review_service.dart';
 import 'vendor_shop_screen.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class VendorsListScreen extends StatefulWidget {
   const VendorsListScreen({super.key});
@@ -330,12 +330,8 @@ class _VendorsListScreenState extends State<VendorsListScreen> {
               // Photo du vendeur
               CircleAvatar(
                 radius: 35,
-                backgroundImage: vendor.photoUrl != null
-                    ? NetworkImage(vendor.photoUrl!)
-                    : null,
-                child: vendor.photoUrl == null
-                    ? const Icon(Icons.store, size: 35)
-                    : null,
+                backgroundImage: vendor.photoUrl != null ? NetworkImage(vendor.photoUrl!) : null,
+                child: vendor.photoUrl == null ? const Icon(Icons.store, size: 35) : null,
               ),
               const SizedBox(width: 16),
 

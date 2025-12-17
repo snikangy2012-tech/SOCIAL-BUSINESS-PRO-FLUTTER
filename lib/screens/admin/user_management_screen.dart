@@ -7,7 +7,8 @@ import 'package:intl/intl.dart';
 
 import 'package:social_business_pro/config/constants.dart';
 import '../../models/user_model.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../models/admin_role_model.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
@@ -53,15 +54,17 @@ class _UserManagementScreenState extends State<UserManagementScreen>
     });
 
     try {
-      // ✅ Tri côté serveur avec orderBy (index automatique sur champ unique)
+      // ✅ Récupérer tous les utilisateurs sans orderBy pour éviter d'exclure les documents sans createdAt
       final snapshot = await FirebaseFirestore.instance
           .collection(FirebaseCollections.users)
-          .orderBy('createdAt', descending: true)
           .get();
 
       final users = snapshot.docs.map((doc) {
         return UserModel.fromFirestore(doc);
       }).toList();
+
+      // Trier côté client par date de création (les plus récents en premier)
+      users.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       setState(() {
         _allUsers = users;
@@ -88,9 +91,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
         final phone = user.phoneNumber?.toLowerCase() ?? '';
         final query = _searchQuery.toLowerCase();
 
-        return name.contains(query) ||
-            email.contains(query) ||
-            phone.contains(query);
+        return name.contains(query) || email.contains(query) || phone.contains(query);
       }).toList();
     }
 
@@ -303,8 +304,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
           child: ListView.separated(
             padding: const EdgeInsets.all(AppSpacing.md),
             itemCount: filteredUsers.length,
-            separatorBuilder: (context, index) =>
-                const SizedBox(height: AppSpacing.sm),
+            separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.sm),
             itemBuilder: (context, index) {
               return _buildUserCard(filteredUsers[index]);
             },
@@ -391,9 +391,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                     radius: 30,
                     backgroundColor: typeColor.withValues(alpha: 0.2),
                     child: Text(
-                      user.displayName.isNotEmpty
-                          ? user.displayName[0].toUpperCase()
-                          : '?',
+                      user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : '?',
                       style: TextStyle(
                         fontSize: AppFontSizes.xl,
                         fontWeight: FontWeight.bold,
@@ -542,8 +540,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                       ),
                       label: Text(user.isActive ? 'Suspendre' : 'Activer'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            user.isActive ? AppColors.error : AppColors.success,
+                        backgroundColor: user.isActive ? AppColors.error : AppColors.success,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 8),
                       ),
@@ -598,8 +595,8 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                         children: [
                           CircleAvatar(
                             radius: 40,
-                            backgroundColor: _getUserTypeColor(user.userType)
-                                .withValues(alpha: 0.2),
+                            backgroundColor:
+                                _getUserTypeColor(user.userType).withValues(alpha: 0.2),
                             child: Icon(
                               _getUserTypeIcon(user.userType),
                               size: 40,
@@ -653,8 +650,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                         if (user.lastLoginAt != null)
                           _buildDetailRow(
                             'Dernière connexion',
-                            DateFormat('dd/MM/yyyy à HH:mm')
-                                .format(user.lastLoginAt!),
+                            DateFormat('dd/MM/yyyy à HH:mm').format(user.lastLoginAt!),
                           ),
                       ]),
 
@@ -682,7 +678,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                           child: Row(
                             children: [
                               Icon(_getUserTypeIcon(user.userType),
-                                color: _getUserTypeColor(user.userType)),
+                                  color: _getUserTypeColor(user.userType)),
                               const SizedBox(width: AppSpacing.sm),
                               Text(
                                 user.userType.label,
@@ -731,14 +727,10 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                             user.isVerified ? Icons.verified : Icons.verified_user,
                           ),
                           label: Text(
-                            user.isVerified
-                                ? 'Retirer la vérification'
-                                : 'Vérifier ce compte',
+                            user.isVerified ? 'Retirer la vérification' : 'Vérifier ce compte',
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: user.isVerified
-                                ? AppColors.warning
-                                : AppColors.info,
+                            backgroundColor: user.isVerified ? AppColors.warning : AppColors.info,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
@@ -782,14 +774,10 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                             user.isActive ? Icons.block : Icons.check_circle,
                           ),
                           label: Text(
-                            user.isActive
-                                ? 'Suspendre ce compte'
-                                : 'Activer ce compte',
+                            user.isActive ? 'Suspendre ce compte' : 'Activer ce compte',
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: user.isActive
-                                ? AppColors.error
-                                : AppColors.success,
+                            backgroundColor: user.isActive ? AppColors.error : AppColors.success,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
@@ -901,10 +889,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
 
     if (confirm == true) {
       try {
-        await FirebaseFirestore.instance
-            .collection(FirebaseCollections.users)
-            .doc(user.id)
-            .update({
+        await FirebaseFirestore.instance.collection(FirebaseCollections.users).doc(user.id).update({
           'isActive': !user.isActive,
           'updatedAt': FieldValue.serverTimestamp(),
         });
@@ -1010,80 +995,150 @@ class _UserManagementScreenState extends State<UserManagementScreen>
 
   Future<void> _showChangeUserTypeDialog(UserModel user) async {
     UserType? selectedType = user.userType;
+    AdminRoleType? selectedAdminRole;
 
-    final result = await showDialog<UserType>(
+    // Si l'utilisateur est déjà admin, récupérer son rôle actuel
+    if (user.userType == UserType.admin) {
+      final adminRole = user.profile['adminRole'] as String?;
+      if (adminRole != null) {
+        selectedAdminRole = AdminRoleType.values.firstWhere(
+          (r) => r.name == adminRole,
+          orElse: () => AdminRoleType.admin,
+        );
+      } else {
+        selectedAdminRole = AdminRoleType.admin;
+      }
+    }
+
+    final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: const Text('Changer le type d\'utilisateur'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Sélectionnez le nouveau type pour ${user.displayName}',
-                style: const TextStyle(fontSize: AppFontSizes.sm),
-              ),
-              const SizedBox(height: AppSpacing.lg),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Sélectionnez le nouveau type pour ${user.displayName}',
+                  style: const TextStyle(fontSize: AppFontSizes.sm),
+                ),
+                const SizedBox(height: AppSpacing.lg),
 
-              // Options de types d'utilisateur
-              ...UserType.values.map((type) {
-                final isSelected = selectedType == type;
-                final color = _getUserTypeColor(type);
-                final icon = _getUserTypeIcon(type);
+                // Options de types d'utilisateur
+                ...UserType.values.map((type) {
+                  final isSelected = selectedType == type;
+                  final color = _getUserTypeColor(type);
+                  final icon = _getUserTypeIcon(type);
 
-                return InkWell(
-                  onTap: () => setState(() => selectedType = type),
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                        ? color.withValues(alpha: 0.15)
-                        : Colors.grey.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                      border: Border.all(
+                  return InkWell(
+                    onTap: () {
+                      setState(() {
+                        selectedType = type;
+                        // Si on sélectionne admin et qu'il n'y a pas de rôle, définir par défaut
+                        if (type == UserType.admin && selectedAdminRole == null) {
+                          selectedAdminRole = AdminRoleType.admin;
+                        }
+                      });
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: BoxDecoration(
                         color: isSelected
-                          ? color
-                          : Colors.grey.withValues(alpha: 0.3),
-                        width: isSelected ? 2 : 1,
+                            ? color.withValues(alpha: 0.15)
+                            : Colors.grey.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        border: Border.all(
+                          color: isSelected ? color : Colors.grey.withValues(alpha: 0.3),
+                          width: isSelected ? 2 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(icon, color: color),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  type.label,
+                                  style: TextStyle(
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                    color: isSelected ? color : AppColors.textPrimary,
+                                  ),
+                                ),
+                                Text(
+                                  _getUserTypeDescription(type),
+                                  style: const TextStyle(
+                                    fontSize: AppFontSizes.xs,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (isSelected) Icon(Icons.check_circle, color: color),
+                        ],
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        Icon(icon, color: color),
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                type.label,
-                                style: TextStyle(
-                                  fontWeight: isSelected
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                                  color: isSelected ? color : AppColors.textPrimary,
-                                ),
-                              ),
-                              Text(
-                                _getUserTypeDescription(type),
-                                style: const TextStyle(
-                                  fontSize: AppFontSizes.xs,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (isSelected)
-                          Icon(Icons.check_circle, color: color),
-                      ],
+                  );
+                }),
+
+                // Si admin est sélectionné, afficher le sélecteur de rôle
+                if (selectedType == UserType.admin) ...[
+                  const SizedBox(height: AppSpacing.lg),
+                  const Divider(),
+                  const SizedBox(height: AppSpacing.md),
+                  const Text(
+                    'Rôle Administrateur',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: AppFontSizes.md,
                     ),
                   ),
-                );
-              }),
-            ],
+                  const SizedBox(height: AppSpacing.sm),
+                  DropdownButtonFormField<AdminRoleType>(
+                    initialValue: selectedAdminRole,
+                    decoration: const InputDecoration(
+                      labelText: 'Sélectionner le rôle',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.shield),
+                    ),
+                    items: AdminRole.getAllRoles()
+                        .where((role) => role.type != AdminRoleType.superAdmin) // Exclure super admin
+                        .map((role) => DropdownMenuItem(
+                              value: role.type,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    role.name,
+                                    style: const TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                  Text(
+                                    role.description,
+                                    style: const TextStyle(
+                                      fontSize: AppFontSizes.xs,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => selectedAdminRole = value);
+                      }
+                    },
+                  ),
+                ],
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -1091,9 +1146,14 @@ class _UserManagementScreenState extends State<UserManagementScreen>
               child: const Text('Annuler'),
             ),
             ElevatedButton(
-              onPressed: selectedType == user.userType
-                ? null
-                : () => Navigator.pop(context, selectedType),
+              onPressed: selectedType == user.userType &&
+                         (selectedType != UserType.admin ||
+                          selectedAdminRole?.name == user.profile['adminRole'])
+                  ? null
+                  : () => Navigator.pop(context, {
+                        'userType': selectedType,
+                        'adminRole': selectedAdminRole,
+                      }),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
               ),
@@ -1104,8 +1164,19 @@ class _UserManagementScreenState extends State<UserManagementScreen>
       ),
     );
 
-    if (result != null && result != user.userType) {
-      await _changeUserType(user, result);
+    if (result != null) {
+      final newType = result['userType'] as UserType?;
+      final newAdminRole = result['adminRole'] as AdminRoleType?;
+
+      if (newType != null) {
+        if (newType != user.userType) {
+          // Changement de type d'utilisateur
+          await _changeUserType(user, newType, newAdminRole);
+        } else if (newType == UserType.admin && newAdminRole != null) {
+          // Même userType (admin) mais rôle admin différent
+          await _changeUserType(user, newType, newAdminRole);
+        }
+      }
     }
   }
 
@@ -1122,17 +1193,23 @@ class _UserManagementScreenState extends State<UserManagementScreen>
     }
   }
 
-  Future<void> _changeUserType(UserModel user, UserType newType) async {
+  Future<void> _changeUserType(UserModel user, UserType newType, [AdminRoleType? adminRole]) async {
+    String confirmationMessage = 'Voulez-vous vraiment changer le type de ${user.displayName} ?\n\n'
+        'De: ${user.userType.label}\n'
+        'Vers: ${newType.label}';
+
+    if (newType == UserType.admin && adminRole != null) {
+      final role = AdminRole.getRole(adminRole);
+      confirmationMessage += '\n\nRôle Admin: ${role.name}\n${role.description}';
+    }
+
+    confirmationMessage += '\n\nCette action modifiera les permissions et l\'accès de l\'utilisateur.';
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirmer le changement'),
-        content: Text(
-          'Voulez-vous vraiment changer le type de ${user.displayName} ?\n\n'
-          'De: ${user.userType.label}\n'
-          'Vers: ${newType.label}\n\n'
-          'Cette action modifiera les permissions et l\'accès de l\'utilisateur.',
-        ),
+        content: Text(confirmationMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -1151,20 +1228,28 @@ class _UserManagementScreenState extends State<UserManagementScreen>
 
     if (confirm == true) {
       try {
-        await FirebaseFirestore.instance
-            .collection(FirebaseCollections.users)
-            .doc(user.id)
-            .update({
+        final updateData = <String, dynamic>{
           'userType': newType.value,
           'updatedAt': FieldValue.serverTimestamp(),
-        });
+        };
+
+        // Si on change vers admin, ajouter le rôle admin
+        if (newType == UserType.admin && adminRole != null) {
+          updateData['adminRole'] = adminRole.name;
+        }
+
+        await FirebaseFirestore.instance.collection(FirebaseCollections.users).doc(user.id).update(updateData);
 
         if (mounted) {
+          String successMessage = 'Type d\'utilisateur changé : ${user.userType.label} → ${newType.label}';
+          if (newType == UserType.admin && adminRole != null) {
+            final role = AdminRole.getRole(adminRole);
+            successMessage += '\nRôle: ${role.name}';
+          }
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                'Type d\'utilisateur changé : ${user.userType.label} → ${newType.label}',
-              ),
+              content: Text(successMessage),
               backgroundColor: AppColors.success,
             ),
           );
@@ -1188,15 +1273,13 @@ class _UserManagementScreenState extends State<UserManagementScreen>
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(user.isVerified
-          ? 'Retirer la vérification'
-          : 'Vérifier l\'utilisateur'),
+        title: Text(user.isVerified ? 'Retirer la vérification' : 'Vérifier l\'utilisateur'),
         content: Text(
           user.isVerified
               ? 'Voulez-vous retirer la vérification de ${user.displayName} ?\n\n'
-                'L\'utilisateur perdra son badge vérifié.'
+                  'L\'utilisateur perdra son badge vérifié.'
               : 'Voulez-vous vérifier ${user.displayName} ?\n\n'
-                'L\'utilisateur obtiendra un badge vérifié.',
+                  'L\'utilisateur obtiendra un badge vérifié.',
         ),
         actions: [
           TextButton(
@@ -1206,9 +1289,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: user.isVerified
-                ? AppColors.warning
-                : AppColors.info,
+              backgroundColor: user.isVerified ? AppColors.warning : AppColors.info,
             ),
             child: Text(user.isVerified ? 'Retirer' : 'Vérifier'),
           ),
@@ -1218,14 +1299,9 @@ class _UserManagementScreenState extends State<UserManagementScreen>
 
     if (confirm == true) {
       try {
-        await FirebaseFirestore.instance
-            .collection(FirebaseCollections.users)
-            .doc(user.id)
-            .update({
+        await FirebaseFirestore.instance.collection(FirebaseCollections.users).doc(user.id).update({
           'isVerified': !user.isVerified,
-          'verificationStatus': !user.isVerified
-            ? 'verified'
-            : 'notVerified',
+          'verificationStatus': !user.isVerified ? 'verified' : 'notVerified',
           'updatedAt': FieldValue.serverTimestamp(),
         });
 

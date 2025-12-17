@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/platform_transaction_model.dart';
 import '../../services/platform_transaction_service.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class AdminTransactionsScreen extends StatefulWidget {
   const AdminTransactionsScreen({super.key});
@@ -14,7 +14,8 @@ class AdminTransactionsScreen extends StatefulWidget {
   State<AdminTransactionsScreen> createState() => _AdminTransactionsScreenState();
 }
 
-class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> with SingleTickerProviderStateMixin {
+class _AdminTransactionsScreenState extends State<AdminTransactionsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isLoading = true;
   Map<String, dynamic> _stats = {};
@@ -265,7 +266,8 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> with 
             ),
           ),
           const SizedBox(height: 16),
-          ..._pendingTransactions.map((transaction) => _buildTransactionCard(transaction, showActions: true)),
+          ..._pendingTransactions
+              .map((transaction) => _buildTransactionCard(transaction, showActions: true)),
         ],
       ),
     );
@@ -282,7 +284,8 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> with 
       onRefresh: _loadData,
       child: ListView(
         padding: const EdgeInsets.all(16),
-        children: _paidTransactions.map((transaction) => _buildTransactionCard(transaction)).toList(),
+        children:
+            _paidTransactions.map((transaction) => _buildTransactionCard(transaction)).toList(),
       ),
     );
   }
@@ -370,13 +373,17 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> with 
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildDetailRow('Méthode de paiement', isCash ? 'Cash' : 'Mobile Money'),
-                _buildDetailRow('Commission vendeur', '${NumberFormat('#,###').format(transaction.platformCommissionVendeur)} FCFA (${(transaction.vendeurCommissionRate * 100).toStringAsFixed(0)}%)'),
-                _buildDetailRow('Commission livreur', '${NumberFormat('#,###').format(transaction.platformCommissionLivreur)} FCFA (${(transaction.livreurCommissionRate * 100).toStringAsFixed(0)}%)'),
-                _buildDetailRow('Total plateforme', '${NumberFormat('#,###').format(transaction.totalPlatformRevenue)} FCFA'),
+                _buildDetailRow('Commission vendeur',
+                    '${NumberFormat('#,###').format(transaction.platformCommissionVendeur)} FCFA (${(transaction.vendeurCommissionRate * 100).toStringAsFixed(0)}%)'),
+                _buildDetailRow('Commission livreur',
+                    '${NumberFormat('#,###').format(transaction.platformCommissionLivreur)} FCFA (${(transaction.livreurCommissionRate * 100).toStringAsFixed(0)}%)'),
+                _buildDetailRow('Total plateforme',
+                    '${NumberFormat('#,###').format(transaction.totalPlatformRevenue)} FCFA'),
                 const Divider(height: 24),
-                _buildDetailRow('Montant vendeur', '${NumberFormat('#,###').format(transaction.vendeurAmount)} FCFA'),
-                _buildDetailRow('Montant livreur', '${NumberFormat('#,###').format(transaction.livreurAmount)} FCFA'),
-
+                _buildDetailRow('Montant vendeur',
+                    '${NumberFormat('#,###').format(transaction.vendeurAmount)} FCFA'),
+                _buildDetailRow('Montant livreur',
+                    '${NumberFormat('#,###').format(transaction.livreurAmount)} FCFA'),
                 if (showActions && transaction.status == CommissionPaymentStatus.pending) ...[
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
@@ -468,7 +475,8 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> with 
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Marquer la commission de ${NumberFormat('#,###').format(transaction.totalPlatformRevenue)} FCFA comme payée ?'),
+            Text(
+                'Marquer la commission de ${NumberFormat('#,###').format(transaction.totalPlatformRevenue)} FCFA comme payée ?'),
             const SizedBox(height: 16),
             TextField(
               controller: controller,

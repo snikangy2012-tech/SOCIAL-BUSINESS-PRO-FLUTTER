@@ -9,7 +9,7 @@ import '../../models/user_model.dart';
 import '../../services/firebase_service.dart';
 import '../../services/review_service.dart';
 import 'package:social_business_pro/config/constants.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class AdminLivreurManagementScreen extends StatefulWidget {
   const AdminLivreurManagementScreen({super.key});
@@ -77,9 +77,7 @@ class _AdminLivreurManagementScreenState extends State<AdminLivreurManagementScr
           .where('userType', isEqualTo: 'livreur')
           .get();
 
-      final livreurs = querySnapshot.docs
-          .map((doc) => UserModel.fromFirestore(doc))
-          .toList();
+      final livreurs = querySnapshot.docs.map((doc) => UserModel.fromFirestore(doc)).toList();
 
       // Charger les notes de chaque livreur
       final ratings = <String, double>{};
@@ -151,7 +149,8 @@ class _AdminLivreurManagementScreenState extends State<AdminLivreurManagementScr
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Livreur ${newStatus == 'approved' ? 'approuvé' : newStatus == 'suspended' ? 'suspendu' : 'mis à jour'}'),
+            content: Text(
+                'Livreur ${newStatus == 'approved' ? 'approuvé' : newStatus == 'suspended' ? 'suspendu' : 'mis à jour'}'),
             backgroundColor: newStatus == 'approved' ? Colors.green : Colors.orange,
           ),
         );

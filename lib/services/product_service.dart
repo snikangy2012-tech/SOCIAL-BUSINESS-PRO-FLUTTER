@@ -246,6 +246,73 @@ class ProductService {
     }
   }
 
+  /// Mettre à jour un produit avec upload de nouvelles images
+  /// Combine les images existantes avec les nouvelles images uploadées
+  Future<void> updateProductWithImages({
+    required String productId,
+    required Map<String, dynamic> updates,
+    List<String>? existingImageUrls,
+    List<File>? newImages,
+  }) async {
+    try {
+      debugPrint('🔄 Mise à jour produit avec images: $productId');
+
+      // Combiner images existantes et nouvelles
+      List<String> allImageUrls = [];
+
+      // Ajouter les images existantes (URLs Firebase Storage valides)
+      if (existingImageUrls != null) {
+        for (var url in existingImageUrls) {
+          // Garder seulement les URLs Firebase Storage valides
+          if (url.contains('firebasestorage.googleapis.com') ||
+              url.contains('https://') ||
+              url.contains('http://')) {
+            allImageUrls.add(url);
+          } else {
+            debugPrint('⚠️ URL invalide ignorée: $url');
+          }
+        }
+      }
+
+      // Uploader les nouvelles images
+      if (newImages != null && newImages.isNotEmpty) {
+        debugPrint('📤 Upload de ${newImages.length} nouvelle(s) image(s)...');
+
+        // Commencer l'index après les images existantes
+        int startIndex = allImageUrls.length;
+
+        for (int i = 0; i < newImages.length; i++) {
+          final imageUrl = await _uploadImage(
+            productId,
+            newImages[i],
+            startIndex + i,
+          );
+
+          if (imageUrl != null) {
+            allImageUrls.add(imageUrl);
+          } else {
+            debugPrint('⚠️ Échec upload image ${i + 1}');
+          }
+        }
+      }
+
+      // Mettre à jour avec toutes les images
+      final updatesWithImages = Map<String, dynamic>.from(updates);
+      updatesWithImages['images'] = allImageUrls;
+      updatesWithImages['updatedAt'] = FieldValue.serverTimestamp();
+
+      await _db
+          .collection(FirebaseCollections.products)
+          .doc(productId)
+          .update(updatesWithImages);
+
+      debugPrint('✅ Produit mis à jour avec ${allImageUrls.length} image(s)');
+    } catch (e) {
+      debugPrint('❌ Erreur mise à jour produit avec images: $e');
+      rethrow;
+    }
+  }
+
   /// Supprimer un produit
   Future<void> deleteProduct(String productId) async {
     try {

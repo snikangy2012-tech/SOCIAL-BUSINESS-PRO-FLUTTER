@@ -8,7 +8,7 @@ import '../../config/constants.dart';
 import '../../services/platform_revenue_service.dart';
 import '../../models/revenue_model.dart' as revenue;
 import '../../models/financial_summary_model.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class SuperAdminFinanceScreen extends StatefulWidget {
   const SuperAdminFinanceScreen({super.key});
@@ -195,8 +195,8 @@ class _SuperAdminFinanceScreenState extends State<SuperAdminFinanceScreen> {
     final totalRevenue = stats['totalRevenue'] as double;
     final commissionsVente = stats['commissionsVente'] as double;
     final commissionsLivraison = stats['commissionsLivraison'] as double;
-    final abonnements = (stats['abonnementsVendeurs'] as double) +
-                       (stats['abonnementsLivreurs'] as double);
+    final abonnements =
+        (stats['abonnementsVendeurs'] as double) + (stats['abonnementsLivreurs'] as double);
 
     return Column(
       children: [
@@ -347,8 +347,10 @@ class _SuperAdminFinanceScreenState extends State<SuperAdminFinanceScreen> {
           // Statistiques du mois
           _buildSummaryRow('Commandes livrées', summary.nbCommandesLivrees.toString()),
           _buildSummaryRow('Livraisons effectuées', summary.nbLivraisons.toString()),
-          _buildSummaryRow('Abonnements vendeurs actifs', summary.nbAbonnementsVendeursActifs.toString()),
-          _buildSummaryRow('Abonnements livreurs actifs', summary.nbAbonnementsLivreursActifs.toString()),
+          _buildSummaryRow(
+              'Abonnements vendeurs actifs', summary.nbAbonnementsVendeursActifs.toString()),
+          _buildSummaryRow(
+              'Abonnements livreurs actifs', summary.nbAbonnementsLivreursActifs.toString()),
 
           const Divider(height: 24),
 
@@ -429,7 +431,6 @@ class _SuperAdminFinanceScreenState extends State<SuperAdminFinanceScreen> {
             ],
           ),
           const Divider(height: 24),
-
           if (_recentRevenues.isEmpty)
             const Center(
               child: Padding(
@@ -451,7 +452,6 @@ class _SuperAdminFinanceScreenState extends State<SuperAdminFinanceScreen> {
                 return _buildTransactionTile(rev);
               },
             ),
-
           if (_recentRevenues.length > 10)
             Padding(
               padding: const EdgeInsets.only(top: 12),

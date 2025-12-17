@@ -6,7 +6,7 @@ import '../../models/payment_method_model.dart';
 import '../../services/payment_service.dart';
 import '../../providers/auth_provider_firebase.dart';
 import 'package:social_business_pro/config/constants.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class PaymentMethodsScreen extends StatefulWidget {
   const PaymentMethodsScreen({super.key});
@@ -368,7 +368,8 @@ class _AddPaymentMethodSheet extends StatefulWidget {
   State<_AddPaymentMethodSheet> createState() => _AddPaymentMethodSheetState();
 }
 
-class _AddPaymentMethodSheetState extends State<_AddPaymentMethodSheet> with SingleTickerProviderStateMixin {
+class _AddPaymentMethodSheetState extends State<_AddPaymentMethodSheet>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;

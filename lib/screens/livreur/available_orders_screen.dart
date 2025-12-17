@@ -12,11 +12,12 @@ import '../../providers/auth_provider_firebase.dart';
 import '../../services/order_assignment_service.dart';
 import '../../services/geolocation_service.dart';
 import '../../services/delivery_service.dart';
+import '../../services/payment_enforcement_service.dart';
 import '../../utils/test_data_helper.dart';
 import '../../utils/fix_orders_status.dart';
 import '../../utils/add_gps_to_orders.dart';
 import '../../utils/number_formatter.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class AvailableOrdersScreen extends StatefulWidget {
   const AvailableOrdersScreen({super.key});
@@ -88,9 +89,8 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
       debugPrint('🔍 === DEBUG: Vérification des commandes ===');
 
       // Récupérer TOUTES les commandes (sans filtre de statut)
-      final allOrdersSnapshot = await FirebaseFirestore.instance
-          .collection(FirebaseCollections.orders)
-          .get();
+      final allOrdersSnapshot =
+          await FirebaseFirestore.instance.collection(FirebaseCollections.orders).get();
 
       debugPrint('📦 Total commandes dans Firestore: ${allOrdersSnapshot.docs.length}');
 
@@ -108,7 +108,8 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
         final pickupLng = data['pickupLongitude'];
         final hasGPS = pickupLat != null && pickupLng != null;
 
-        debugPrint('  - ${doc.id}: status=$status, livreurId=${livreurId ?? "null"}, GPS=${hasGPS ? "OUI" : "NON"}');
+        debugPrint(
+            '  - ${doc.id}: status=$status, livreurId=${livreurId ?? "null"}, GPS=${hasGPS ? "OUI" : "NON"}');
 
         if (status == 'ready') readyCount++;
         if (status == 'confirmed') confirmedCount++;
@@ -126,7 +127,8 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
       debugPrint('  - Commandes avec statut "confirmed": $confirmedCount');
       debugPrint('  - Commandes sans livreur: $withoutLivreur');
       debugPrint('  - Commandes sans coordonnées GPS: $withoutGPS');
-      debugPrint('  - Commandes DISPONIBLES (ready/confirmed + sans livreur + avec GPS): $availableCount');
+      debugPrint(
+          '  - Commandes DISPONIBLES (ready/confirmed + sans livreur + avec GPS): $availableCount');
 
       if (mounted) {
         showDialog(
@@ -319,7 +321,67 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
       return;
     }
 
+    // 🔒 Vérifier si le compte est bloqué pour paiements non effectués
+    final isBlocked = await PaymentEnforcementService.isLivreurBlocked(user.id);
+    if (isBlocked) {
+      if (!mounted) return;
+
+      // Afficher dialogue de blocage
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.lock,
+                  color: AppColors.error,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Compte bloqué',
+                  style: TextStyle(fontSize: 18),
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Vous ne pouvez pas accepter de nouvelles livraisons car vous avez des paiements non effectués.\n\nVeuillez effectuer un dépôt pour débloquer votre compte.',
+            style: TextStyle(fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                context.go('/livreur/payment-deposit');
+              },
+              icon: const Icon(Icons.payment),
+              label: const Text('Effectuer un dépôt'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     // Confirmation
+    if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -581,7 +643,8 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
     );
   }
 
-  Widget _buildOrderCard(OrderWithDistance orderWithDistance, {required List<OrderWithDistance> allOrders}) {
+  Widget _buildOrderCard(OrderWithDistance orderWithDistance,
+      {required List<OrderWithDistance> allOrders}) {
     final order = orderWithDistance.order;
     final isAcceptingThis = _isAccepting && _acceptingOrderId == order.id;
 
@@ -636,7 +699,8 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              formatOrderNumber(order.id, allOrders: allOrders.map((o) => o.order).toList()),
+                              formatOrderNumber(order.id,
+                                  allOrders: allOrders.map((o) => o.order).toList()),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
@@ -765,7 +829,10 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
               child: ElevatedButton.icon(
                 onPressed: isAcceptingThis
                     ? null
-                    : () => _acceptOrder(order.id, formatOrderNumber(order.id, allOrders: allOrders.map((o) => o.order).toList())),
+                    : () => _acceptOrder(
+                        order.id,
+                        formatOrderNumber(order.id,
+                            allOrders: allOrders.map((o) => o.order).toList())),
                 icon: isAcceptingThis
                     ? const SizedBox(
                         width: 20,

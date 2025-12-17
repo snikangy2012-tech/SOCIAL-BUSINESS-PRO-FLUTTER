@@ -16,7 +16,7 @@ import '../../services/audit_service.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../utils/number_formatter.dart';
 import 'grouped_deliveries_screen.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class DeliveryListScreen extends StatefulWidget {
   const DeliveryListScreen({super.key});
@@ -172,7 +172,8 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
   Widget build(BuildContext context) {
     // Détecter les opportunités de tournées groupées dans les livraisons assignées
     final assignedDeliveries = _getFilteredDeliveries('assigned');
-    final groupedOpportunities = DeliveryGroupingService.findMultiDeliveryVendors(assignedDeliveries);
+    final groupedOpportunities =
+        DeliveryGroupingService.findMultiDeliveryVendors(assignedDeliveries);
 
     return SystemUIScaffold(
       appBar: AppBar(
@@ -604,8 +605,7 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
           child: ListView.separated(
             padding: const EdgeInsets.all(AppSpacing.md),
             itemCount: filteredDeliveries.length,
-            separatorBuilder: (context, index) =>
-                const SizedBox(height: AppSpacing.md),
+            separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.md),
             itemBuilder: (context, index) {
               return _buildDeliveryCard(filteredDeliveries[index]);
             },
@@ -715,10 +715,10 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha:0.1),
+                      color: statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppRadius.sm),
                       border: Border.all(
-                        color: statusColor.withValues(alpha:0.3),
+                        color: statusColor.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
@@ -753,7 +753,9 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      delivery.deliveryAddress['address'] ?? delivery.deliveryAddress['city'] ?? 'Adresse non disponible',
+                      delivery.deliveryAddress['address'] ??
+                          delivery.deliveryAddress['city'] ??
+                          'Adresse non disponible',
                       style: const TextStyle(
                         fontSize: AppFontSizes.sm,
                         color: AppColors.textPrimary,
@@ -802,7 +804,7 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.success.withValues(alpha:0.1),
+                      color: AppColors.success.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                     child: Row(
@@ -827,33 +829,33 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
                     ),
                   ),
                   Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.info.withValues(alpha:0.1),
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.route,
-                            size: 16,
-                            color: AppColors.info,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${delivery.distance.toStringAsFixed(1)} km',
-                            style: const TextStyle(
-                              color: AppColors.info,
-                              fontSize: AppFontSizes.sm,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
                     ),
+                    decoration: BoxDecoration(
+                      color: AppColors.info.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.route,
+                          size: 16,
+                          color: AppColors.info,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${delivery.distance.toStringAsFixed(1)} km',
+                          style: const TextStyle(
+                            color: AppColors.info,
+                            fontSize: AppFontSizes.sm,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
 
@@ -977,10 +979,12 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
           actionLabel: 'Acceptation de livraison',
           category: AuditCategory.userAction,
           severity: AuditSeverity.low,
-          description: 'Acceptation de la livraison ${formatDeliveryNumber(delivery.id, allDeliveries: _allDeliveries)}',
+          description:
+              'Acceptation de la livraison ${formatDeliveryNumber(delivery.id, allDeliveries: _allDeliveries)}',
           targetType: 'delivery',
           targetId: delivery.id,
-          targetLabel: 'Livraison ${formatDeliveryNumber(delivery.id, allDeliveries: _allDeliveries)}',
+          targetLabel:
+              'Livraison ${formatDeliveryNumber(delivery.id, allDeliveries: _allDeliveries)}',
           metadata: {
             'deliveryId': delivery.id,
             'orderId': delivery.orderId,

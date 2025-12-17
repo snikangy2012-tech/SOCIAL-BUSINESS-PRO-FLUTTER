@@ -8,7 +8,7 @@ import '../../models/product_model.dart';
 import '../../models/order_model.dart';
 import '../../models/delivery_model.dart';
 import 'package:social_business_pro/config/constants.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class GlobalStatisticsScreen extends StatefulWidget {
   const GlobalStatisticsScreen({super.key});
@@ -54,36 +54,22 @@ class _GlobalStatisticsScreenState extends State<GlobalStatisticsScreen> {
     try {
       // Load all data
       // Load users from Firestore
-      final usersSnapshot = await _firestore
-          .collection(FirebaseCollections.users)
-          .get();
-      final users = usersSnapshot.docs
-          .map((doc) => UserModel.fromMap(doc.data(), doc.id))
-          .toList();
+      final usersSnapshot = await _firestore.collection(FirebaseCollections.users).get();
+      final users = usersSnapshot.docs.map((doc) => UserModel.fromMap(doc.data(), doc.id)).toList();
 
       // Load products from Firestore
-      final productsSnapshot = await _firestore
-          .collection(FirebaseCollections.products)
-          .get();
-      final products = productsSnapshot.docs
-          .map((doc) => ProductModel.fromMap(doc.data()))
-          .toList();
+      final productsSnapshot = await _firestore.collection(FirebaseCollections.products).get();
+      final products =
+          productsSnapshot.docs.map((doc) => ProductModel.fromMap(doc.data())).toList();
 
       // Load orders from Firestore
-      final ordersSnapshot = await _firestore
-          .collection(FirebaseCollections.orders)
-          .get();
-      final orders = ordersSnapshot.docs
-          .map((doc) => OrderModel.fromFirestore(doc))
-          .toList();
+      final ordersSnapshot = await _firestore.collection(FirebaseCollections.orders).get();
+      final orders = ordersSnapshot.docs.map((doc) => OrderModel.fromFirestore(doc)).toList();
 
       // Load deliveries from Firestore
-      final deliveriesSnapshot = await _firestore
-          .collection(FirebaseCollections.deliveries)
-          .get();
-      final deliveries = deliveriesSnapshot.docs
-          .map((doc) => DeliveryModel.fromMap(doc.data()))
-          .toList();
+      final deliveriesSnapshot = await _firestore.collection(FirebaseCollections.deliveries).get();
+      final deliveries =
+          deliveriesSnapshot.docs.map((doc) => DeliveryModel.fromMap(doc.data())).toList();
 
       setState(() {
         _allUsers = users;
@@ -123,9 +109,7 @@ class _GlobalStatisticsScreenState extends State<GlobalStatisticsScreen> {
         startDate = DateTime(2000); // All time
     }
 
-    final filteredOrders = _allOrders
-        .where((order) => order.createdAt.isAfter(startDate))
-        .toList();
+    final filteredOrders = _allOrders.where((order) => order.createdAt.isAfter(startDate)).toList();
 
     // User counts
     _totalVendeurs = _allUsers.where((u) => u.userType == UserType.vendeur).length;
@@ -159,8 +143,7 @@ class _GlobalStatisticsScreenState extends State<GlobalStatisticsScreen> {
     for (var product in _allProducts) {
       categoryCount[product.category] = (categoryCount[product.category] ?? 0) + 1;
     }
-    _topCategories = categoryCount.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+    _topCategories = categoryCount.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
 
     setState(() {});
   }

@@ -6,7 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../models/platform_transaction_model.dart';
 import '../../services/platform_transaction_service.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class LivreurCommissionsScreen extends StatefulWidget {
   const LivreurCommissionsScreen({super.key});
@@ -238,7 +238,8 @@ class _LivreurCommissionsScreenState extends State<LivreurCommissionsScreen> {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Collecté le ${dateFormat.format(transaction.cashCollectedAt ?? transaction.createdAt)}'),
+            Text(
+                'Collecté le ${dateFormat.format(transaction.cashCollectedAt ?? transaction.createdAt)}'),
             const SizedBox(height: 4),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -292,10 +293,14 @@ class _LivreurCommissionsScreenState extends State<LivreurCommissionsScreen> {
                   ),
                 ),
                 const Divider(height: 24),
-                _buildDetailRow('Frais de livraison total', '${NumberFormat('#,###').format(transaction.orderAmount)} FCFA'),
-                _buildDetailRow('Votre part', '${NumberFormat('#,###').format(transaction.livreurAmount)} FCFA'),
-                _buildDetailRow('Commission plateforme vendeur', '${NumberFormat('#,###').format(transaction.platformCommissionVendeur)} FCFA'),
-                _buildDetailRow('Commission plateforme livreur', '${NumberFormat('#,###').format(transaction.platformCommissionLivreur)} FCFA (${(transaction.livreurCommissionRate * 100).toStringAsFixed(0)}%)'),
+                _buildDetailRow('Frais de livraison total',
+                    '${NumberFormat('#,###').format(transaction.orderAmount)} FCFA'),
+                _buildDetailRow('Votre part',
+                    '${NumberFormat('#,###').format(transaction.livreurAmount)} FCFA'),
+                _buildDetailRow('Commission plateforme vendeur',
+                    '${NumberFormat('#,###').format(transaction.platformCommissionVendeur)} FCFA'),
+                _buildDetailRow('Commission plateforme livreur',
+                    '${NumberFormat('#,###').format(transaction.platformCommissionLivreur)} FCFA (${(transaction.livreurCommissionRate * 100).toStringAsFixed(0)}%)'),
                 const Divider(height: 24),
                 _buildDetailRow(
                   'Total à reverser',

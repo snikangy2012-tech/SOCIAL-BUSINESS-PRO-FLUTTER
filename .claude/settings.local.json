@@ -30,7 +30,13 @@
       "Bash(adb:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(dir:*)",
+      "Bash(node apply_system_ui_fix.js:*)",
+      "Bash(node create_admin_auth_accounts.js:*)",
+      "Bash(npm install)",
+      "Bash(firebase deploy:*)",
+      "Bash(dart analyze:*)"
     ],
     "deny": [],
     "ask": []

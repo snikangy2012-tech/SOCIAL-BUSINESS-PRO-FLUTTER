@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../models/review_model.dart';
 import '../../services/review_service.dart';
 import 'package:social_business_pro/config/constants.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class ReviewsScreen extends StatefulWidget {
   final String targetId; // Product ID, Vendor ID, or Livreur ID
@@ -181,9 +181,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> with SingleTickerProvider
                 children: List.generate(5, (index) {
                   final star = 5 - index;
                   final count = _ratingDistribution[star] ?? 0;
-                  final percentage = _allReviews.isEmpty
-                      ? 0.0
-                      : count / _allReviews.length;
+                  final percentage = _allReviews.isEmpty ? 0.0 : count / _allReviews.length;
 
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 2),
@@ -240,9 +238,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> with SingleTickerProvider
                   radius: 20,
                   backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                   child: Text(
-                    review.reviewerName.isNotEmpty
-                        ? review.reviewerName[0].toUpperCase()
-                        : 'U',
+                    review.reviewerName.isNotEmpty ? review.reviewerName[0].toUpperCase() : 'U',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: AppColors.primary,
@@ -337,9 +333,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> with SingleTickerProvider
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          widget.targetType == 'product'
-                              ? 'Réponse du vendeur'
-                              : 'Réponse',
+                          widget.targetType == 'product' ? 'Réponse du vendeur' : 'Réponse',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,

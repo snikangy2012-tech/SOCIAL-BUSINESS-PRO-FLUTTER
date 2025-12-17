@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../config/constants.dart';
 import '../../models/product_model.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class AdminProductManagementScreen extends StatefulWidget {
   const AdminProductManagementScreen({super.key});
@@ -17,7 +17,6 @@ class AdminProductManagementScreen extends StatefulWidget {
 }
 
 class _AdminProductManagementScreenState extends State<AdminProductManagementScreen> {
-
   String _selectedCategory = 'Tous';
   String _selectedStatus = 'Tous';
   String _searchQuery = '';
@@ -186,9 +185,7 @@ class _AdminProductManagementScreenState extends State<AdminProductManagementScr
 
   Widget _buildQuickStats() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection(FirebaseCollections.products)
-          .snapshots(),
+      stream: FirebaseFirestore.instance.collection(FirebaseCollections.products).snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const SizedBox();
@@ -367,9 +364,13 @@ class _AdminProductManagementScreenState extends State<AdminProductManagementScr
       }
     }
 
-    // Filtre de catégorie
-    if (_selectedCategory != 'Tous' && product.category != _selectedCategory) {
-      return false;
+    // Filtre de catégorie (comparaison insensible à la casse)
+    if (_selectedCategory != 'Tous') {
+      final selectedLower = _selectedCategory.toLowerCase();
+      final productCategoryLower = product.category.toLowerCase();
+      if (selectedLower != productCategoryLower) {
+        return false;
+      }
     }
 
     // Filtre de statut
@@ -760,9 +761,7 @@ class _AdminProductManagementScreenState extends State<AdminProductManagementScr
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              product.isActive
-                  ? 'Produit désactivé avec succès'
-                  : 'Produit activé avec succès',
+              product.isActive ? 'Produit désactivé avec succès' : 'Produit activé avec succès',
             ),
             backgroundColor: AppColors.success,
           ),

@@ -7,7 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:social_business_pro/config/constants.dart';
 import '../../widgets/custom_widgets.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});

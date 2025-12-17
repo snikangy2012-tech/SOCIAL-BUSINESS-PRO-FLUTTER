@@ -13,10 +13,11 @@ import '../../providers/auth_provider_firebase.dart';
 import '../../providers/vendeur_navigation_provider.dart';
 import '../../services/product_service.dart';
 import '../../services/audit_service.dart';
+import '../../services/commission_enforcement_service.dart';
 import '../../models/audit_log_model.dart';
 import '../../config/product_categories.dart';
 import '../../config/product_subcategories.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class AddProduct extends StatefulWidget {
   const AddProduct({super.key});
@@ -29,7 +30,7 @@ class _AddProductState extends State<AddProduct> {
   final _formKey = GlobalKey<FormState>();
   final _pageController = PageController();
   final _imagePicker = ImagePicker();
-  
+
   // Controllers pour tous les champs
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -67,6 +68,99 @@ class _AddProductState extends State<AddProduct> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final vendorId = authProvider.user?.id ?? '';
+
+    return FutureBuilder<bool>(
+      future: CommissionEnforcementService.isVendorBlocked(vendorId),
+      builder: (context, snapshot) {
+        // En attente de vérification
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        // Compte bloqué
+        if (snapshot.data == true) {
+          return SystemUIScaffold(
+            appBar: AppBar(
+              title: const Text('Accès bloqué'),
+              backgroundColor: AppColors.error,
+            ),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.lock,
+                        size: 64,
+                        color: AppColors.error,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Compte bloqué',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.error,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Vous ne pouvez pas ajouter de produits car vous avez des commissions impayées.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        context.go('/vendeur/commission-payment');
+                      },
+                      icon: const Icon(Icons.payment),
+                      label: const Text('Effectuer un versement'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 16,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () {
+                        context.pop();
+                      },
+                      child: const Text('Retour'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        // Compte OK - Afficher formulaire normal
+        return _buildAddProductScreen();
+      },
+    );
+  }
+
+  Widget _buildAddProductScreen() {
     return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
@@ -88,7 +182,7 @@ class _AddProductState extends State<AddProduct> {
         children: [
           // Indicateur de progression
           _buildProgressIndicator(),
-          
+
           // Contenu de l'étape
           Expanded(
             child: PageView(
@@ -102,7 +196,7 @@ class _AddProductState extends State<AddProduct> {
               ],
             ),
           ),
-          
+
           // Boutons de navigation
           _buildNavigationButtons(),
         ],
@@ -119,7 +213,7 @@ class _AddProductState extends State<AddProduct> {
         children: List.generate(4, (index) {
           final isActive = index <= _currentStep;
           final isCompleted = index < _currentStep;
-          
+
           return Expanded(
             child: Row(
               children: [
@@ -127,10 +221,10 @@ class _AddProductState extends State<AddProduct> {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: isCompleted 
+                    color: isCompleted
                         ? AppColors.success
-                        : isActive 
-                            ? AppColors.primary 
+                        : isActive
+                            ? AppColors.primary
                             : AppColors.border,
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -179,9 +273,9 @@ class _AddProductState extends State<AddProduct> {
                 color: AppColors.textPrimary,
               ),
             ),
-            
+
             const SizedBox(height: AppSpacing.xl),
-            
+
             // Nom du produit
             TextFormField(
               controller: _nameController,
@@ -202,9 +296,9 @@ class _AddProductState extends State<AddProduct> {
                 return null;
               },
             ),
-            
+
             const SizedBox(height: AppSpacing.lg),
-            
+
             // Catégorie
             DropdownButtonFormField<String>(
               value: _selectedCategory.isEmpty ? null : _selectedCategory,
@@ -246,8 +340,7 @@ class _AddProductState extends State<AddProduct> {
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.list),
                 ),
-                items: ProductSubcategories.getSubcategories(_selectedCategory)
-                    .map((subcategory) {
+                items: ProductSubcategories.getSubcategories(_selectedCategory).map((subcategory) {
                   return DropdownMenuItem<String>(
                     value: subcategory,
                     child: Text(subcategory),
@@ -302,7 +395,7 @@ class _AddProductState extends State<AddProduct> {
               ),
               const SizedBox(height: AppSpacing.lg),
             ],
-            
+
             // Description
             TextFormField(
               controller: _descriptionController,
@@ -324,9 +417,9 @@ class _AddProductState extends State<AddProduct> {
                 return null;
               },
             ),
-            
+
             const SizedBox(height: AppSpacing.lg),
-            
+
             // Marque (optionnel)
             TextFormField(
               controller: _brandController,
@@ -359,9 +452,9 @@ class _AddProductState extends State<AddProduct> {
               color: AppColors.textPrimary,
             ),
           ),
-          
+
           const SizedBox(height: AppSpacing.md),
-          
+
           const Text(
             'Ajoutez jusqu\'à ${AppLimits.maxProductImages} images pour présenter votre produit',
             style: TextStyle(
@@ -369,9 +462,9 @@ class _AddProductState extends State<AddProduct> {
               fontSize: AppFontSizes.sm,
             ),
           ),
-          
+
           const SizedBox(height: AppSpacing.lg),
-          
+
           // Grille d'images
           GridView.builder(
             shrinkWrap: true,
@@ -391,9 +484,9 @@ class _AddProductState extends State<AddProduct> {
               return _buildImageItem(_selectedImages[index], index);
             },
           ),
-          
+
           const SizedBox(height: AppSpacing.xl),
-          
+
           // Tags
           TextFormField(
             controller: _tagsController,
@@ -406,13 +499,17 @@ class _AddProductState extends State<AddProduct> {
             ),
             onChanged: (value) {
               setState(() {
-                _tags = value.split(',').map((tag) => tag.trim()).where((tag) => tag.isNotEmpty).toList();
+                _tags = value
+                    .split(',')
+                    .map((tag) => tag.trim())
+                    .where((tag) => tag.isNotEmpty)
+                    .toList();
               });
             },
           ),
-          
+
           const SizedBox(height: AppSpacing.lg),
-          
+
           // Aperçu des tags
           if (_tags.isNotEmpty) ...[
             const Text(
@@ -423,18 +520,20 @@ class _AddProductState extends State<AddProduct> {
             Wrap(
               spacing: AppSpacing.xs,
               runSpacing: AppSpacing.xs,
-              children: _tags.map((tag) => Chip(
-                label: Text(tag),
-                backgroundColor: AppColors.primary.withValues(alpha:0.1),
-                labelStyle: const TextStyle(color: AppColors.primary),
-                deleteIcon: const Icon(Icons.close, size: 16),
-                onDeleted: () {
-                  setState(() {
-                    _tags.remove(tag);
-                    _tagsController.text = _tags.join(', ');
-                  });
-                },
-              )).toList(),
+              children: _tags
+                  .map((tag) => Chip(
+                        label: Text(tag),
+                        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                        labelStyle: const TextStyle(color: AppColors.primary),
+                        deleteIcon: const Icon(Icons.close, size: 16),
+                        onDeleted: () {
+                          setState(() {
+                            _tags.remove(tag);
+                            _tagsController.text = _tags.join(', ');
+                          });
+                        },
+                      ))
+                  .toList(),
             ),
           ],
         ],
@@ -457,9 +556,9 @@ class _AddProductState extends State<AddProduct> {
               color: AppColors.textPrimary,
             ),
           ),
-          
+
           const SizedBox(height: AppSpacing.xl),
-          
+
           // Prix de vente
           TextFormField(
             controller: _priceController,
@@ -486,9 +585,9 @@ class _AddProductState extends State<AddProduct> {
               return null;
             },
           ),
-          
+
           const SizedBox(height: AppSpacing.lg),
-          
+
           // Prix original (pour les promotions)
           TextFormField(
             controller: _originalPriceController,
@@ -516,9 +615,9 @@ class _AddProductState extends State<AddProduct> {
               return null;
             },
           ),
-          
+
           const SizedBox(height: AppSpacing.lg),
-          
+
           // Quantité en stock
           TextFormField(
             controller: _stockController,
@@ -542,9 +641,9 @@ class _AddProductState extends State<AddProduct> {
               return null;
             },
           ),
-          
+
           const SizedBox(height: AppSpacing.xl),
-          
+
           // Options du produit
           Card(
             child: Padding(
@@ -559,9 +658,9 @@ class _AddProductState extends State<AddProduct> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  
+
                   const SizedBox(height: AppSpacing.md),
-                  
+
                   // Produit actif
                   SwitchListTile(
                     title: const Text('Produit actif'),
@@ -608,9 +707,9 @@ class _AddProductState extends State<AddProduct> {
               color: AppColors.textPrimary,
             ),
           ),
-          
+
           const SizedBox(height: AppSpacing.lg),
-          
+
           // Aperçu du produit
           Card(
             elevation: 2,
@@ -643,7 +742,7 @@ class _AddProductState extends State<AddProduct> {
                     ),
                     const SizedBox(height: AppSpacing.lg),
                   ],
-                  
+
                   // Informations produit
                   Text(
                     _nameController.text,
@@ -652,9 +751,9 @@ class _AddProductState extends State<AddProduct> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  
+
                   const SizedBox(height: AppSpacing.sm),
-                  
+
                   // Catégorie
                   if (_selectedCategory.isNotEmpty)
                     Container(
@@ -663,7 +762,7 @@ class _AddProductState extends State<AddProduct> {
                         vertical: AppSpacing.xs,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha:0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppRadius.sm),
                       ),
                       child: Text(
@@ -680,9 +779,9 @@ class _AddProductState extends State<AddProduct> {
                         ),
                       ),
                     ),
-                  
+
                   const SizedBox(height: AppSpacing.md),
-                  
+
                   // Description
                   Text(
                     _descriptionController.text,
@@ -691,9 +790,9 @@ class _AddProductState extends State<AddProduct> {
                       fontSize: AppFontSizes.sm,
                     ),
                   ),
-                  
+
                   const SizedBox(height: AppSpacing.lg),
-                  
+
                   // Prix
                   Row(
                     children: [
@@ -737,9 +836,9 @@ class _AddProductState extends State<AddProduct> {
                       ],
                     ],
                   ),
-                  
+
                   const SizedBox(height: AppSpacing.md),
-                  
+
                   // Stock et statut
                   Row(
                     children: [
@@ -772,21 +871,23 @@ class _AddProductState extends State<AddProduct> {
                       ),
                     ],
                   ),
-                  
+
                   // Tags
                   if (_tags.isNotEmpty) ...[
                     const SizedBox(height: AppSpacing.md),
                     Wrap(
                       spacing: AppSpacing.xs,
                       runSpacing: AppSpacing.xs,
-                      children: _tags.map((tag) => Chip(
-                        label: Text(tag),
-                        backgroundColor: AppColors.secondary.withValues(alpha:0.1),
-                        labelStyle: const TextStyle(
-                          color: AppColors.secondary,
-                          fontSize: AppFontSizes.xs,
-                        ),
-                      )).toList(),
+                      children: _tags
+                          .map((tag) => Chip(
+                                label: Text(tag),
+                                backgroundColor: AppColors.secondary.withValues(alpha: 0.1),
+                                labelStyle: const TextStyle(
+                                  color: AppColors.secondary,
+                                  fontSize: AppFontSizes.xs,
+                                ),
+                              ))
+                          .toList(),
                     ),
                   ],
                 ],
@@ -801,7 +902,7 @@ class _AddProductState extends State<AddProduct> {
   // Bouton d'ajout d'image
   Widget _buildAddImageButton() {
     final canAddMore = _selectedImages.length < AppLimits.maxProductImages;
-    
+
     return GestureDetector(
       onTap: canAddMore ? _pickImage : null,
       child: Container(
@@ -812,7 +913,8 @@ class _AddProductState extends State<AddProduct> {
             style: BorderStyle.solid,
           ),
           borderRadius: BorderRadius.circular(AppRadius.md),
-          color: canAddMore ? AppColors.primary.withValues(alpha:0.1) : AppColors.backgroundSecondary,
+          color:
+              canAddMore ? AppColors.primary.withValues(alpha: 0.1) : AppColors.backgroundSecondary,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -906,7 +1008,7 @@ class _AddProductState extends State<AddProduct> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, -2),
           ),
@@ -1053,7 +1155,8 @@ class _AddProductState extends State<AddProduct> {
       return false;
     }
 
-    debugPrint('✅ Step 1 validé (nom: "${_nameController.text.trim()}", catégorie: $_selectedCategory)');
+    debugPrint(
+        '✅ Step 1 validé (nom: "${_nameController.text.trim()}", catégorie: $_selectedCategory)');
     return true;
   }
 
@@ -1121,11 +1224,11 @@ class _AddProductState extends State<AddProduct> {
 
       if (image != null) {
         final File imageFile = File(image.path);
-        
+
         // Vérifier la taille du fichier (5MB max)
         final int fileSizeInBytes = await imageFile.length();
         final double fileSizeInMB = fileSizeInBytes / (1024 * 1024);
-        
+
         if (fileSizeInMB > AppLimits.maxImageSizeMB) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -1188,9 +1291,7 @@ class _AddProductState extends State<AddProduct> {
         subCategory: _selectedSubcategory == 'Autre (à préciser)'
             ? _otherSubcategory.trim()
             : _selectedSubcategory,
-        brand: _brandController.text.trim().isNotEmpty
-            ? _brandController.text.trim()
-            : null,
+        brand: _brandController.text.trim().isNotEmpty ? _brandController.text.trim() : null,
         tags: _tags,
         images: _selectedImages,
         isActive: _isActive,
@@ -1245,7 +1346,6 @@ class _AddProductState extends State<AddProduct> {
         navProvider.setIndex(1); // Index 1 = Articles
         context.go('/vendeur/products');
       }
-
     } catch (e) {
       if (!mounted) return;
 
@@ -1270,4 +1370,3 @@ class _AddProductState extends State<AddProduct> {
     return _validateStep1() && _validateStep2() && _validateStep3();
   }
 }
-

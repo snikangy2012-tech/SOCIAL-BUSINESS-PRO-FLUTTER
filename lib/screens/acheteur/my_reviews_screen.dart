@@ -10,7 +10,7 @@ import 'package:go_router/go_router.dart';
 import '../../config/constants.dart';
 import '../../models/review_model.dart';
 import '../../providers/auth_provider_firebase.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class MyReviewsScreen extends StatefulWidget {
   const MyReviewsScreen({super.key});
@@ -55,9 +55,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> with SingleTickerProv
           .where('reviewerId', isEqualTo: userId)
           .get();
 
-      final reviews = snapshot.docs
-          .map((doc) => ReviewModel.fromFirestore(doc))
-          .toList();
+      final reviews = snapshot.docs.map((doc) => ReviewModel.fromFirestore(doc)).toList();
 
       // Tri en mémoire par date décroissante
       reviews.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -429,9 +427,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> with SingleTickerProv
           return {
             'id': targetId,
             'name': data['name'] ?? 'Produit inconnu',
-            'imageUrl': (data['images'] as List?)?.isNotEmpty == true
-                ? data['images'][0]
-                : null,
+            'imageUrl': (data['images'] as List?)?.isNotEmpty == true ? data['images'][0] : null,
           };
         }
       } else if (targetType == 'vendor') {

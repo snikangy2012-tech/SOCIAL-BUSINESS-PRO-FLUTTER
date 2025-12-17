@@ -10,7 +10,7 @@ import '../../models/user_model.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/firebase_service.dart';
 import 'package:social_business_pro/config/constants.dart';
-import '../widgets/system_ui_scaffold.dart';
+import 'package:social_business_pro/widgets/system_ui_scaffold.dart';
 
 class AddressManagementScreen extends StatefulWidget {
   const AddressManagementScreen({super.key});
@@ -57,9 +57,8 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
       if (user != null && user.profile['addresses'] != null) {
         final addressesList = user.profile['addresses'] as List<dynamic>;
         setState(() {
-          _addresses = addressesList
-              .map((addr) => Address.fromMap(addr as Map<String, dynamic>))
-              .toList();
+          _addresses =
+              addressesList.map((addr) => Address.fromMap(addr as Map<String, dynamic>)).toList();
           _isLoading = false;
         });
       } else {
@@ -436,7 +435,8 @@ class _AddressFormSheetState extends State<AddressFormSheet> with SingleTickerPr
       }
 
       // Vérifier si les permissions sont toujours refusées
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -538,9 +538,8 @@ class _AddressFormSheetState extends State<AddressFormSheet> with SingleTickerPr
 
     try {
       // Recherche avec geocoding - on ajoute "Abidjan, Côte d'Ivoire" si pas présent
-      final searchQuery = query.toLowerCase().contains('abidjan')
-          ? query
-          : '$query, Abidjan, Côte d\'Ivoire';
+      final searchQuery =
+          query.toLowerCase().contains('abidjan') ? query : '$query, Abidjan, Côte d\'Ivoire';
 
       final locations = await locationFromAddress(searchQuery);
 
@@ -1467,11 +1466,9 @@ class _FullScreenMapPickerState extends State<FullScreenMapPicker> {
     }
   }
 
-  Future<void> _getAddressFromCoordinates(
-      double latitude, double longitude) async {
+  Future<void> _getAddressFromCoordinates(double latitude, double longitude) async {
     try {
-      List<Placemark> placemarks =
-          await placemarkFromCoordinates(latitude, longitude);
+      List<Placemark> placemarks = await placemarkFromCoordinates(latitude, longitude);
       if (placemarks.isNotEmpty) {
         final place = placemarks.first;
         setState(() {
@@ -1501,9 +1498,8 @@ class _FullScreenMapPickerState extends State<FullScreenMapPicker> {
     setState(() => _isSearching = true);
 
     try {
-      final searchQuery = query.toLowerCase().contains('abidjan')
-          ? query
-          : '$query, Abidjan, Côte d\'Ivoire';
+      final searchQuery =
+          query.toLowerCase().contains('abidjan') ? query : '$query, Abidjan, Côte d\'Ivoire';
 
       final locations = await locationFromAddress(searchQuery);
 
@@ -1602,8 +1598,7 @@ class _FullScreenMapPickerState extends State<FullScreenMapPicker> {
                         _selectedCoordinates!.longitude,
                       ),
                       draggable: true,
-                      icon: BitmapDescriptor.defaultMarkerWithHue(
-                          BitmapDescriptor.hueRed),
+                      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
                       infoWindow: InfoWindow(
                         title: 'Position sélectionnée',
                         snippet: _addressText ?? 'Glissez pour déplacer',
@@ -1649,8 +1644,7 @@ class _FullScreenMapPickerState extends State<FullScreenMapPicker> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.map_outlined,
-                            size: 100, color: AppColors.textSecondary),
+                        const Icon(Icons.map_outlined, size: 100, color: AppColors.textSecondary),
                         const SizedBox(height: 24),
                         const Text(
                           'Aucune position sélectionnée',
@@ -1684,8 +1678,7 @@ class _FullScreenMapPickerState extends State<FullScreenMapPicker> {
             right: 16,
             child: Card(
               elevation: 8,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -1704,8 +1697,7 @@ class _FullScreenMapPickerState extends State<FullScreenMapPicker> {
                             decoration: const InputDecoration(
                               hintText: 'Rechercher une adresse...',
                               border: InputBorder.none,
-                              contentPadding:
-                                  EdgeInsets.symmetric(horizontal: 8),
+                              contentPadding: EdgeInsets.symmetric(horizontal: 8),
                             ),
                             onSubmitted: (_) => _searchAddress(),
                           ),
@@ -1721,8 +1713,7 @@ class _FullScreenMapPickerState extends State<FullScreenMapPicker> {
                           )
                         else
                           IconButton(
-                            icon: const Icon(Icons.search,
-                                color: AppColors.primary),
+                            icon: const Icon(Icons.search, color: AppColors.primary),
                             onPressed: _searchAddress,
                           ),
                       ],
@@ -1749,8 +1740,7 @@ class _FullScreenMapPickerState extends State<FullScreenMapPicker> {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.location_on,
-                              color: AppColors.primary, size: 20),
+                          Icon(Icons.location_on, color: AppColors.primary, size: 20),
                           SizedBox(width: 8),
                           Text(
                             'Position sélectionnée',

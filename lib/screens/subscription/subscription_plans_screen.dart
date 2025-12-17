@@ -5,7 +5,7 @@ import 'package:social_business_pro/config/constants.dart';
 import '../../models/subscription_model.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../providers/subscription_provider.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 /// Écran de présentation des plans d'abonnement (Vendeur ou Livreur)
 /// S'adapte automatiquement selon le type d'utilisateur connecté
@@ -52,16 +52,15 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
     }
 
     // Afficher les plans selon le type d'utilisateur
-    return _userType == UserType.vendeur
-        ? _buildVendeurPlans()
-        : _buildLivreurPlans();
+    return _userType == UserType.vendeur ? _buildVendeurPlans() : _buildLivreurPlans();
   }
 
   // ==================== PLANS VENDEUR ====================
 
   Widget _buildVendeurPlans() {
     final subscriptionProvider = Provider.of<SubscriptionProvider>(context);
-    final currentTier = subscriptionProvider.vendeurSubscription?.tier ?? VendeurSubscriptionTier.basique;
+    final currentTier =
+        subscriptionProvider.vendeurSubscription?.tier ?? VendeurSubscriptionTier.basique;
 
     return SystemUIScaffold(
       appBar: AppBar(
@@ -430,9 +429,14 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
             flex: 2,
             child: Text(feature, style: const TextStyle(fontWeight: FontWeight.w500)),
           ),
-          Expanded(child: Text(basique, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13))),
-          Expanded(child: Text(pro, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13))),
-          Expanded(child: Text(premium, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13))),
+          Expanded(
+              child:
+                  Text(basique, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13))),
+          Expanded(
+              child: Text(pro, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13))),
+          Expanded(
+              child:
+                  Text(premium, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13))),
         ],
       ),
     );
@@ -527,10 +531,12 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
             onPressed: () async {
               Navigator.pop(context);
               final authProvider = Provider.of<AuthProvider>(context, listen: false);
-              final subscriptionProvider = Provider.of<SubscriptionProvider>(context, listen: false);
+              final subscriptionProvider =
+                  Provider.of<SubscriptionProvider>(context, listen: false);
 
               if (authProvider.user?.id != null) {
-                final success = await subscriptionProvider.downgradeSubscription(authProvider.user!.id);
+                final success =
+                    await subscriptionProvider.downgradeSubscription(authProvider.user!.id);
 
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -1014,10 +1020,12 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
             onPressed: () async {
               Navigator.pop(context);
               final authProvider = Provider.of<AuthProvider>(context, listen: false);
-              final subscriptionProvider = Provider.of<SubscriptionProvider>(context, listen: false);
+              final subscriptionProvider =
+                  Provider.of<SubscriptionProvider>(context, listen: false);
 
               if (authProvider.user?.id != null) {
-                final success = await subscriptionProvider.downgradeLivreurSubscription(authProvider.user!.id);
+                final success =
+                    await subscriptionProvider.downgradeLivreurSubscription(authProvider.user!.id);
 
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(

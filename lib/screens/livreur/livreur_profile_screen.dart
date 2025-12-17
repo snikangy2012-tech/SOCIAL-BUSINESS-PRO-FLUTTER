@@ -14,7 +14,7 @@ import 'package:social_business_pro/config/constants.dart';
 import '../../utils/number_formatter.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class LivreurProfileScreen extends StatefulWidget {
   const LivreurProfileScreen({super.key});
@@ -61,15 +61,13 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
           // ✅ Charger les livraisons avec timeout
           List<DeliveryModel> deliveries = [];
           try {
-            deliveries = await _deliveryService
-                .getLivreurDeliveries(livreurId: userId)
-                .timeout(
-                  const Duration(seconds: 10),
-                  onTimeout: () {
-                    debugPrint('⚠️ Timeout chargement livraisons');
-                    return <DeliveryModel>[];
-                  },
-                );
+            deliveries = await _deliveryService.getLivreurDeliveries(livreurId: userId).timeout(
+              const Duration(seconds: 10),
+              onTimeout: () {
+                debugPrint('⚠️ Timeout chargement livraisons');
+                return <DeliveryModel>[];
+              },
+            );
           } catch (e) {
             debugPrint('❌ Erreur chargement livraisons: $e');
             deliveries = [];
@@ -79,12 +77,11 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
             // Filtrer seulement les livraisons terminées pour l'historique
             final completedDeliveries = deliveries.where((d) {
               final status = d.status.toLowerCase();
-              return status == 'delivered' ||
-                     status == 'completed' ||
-                     status == 'cancelled';
+              return status == 'delivered' || status == 'completed' || status == 'cancelled';
             }).toList();
 
-            debugPrint('📋 Historique: ${completedDeliveries.length} livraisons terminées sur ${deliveries.length} total');
+            debugPrint(
+                '📋 Historique: ${completedDeliveries.length} livraisons terminées sur ${deliveries.length} total');
 
             setState(() {
               _currentUser = user;
@@ -138,9 +135,8 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
 
   void _calculateStatistics() async {
     _totalDeliveries = _deliveryHistory.length;
-    _completedDeliveries = _deliveryHistory
-        .where((d) => d.status.toLowerCase() == 'delivered')
-        .length;
+    _completedDeliveries =
+        _deliveryHistory.where((d) => d.status.toLowerCase() == 'delivered').length;
 
     _totalEarnings = _deliveryHistory
         .where((d) => d.status.toLowerCase() == 'delivered')
@@ -226,10 +222,8 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
         );
       }
 
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('profile_photos')
-          .child('${_currentUser!.id}.jpg');
+      final storageRef =
+          FirebaseStorage.instance.ref().child('profile_photos').child('${_currentUser!.id}.jpg');
 
       File imageFile = File(image.path);
       await storageRef.putFile(imageFile);
@@ -830,9 +824,7 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
                         Expanded(
                           child: _buildStatCard(
                             'Note moyenne',
-                            _averageRating > 0
-                                ? _averageRating.toStringAsFixed(1)
-                                : 'N/A',
+                            _averageRating > 0 ? _averageRating.toStringAsFixed(1) : 'N/A',
                             Icons.star,
                             Colors.amber,
                           ),
@@ -840,7 +832,6 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
                       ],
                     ),
                     const SizedBox(height: 24),
-
                     const Text(
                       'Historique des livraisons',
                       style: TextStyle(

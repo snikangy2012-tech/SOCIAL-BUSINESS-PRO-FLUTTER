@@ -17,7 +17,7 @@ import '../../widgets/rating_stars.dart';
 import '../../widgets/review_list.dart';
 import '../../widgets/review_dialog.dart';
 import '../../utils/number_formatter.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -314,14 +314,10 @@ Découvrez ce produit sur Social Business Pro!
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          isFavorite
-                              ? 'Retiré des favoris'
-                              : 'Ajouté aux favoris',
+                          isFavorite ? 'Retiré des favoris' : 'Ajouté aux favoris',
                         ),
                         duration: const Duration(seconds: 1),
-                        backgroundColor: isFavorite
-                            ? AppColors.textSecondary
-                            : AppColors.success,
+                        backgroundColor: isFavorite ? AppColors.textSecondary : AppColors.success,
                       ),
                     );
                   }
@@ -344,9 +340,8 @@ Découvrez ce produit sur Social Business Pro!
   }
 
   Widget _buildImageGallery() {
-    final images = _product!.images.isNotEmpty
-        ? _product!.images
-        : ['https://via.placeholder.com/400'];
+    final images =
+        _product!.images.isNotEmpty ? _product!.images : ['https://via.placeholder.com/400'];
 
     return Container(
       height: 400,
@@ -395,9 +390,7 @@ Découvrez ce produit sur Social Business Pro!
                     width: _selectedImageIndex == index ? 24 : 8,
                     height: 8,
                     decoration: BoxDecoration(
-                      color: _selectedImageIndex == index
-                          ? AppColors.primary
-                          : AppColors.border,
+                      color: _selectedImageIndex == index ? AppColors.primary : AppColors.border,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -445,7 +438,7 @@ Découvrez ce produit sur Social Business Pro!
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.error.withValues(alpha:0.1),
+                    color: AppColors.error.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -480,7 +473,7 @@ Découvrez ce produit sur Social Business Pro!
             children: [
               Chip(
                 label: Text(_product!.category),
-                backgroundColor: AppColors.primary.withValues(alpha:0.1),
+                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                 labelStyle: const TextStyle(color: AppColors.primary),
               ),
               const SizedBox(width: AppSpacing.sm),
@@ -512,9 +505,7 @@ Découvrez ce produit sur Social Business Pro!
                     ? 'En stock (${_product!.stock} disponibles)'
                     : 'Rupture de stock',
                 style: TextStyle(
-                  color: _product!.stock > 0
-                      ? AppColors.success
-                      : AppColors.error,
+                  color: _product!.stock > 0 ? AppColors.success : AppColors.error,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -536,9 +527,7 @@ Découvrez ce produit sur Social Business Pro!
             Row(
               children: [
                 IconButton(
-                  onPressed: _quantity > 1
-                      ? () => setState(() => _quantity--)
-                      : null,
+                  onPressed: _quantity > 1 ? () => setState(() => _quantity--) : null,
                   icon: const Icon(Icons.remove_circle_outline),
                   color: AppColors.primary,
                 ),
@@ -560,9 +549,7 @@ Découvrez ce produit sur Social Business Pro!
                   ),
                 ),
                 IconButton(
-                  onPressed: _quantity < _product!.stock
-                      ? () => setState(() => _quantity++)
-                      : null,
+                  onPressed: _quantity < _product!.stock ? () => setState(() => _quantity++) : null,
                   icon: const Icon(Icons.add_circle_outline),
                   color: AppColors.primary,
                 ),
@@ -592,9 +579,7 @@ Découvrez ce produit sur Social Business Pro!
             radius: 24,
             backgroundColor: AppColors.primary,
             child: Text(
-              _product!.vendeurName.isNotEmpty
-                  ? _product!.vendeurName[0].toUpperCase()
-                  : 'V',
+              _product!.vendeurName.isNotEmpty ? _product!.vendeurName[0].toUpperCase() : 'V',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: AppFontSizes.lg,
@@ -828,7 +813,7 @@ Découvrez ce produit sur Social Business Pro!
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),

@@ -7,7 +7,7 @@ import '../../config/constants.dart';
 import '../../models/user_model.dart';
 import '../../services/firebase_service.dart';
 import '../../services/review_service.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class AdminLivreurDetailScreen extends StatefulWidget {
   final String livreurId;
@@ -55,9 +55,8 @@ class _AdminLivreurDetailScreenState extends State<AdminLivreurDetailScreen> {
             .get();
 
         int totalDeliveries = deliveriesSnapshot.docs.length;
-        int completedDeliveries = deliveriesSnapshot.docs
-            .where((doc) => doc.data()['status'] == 'delivered')
-            .length;
+        int completedDeliveries =
+            deliveriesSnapshot.docs.where((doc) => doc.data()['status'] == 'delivered').length;
 
         // Calculer les revenus (estimation basée sur les livraisons)
         double totalEarnings = completedDeliveries * 500.0; // 500 FCFA par livraison (exemple)

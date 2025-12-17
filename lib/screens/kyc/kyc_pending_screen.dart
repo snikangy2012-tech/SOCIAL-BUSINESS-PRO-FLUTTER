@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 import '../../config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../widgets/custom_widgets.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class KYCPendingScreen extends StatelessWidget {
   const KYCPendingScreen({super.key});
@@ -386,9 +386,7 @@ class KYCPendingScreen extends StatelessWidget {
       child: Container(
         width: 2,
         height: 30,
-        color: isCompleted
-            ? AppColors.success
-            : AppColors.textSecondary.withOpacity(0.3),
+        color: isCompleted ? AppColors.success : AppColors.textSecondary.withOpacity(0.3),
       ),
     );
   }

@@ -17,7 +17,7 @@ import 'package:social_business_pro/screens/admin/global_reports_screen.dart';
 import '../../providers/auth_provider_firebase.dart' as auth;
 import '../../providers/notification_provider.dart';
 import '../../widgets/custom_widgets.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -36,19 +36,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
     try {
       // Vérifier si le profil existe
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
 
       if (!doc.exists) {
         debugPrint('📝 Création profil Admin Firestore...');
-        
+
         // Créer le profil Admin Firestore
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .set({
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
           'uid': user.uid,
           'email': user.email,
           'displayName': user.displayName,
@@ -62,7 +56,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             'department': 'Administration',
           },
         }, SetOptions(merge: true));
-        
+
         debugPrint('✅ Profil Admin créé avec succès');
       }
     } catch (e) {
@@ -100,7 +94,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
       }
     });
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -182,7 +175,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
       ),
     );
   }
-
 
   // En-tête de bienvenue
   Widget _buildWelcomeHeader() {
@@ -271,7 +263,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-
         StreamBuilder<Map<String, int>>(
           stream: _getStatisticsStream(),
           builder: (context, snapshot) {
@@ -284,13 +275,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
               );
             }
 
-            final stats = snapshot.data ?? {
-              'vendeurs': 0,
-              'acheteurs': 0,
-              'livreurs': 0,
-              'commandes': 0,
-              'kycPending': 0,
-            };
+            final stats = snapshot.data ??
+                {
+                  'vendeurs': 0,
+                  'acheteurs': 0,
+                  'livreurs': 0,
+                  'commandes': 0,
+                  'kycPending': 0,
+                };
 
             final kycPending = stats['kycPending'] as int? ?? 0;
 
@@ -398,10 +390,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
           .get();
 
       // Compter les commandes
-      final commandesSnapshot = await FirebaseFirestore.instance
-          .collection(FirebaseCollections.orders)
-          .count()
-          .get();
+      final commandesSnapshot =
+          await FirebaseFirestore.instance.collection(FirebaseCollections.orders).count().get();
 
       // Compter les KYC en attente (vendeurs et livreurs)
       int kycPending = 0;
@@ -454,7 +444,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     }
   }
 
-
   // Activités récentes avec alertes importantes
   Widget _buildRecentActivities() {
     return Column(
@@ -469,7 +458,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-
         StreamBuilder<Map<String, dynamic>>(
           stream: _getRecentActivitiesStream(),
           builder: (context, snapshot) {
@@ -649,24 +637,24 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
             const SizedBox(height: AppSpacing.sm),
             ...items.map((item) => InkWell(
-              onTap: item.onTap,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Row(
-                  children: [
-                    Icon(item.icon, color: item.color, size: 18),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        item.label,
-                        style: const TextStyle(fontSize: AppFontSizes.sm),
-                      ),
+                  onTap: item.onTap,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: [
+                        Icon(item.icon, color: item.color, size: 18),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            item.label,
+                            style: const TextStyle(fontSize: AppFontSizes.sm),
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, size: 18, color: AppColors.textSecondary),
+                      ],
                     ),
-                    const Icon(Icons.chevron_right, size: 18, color: AppColors.textSecondary),
-                  ],
-                ),
-              ),
-            )),
+                  ),
+                )),
           ],
         ),
       ),
@@ -740,9 +728,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
       }).length;
 
       // Utilisateurs suspendus (tous types)
-      final allUsersSnapshot = await FirebaseFirestore.instance
-          .collection(FirebaseCollections.users)
-          .get();
+      final allUsersSnapshot =
+          await FirebaseFirestore.instance.collection(FirebaseCollections.users).get();
 
       final suspendedUsers = allUsersSnapshot.docs.where((doc) {
         final status = doc.data()['profile']?['status'] as String?;
@@ -814,8 +801,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
         'pendingLivreurs': pendingLivreurs,
         'suspendedUsers': suspendedUsers,
         'recentOrders': recentOrdersSnapshot.count ?? 0,
-        'activeSubscriptions': (activeVendeurSubsSnapshot.count ?? 0) + (activeLivreurSubsSnapshot.count ?? 0),
-        'expiredSubscriptions': (expiredVendeurSubsSnapshot.count ?? 0) + (expiredLivreurSubsSnapshot.count ?? 0),
+        'activeSubscriptions':
+            (activeVendeurSubsSnapshot.count ?? 0) + (activeLivreurSubsSnapshot.count ?? 0),
+        'expiredSubscriptions':
+            (expiredVendeurSubsSnapshot.count ?? 0) + (expiredLivreurSubsSnapshot.count ?? 0),
         'kycVendeursPending': kycVendeursPending,
         'kycLivreursPending': kycLivreursPending,
       };
@@ -926,49 +915,49 @@ class _AdminDashboardState extends State<AdminDashboard> {
               backgroundColor: AppColors.warning,
               isOutlined: true,
               onPressed: () async {
-            try {
-              // Afficher un loader
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => const Center(
-                  child: CircularProgressIndicator(),
-                ),
-              );
+                try {
+                  // Afficher un loader
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
 
-              // Générer les activités de test
-              await ActivityLogSeeder.seedTestActivities();
+                  // Générer les activités de test
+                  await ActivityLogSeeder.seedTestActivities();
 
-              // Fermer le loader
-              if (context.mounted) {
-                Navigator.of(context).pop();
+                  // Fermer le loader
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
 
-                // Afficher un message de succès
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('✅ 12 activités de test créées avec succès'),
-                    backgroundColor: AppColors.success,
-                    duration: Duration(seconds: 3),
-                  ),
-                );
-              }
-            } catch (e) {
-              // Fermer le loader
-              if (context.mounted) {
-                Navigator.of(context).pop();
+                    // Afficher un message de succès
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('✅ 12 activités de test créées avec succès'),
+                        backgroundColor: AppColors.success,
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  // Fermer le loader
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
 
-                // Afficher l'erreur
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('❌ Erreur: $e'),
-                    backgroundColor: AppColors.error,
-                    duration: const Duration(seconds: 5),
-                  ),
-                );
-              }
-            }
-          },
-        ),
+                    // Afficher l'erreur
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('❌ Erreur: $e'),
+                        backgroundColor: AppColors.error,
+                        duration: const Duration(seconds: 5),
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
           ],
         );
       },
@@ -1016,10 +1005,10 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: color.withValues(alpha:0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha:0.1),
+            color: color.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -1040,8 +1029,8 @@ class _StatCard extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: isAlert
-                      ? AppColors.warning.withValues(alpha:0.2)
-                      : AppColors.success.withValues(alpha:0.2),
+                      ? AppColors.warning.withValues(alpha: 0.2)
+                      : AppColors.success.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
                 child: Text(
@@ -1082,4 +1071,3 @@ class _StatCard extends StatelessWidget {
     );
   }
 }
-

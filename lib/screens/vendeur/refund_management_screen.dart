@@ -9,7 +9,7 @@ import '../../config/constants.dart';
 import '../../models/refund_model.dart';
 import '../../services/refund_service.dart';
 import '../../providers/auth_provider_firebase.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class RefundManagementScreen extends StatefulWidget {
   const RefundManagementScreen({super.key});
@@ -584,9 +584,7 @@ class _RefundManagementScreenState extends State<RefundManagementScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              success
-                  ? '✅ Demande de retour approuvée'
-                  : '❌ Erreur lors de l\'approbation',
+              success ? '✅ Demande de retour approuvée' : '❌ Erreur lors de l\'approbation',
             ),
             backgroundColor: success ? AppColors.success : AppColors.error,
           ),
@@ -643,9 +641,7 @@ class _RefundManagementScreenState extends State<RefundManagementScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              success
-                  ? '✅ Demande de retour refusée'
-                  : '❌ Erreur lors du refus',
+              success ? '✅ Demande de retour refusée' : '❌ Erreur lors du refus',
             ),
             backgroundColor: success ? AppColors.success : AppColors.error,
           ),

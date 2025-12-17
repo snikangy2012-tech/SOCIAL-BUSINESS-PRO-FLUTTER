@@ -14,7 +14,7 @@ import '../../widgets/custom_widgets.dart';
 import '../../utils/order_status_helper.dart';
 import '../../utils/number_formatter.dart';
 import 'package:provider/provider.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
   const OrderHistoryScreen({super.key});
@@ -25,7 +25,6 @@ class OrderHistoryScreen extends StatefulWidget {
 
 class _OrderHistoryScreenState extends State<OrderHistoryScreen>
     with SingleTickerProviderStateMixin {
-
   late TabController _tabController;
 
   List<OrderModel> _allOrders = [];
@@ -104,15 +103,19 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
         case 'en_cours':
           // Inclure tous les statuts "en cours": confirmed, preparing, processing, in_delivery
           return orderStatus == 'en_cours' ||
-                 orderStatus == 'confirmed' ||
-                 orderStatus == 'preparing' ||
-                 orderStatus == 'ready' ||
-                 orderStatus == 'processing' ||
-                 orderStatus == 'in_delivery';
+              orderStatus == 'confirmed' ||
+              orderStatus == 'preparing' ||
+              orderStatus == 'ready' ||
+              orderStatus == 'processing' ||
+              orderStatus == 'in_delivery';
         case 'livree':
-          return orderStatus == 'livree' || orderStatus == 'delivered' || orderStatus == 'completed';
+          return orderStatus == 'livree' ||
+              orderStatus == 'delivered' ||
+              orderStatus == 'completed';
         case 'annulee':
-          return orderStatus == 'annulee' || orderStatus == 'cancelled' || orderStatus == 'canceled';
+          return orderStatus == 'annulee' ||
+              orderStatus == 'cancelled' ||
+              orderStatus == 'canceled';
         default:
           return orderStatus == status.toLowerCase();
       }
@@ -247,7 +250,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
       controller: _tabController,
       children: _statusFilters.map((status) {
         final filteredOrders = _getFilteredOrders(status);
-        
+
         if (filteredOrders.isEmpty) {
           return _buildEmptyState(status);
         }
@@ -257,8 +260,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
           child: ListView.separated(
             padding: const EdgeInsets.all(AppSpacing.md),
             itemCount: filteredOrders.length,
-            separatorBuilder: (context, index) => 
-                const SizedBox(height: AppSpacing.md),
+            separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.md),
             itemBuilder: (context, index) {
               return _buildOrderCard(filteredOrders[index]);
             },
@@ -331,7 +333,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
     final statusColor = _getStatusColor(order.status);
     final statusLabel = _getStatusLabel(order.status);
     final statusIcon = _getStatusIcon(order.status);
-    
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -378,10 +380,10 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha:0.1),
+                      color: statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppRadius.sm),
                       border: Border.all(
-                        color: statusColor.withValues(alpha:0.3),
+                        color: statusColor.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
@@ -402,9 +404,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
                   ),
                 ],
               ),
-              
+
               const Divider(height: 24),
-              
+
               // Informations vendeur
               Row(
                 children: [
@@ -412,7 +414,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha:0.1),
+                      color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                     child: const Icon(
@@ -444,9 +446,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: AppSpacing.sm),
-              
+
               // Montant total
               Container(
                 padding: const EdgeInsets.all(AppSpacing.sm),
@@ -481,9 +483,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: AppSpacing.sm),
-              
+
               // Actions
               Row(
                 children: [
@@ -498,7 +500,6 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
                       ),
                     ),
                   ),
-
                   if (order.status.toLowerCase() == 'in_delivery') ...[
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
@@ -513,7 +514,6 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
                       ),
                     ),
                   ],
-
                   if (order.status.toLowerCase() == 'delivered') ...[
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
@@ -568,7 +568,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
-    
+
     if (difference.inDays == 0) {
       return 'Aujourd\'hui à ${DateFormat('HH:mm').format(date)}';
     } else if (difference.inDays == 1) {
@@ -579,5 +579,4 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
       return DateFormat('dd/MM/yyyy').format(date);
     }
   }
-
 }

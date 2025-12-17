@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/auth_provider_firebase.dart';
 import 'package:social_business_pro/config/constants.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class VendeurProfileScreen extends StatefulWidget {
   const VendeurProfileScreen({super.key});
@@ -152,9 +152,7 @@ class _VendeurProfileScreenState extends State<VendeurProfileScreen> {
                             radius: 60,
                             backgroundColor: AppColors.primary,
                             child: Text(
-                              user.displayName.isNotEmpty
-                                  ? user.displayName[0].toUpperCase()
-                                  : '?',
+                              user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : '?',
                               style: const TextStyle(
                                 fontSize: 48,
                                 fontWeight: FontWeight.bold,
@@ -328,7 +326,7 @@ class _VendeurProfileScreenState extends State<VendeurProfileScreen> {
                     ),
 
                     const SizedBox(height: 24),
-                    
+
                     // Section Paramètres
                     const Text(
                       'Paramètres',

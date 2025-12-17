@@ -23,6 +23,9 @@ class ProductSubcategories {
       'Autre (à préciser)',
     ],
     'alimentation': [
+      'Supermarché',
+      'Poissonnerie',
+      'Boucherie',
       'Épicerie',
       'Boissons',
       'Snacks',

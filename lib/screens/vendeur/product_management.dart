@@ -13,7 +13,7 @@ import '../../models/audit_log_model.dart';
 import '../../services/product_service.dart';
 import '../../services/audit_service.dart';
 import '../../config/product_categories.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class ProductManagement extends StatefulWidget {
   const ProductManagement({super.key, required String storeId});
@@ -61,32 +61,32 @@ class _ProductManagementState extends State<ProductManagement> {
   }
 
   Future<void> _loadProducts() async {
-  debugPrint('🔄 Début chargement produits');
-  
-  if (!mounted) return;
-  
-  setState(() => _isLoading = true);
-  
-  try {
-    final authProvider = context.read<AuthProvider>();
-    final user = authProvider.user;
-    
-    if (user == null) {
-      throw Exception('Utilisateur non connecté');
-    }
-    
-    // ✅ Option 1 : Charger depuis Firestore
-    final products = await ProductService().getVendorProducts(user.id);
+    debugPrint('🔄 Début chargement produits');
 
-    if (mounted) {
-      setState(() {
-        _products = products;
-        _filteredProducts = products;
-      });
-    }
+    if (!mounted) return;
 
-    // ✅ Option 2 : Données MOCK pour les tests (DÉSACTIVÉ)
-    /*
+    setState(() => _isLoading = true);
+
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final user = authProvider.user;
+
+      if (user == null) {
+        throw Exception('Utilisateur non connecté');
+      }
+
+      // ✅ Option 1 : Charger depuis Firestore
+      final products = await ProductService().getVendorProducts(user.id);
+
+      if (mounted) {
+        setState(() {
+          _products = products;
+          _filteredProducts = products;
+        });
+      }
+
+      // ✅ Option 2 : Données MOCK pour les tests (DÉSACTIVÉ)
+      /*
     await Future.delayed(const Duration(seconds: 1));
     
     if (!mounted) return;
@@ -224,32 +224,31 @@ class _ProductManagementState extends State<ProductManagement> {
     });
     */
 
-    debugPrint('✅ Produits chargés: ${_products.length}');
-    
-  } catch (e) {
-    debugPrint('❌ Erreur chargement produits: $e');
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur: $e'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-    }
-  } finally {
-    // ✅ TOUJOURS arrêter le loading
-    debugPrint('🏁 Arrêt loading produits');
-    if (mounted) {
-      setState(() => _isLoading = false);
+      debugPrint('✅ Produits chargés: ${_products.length}');
+    } catch (e) {
+      debugPrint('❌ Erreur chargement produits: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      // ✅ TOUJOURS arrêter le loading
+      debugPrint('🏁 Arrêt loading produits');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
-}
 
   // Filtrer les produits selon la recherche et la catégorie
   void _filterProducts() {
     final query = _searchController.text.toLowerCase();
-    
+
     setState(() {
       _filteredProducts = _products.where((product) {
         // Filtrer par recherche
@@ -257,156 +256,153 @@ class _ProductManagementState extends State<ProductManagement> {
             product.name.toLowerCase().contains(query) ||
             product.description.toLowerCase().contains(query) ||
             product.category.toLowerCase().contains(query);
-        
+
         // Filtrer par catégorie
-        final matchesCategory = _selectedCategory == 'all' ||
-            product.category == _selectedCategory;
-        
+        final matchesCategory = _selectedCategory == 'all' || product.category == _selectedCategory;
+
         return matchesSearch && matchesCategory;
       }).toList();
     });
   }
 
   // Basculer le statut actif/inactif d'un produit
-Future<void> _toggleProductStatus(String productId, bool newStatus) async {
-  try {
-    debugPrint('🔄 Modification statut produit $productId: $newStatus');
-    
-    // TODO: Mettre à jour dans Firestore
-    // await ProductService().updateProduct(productId, {'isActive': newStatus});
-    
-    // Simuler pour le moment
-    await Future.delayed(const Duration(milliseconds: 300));
-    
-    // Mettre à jour localement
-    if (mounted) {
-      setState(() {
-        final index = _products.indexWhere((p) => p.id == productId);
-        if (index != -1) {
-          // Créer une copie avec le nouveau statut
-          _products[index] = ProductModel(
-            id: _products[index].id,
-            name: _products[index].name,
-            description: _products[index].description,
-            price: _products[index].price,
-            originalPrice: _products[index].originalPrice,
-            category: _products[index].category,
-            subCategory: _products[index].subCategory,
-            brand: _products[index].brand,
-            images: _products[index].images,
-            stock: _products[index].stock,
-            sku: _products[index].sku,
-            tags: _products[index].tags,
-            isActive: newStatus, // ✅ Nouveau statut
-            isFeatured: _products[index].isFeatured,
-            isFlashSale: _products[index].isFlashSale,
-            isNew: _products[index].isNew,
-            vendeurId: _products[index].vendeurId,
-            vendeurName: _products[index].vendeurName,
-            specifications: _products[index].specifications,
-            createdAt: _products[index].createdAt,
-            updatedAt: DateTime.now(),
-          );
-          
-          // Mettre à jour aussi la liste filtrée
-          _filterProducts();
-        }
-      });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            newStatus ? 'Produit activé' : 'Produit désactivé',
+  Future<void> _toggleProductStatus(String productId, bool newStatus) async {
+    try {
+      debugPrint('🔄 Modification statut produit $productId: $newStatus');
+
+      // TODO: Mettre à jour dans Firestore
+      // await ProductService().updateProduct(productId, {'isActive': newStatus});
+
+      // Simuler pour le moment
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // Mettre à jour localement
+      if (mounted) {
+        setState(() {
+          final index = _products.indexWhere((p) => p.id == productId);
+          if (index != -1) {
+            // Créer une copie avec le nouveau statut
+            _products[index] = ProductModel(
+              id: _products[index].id,
+              name: _products[index].name,
+              description: _products[index].description,
+              price: _products[index].price,
+              originalPrice: _products[index].originalPrice,
+              category: _products[index].category,
+              subCategory: _products[index].subCategory,
+              brand: _products[index].brand,
+              images: _products[index].images,
+              stock: _products[index].stock,
+              sku: _products[index].sku,
+              tags: _products[index].tags,
+              isActive: newStatus, // ✅ Nouveau statut
+              isFeatured: _products[index].isFeatured,
+              isFlashSale: _products[index].isFlashSale,
+              isNew: _products[index].isNew,
+              vendeurId: _products[index].vendeurId,
+              vendeurName: _products[index].vendeurName,
+              specifications: _products[index].specifications,
+              createdAt: _products[index].createdAt,
+              updatedAt: DateTime.now(),
+            );
+
+            // Mettre à jour aussi la liste filtrée
+            _filterProducts();
+          }
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              newStatus ? 'Produit activé' : 'Produit désactivé',
+            ),
+            backgroundColor: newStatus ? AppColors.success : Colors.grey,
+            duration: const Duration(seconds: 2),
           ),
-          backgroundColor: newStatus ? AppColors.success : Colors.grey,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
-    
-    debugPrint('✅ Statut modifié');
-    
-  } catch (e) {
-    debugPrint('❌ Erreur modification statut: $e');
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur: $e'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+        );
+      }
+
+      debugPrint('✅ Statut modifié');
+    } catch (e) {
+      debugPrint('❌ Erreur modification statut: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
-}
 
 // Supprimer un produit
-Future<void> _deleteProduct(String productId, String productName) async {
-  try {
-    debugPrint('🗑️ Suppression produit $productId');
+  Future<void> _deleteProduct(String productId, String productName) async {
+    try {
+      debugPrint('🗑️ Suppression produit $productId');
 
-    // Récupérer authProvider avant les appels async
-    final authProvider = context.read<AuthProvider>();
+      // Récupérer authProvider avant les appels async
+      final authProvider = context.read<AuthProvider>();
 
-    // TODO: Supprimer de Firestore
-    // await ProductService().deleteProduct(productId);
+      // TODO: Supprimer de Firestore
+      // await ProductService().deleteProduct(productId);
 
-    // Simuler pour le moment
-    await Future.delayed(const Duration(milliseconds: 500));
+      // Simuler pour le moment
+      await Future.delayed(const Duration(milliseconds: 500));
 
-    // Logger la suppression du produit
-    if (authProvider.user != null) {
-      await AuditService.log(
-        userId: authProvider.user!.id,
-        userType: authProvider.user!.userType.value,
-        userEmail: authProvider.user!.email,
-        userName: authProvider.user!.displayName,
-        action: 'product_deleted',
-        actionLabel: 'Suppression de produit',
-        category: AuditCategory.userAction,
-        severity: AuditSeverity.medium,
-        description: 'Suppression du produit "$productName"',
-        targetType: 'product',
-        targetId: productId,
-        targetLabel: productName,
-        metadata: {
-          'productId': productId,
-          'productName': productName,
-        },
-      );
-    }
+      // Logger la suppression du produit
+      if (authProvider.user != null) {
+        await AuditService.log(
+          userId: authProvider.user!.id,
+          userType: authProvider.user!.userType.value,
+          userEmail: authProvider.user!.email,
+          userName: authProvider.user!.displayName,
+          action: 'product_deleted',
+          actionLabel: 'Suppression de produit',
+          category: AuditCategory.userAction,
+          severity: AuditSeverity.medium,
+          description: 'Suppression du produit "$productName"',
+          targetType: 'product',
+          targetId: productId,
+          targetLabel: productName,
+          metadata: {
+            'productId': productId,
+            'productName': productName,
+          },
+        );
+      }
 
-    // Supprimer localement
-    if (mounted) {
-      setState(() {
-        _products.removeWhere((p) => p.id == productId);
-        _filteredProducts.removeWhere((p) => p.id == productId);
-      });
+      // Supprimer localement
+      if (mounted) {
+        setState(() {
+          _products.removeWhere((p) => p.id == productId);
+          _filteredProducts.removeWhere((p) => p.id == productId);
+        });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Produit supprimé'),
-          backgroundColor: AppColors.success,
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Produit supprimé'),
+            backgroundColor: AppColors.success,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
 
-    debugPrint('✅ Produit supprimé');
-    
-  } catch (e) {
-    debugPrint('❌ Erreur suppression: $e');
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur: $e'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      debugPrint('✅ Produit supprimé');
+    } catch (e) {
+      debugPrint('❌ Erreur suppression: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -429,15 +425,13 @@ Future<void> _deleteProduct(String productId, String productName) async {
               children: [
                 // Statistiques
                 _buildStatsSection(),
-                
+
                 // Filtres et recherche
                 _buildFiltersSection(),
-                
+
                 // Liste des produits
                 Expanded(
-                  child: _filteredProducts.isEmpty
-                      ? _buildEmptyState()
-                      : _buildProductsList(),
+                  child: _filteredProducts.isEmpty ? _buildEmptyState() : _buildProductsList(),
                 ),
               ],
             ),
@@ -464,7 +458,7 @@ Future<void> _deleteProduct(String productId, String productName) async {
         borderRadius: BorderRadius.circular(AppRadius.lg),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -480,7 +474,7 @@ Future<void> _deleteProduct(String productId, String productName) async {
       ),
     );
   }
-  
+
   Widget _buildProductsList() {
     return ListView.builder(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -536,17 +530,17 @@ Future<void> _deleteProduct(String productId, String productName) async {
               fillColor: Colors.white,
             ),
           ),
-          
+
           const SizedBox(height: AppSpacing.md),
-          
+
           // Filtres catégories
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
                 _buildCategoryFilter('all', 'Tous'),
-                ...ProductCategories.allCategories.map((category) =>
-                    _buildCategoryFilter(category.id, category.name)),
+                ...ProductCategories.allCategories
+                    .map((category) => _buildCategoryFilter(category.id, category.name)),
               ],
             ),
           ),
@@ -557,7 +551,7 @@ Future<void> _deleteProduct(String productId, String productName) async {
 
   Widget _buildCategoryFilter(String categoryId, String name) {
     final isSelected = _selectedCategory == categoryId;
-    
+
     return Container(
       margin: const EdgeInsets.only(right: AppSpacing.sm),
       child: FilterChip(
@@ -570,7 +564,7 @@ Future<void> _deleteProduct(String productId, String productName) async {
           });
         },
         backgroundColor: Colors.white,
-        selectedColor: AppColors.primary.withValues(alpha:0.2),
+        selectedColor: AppColors.primary.withValues(alpha: 0.2),
         labelStyle: TextStyle(
           color: isSelected ? AppColors.primary : AppColors.textSecondary,
           fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
@@ -617,9 +611,9 @@ Future<void> _deleteProduct(String productId, String productName) async {
                       )
                     : Icon(Icons.image, color: Colors.grey[400]),
               ),
-              
+
               const SizedBox(width: 12),
-              
+
               // ✅ WRAPPED IN EXPANDED
               Expanded(
                 child: Column(
@@ -635,9 +629,9 @@ Future<void> _deleteProduct(String productId, String productName) async {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    
+
                     const SizedBox(height: 4),
-                    
+
                     // Catégorie
                     Text(
                       product.category,
@@ -646,9 +640,9 @@ Future<void> _deleteProduct(String productId, String productName) async {
                         color: Colors.grey[600],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 6),
-                    
+
                     // Prix et Stock
                     Row(
                       children: [
@@ -669,17 +663,15 @@ Future<void> _deleteProduct(String productId, String productName) async {
                           ),
                           decoration: BoxDecoration(
                             color: product.stock > 0
-                                ? AppColors.success.withValues(alpha:0.1)
-                                : AppColors.error.withValues(alpha:0.1),
+                                ? AppColors.success.withValues(alpha: 0.1)
+                                : AppColors.error.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             'Stock: ${product.stock}',
                             style: TextStyle(
                               fontSize: 10,
-                              color: product.stock > 0
-                                  ? AppColors.success
-                                  : AppColors.error,
+                              color: product.stock > 0 ? AppColors.success : AppColors.error,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -689,9 +681,9 @@ Future<void> _deleteProduct(String productId, String productName) async {
                   ],
                 ),
               ),
-              
+
               const SizedBox(width: 8),
-              
+
               // Switch
               Switch(
                 value: product.isActive,
@@ -738,9 +730,9 @@ Future<void> _deleteProduct(String productId, String productName) async {
                 ],
               ),
             ),
-            
+
             const Divider(),
-            
+
             // Modifier
             ListTile(
               leading: const Icon(Icons.edit, color: AppColors.info),
@@ -750,7 +742,7 @@ Future<void> _deleteProduct(String productId, String productName) async {
                 context.push('/vendeur/products/edit/${product.id}');
               },
             ),
-            
+
             // Dupliquer
             ListTile(
               leading: const Icon(Icons.copy, color: AppColors.primary),
@@ -762,7 +754,7 @@ Future<void> _deleteProduct(String productId, String productName) async {
                 );
               },
             ),
-            
+
             // Partager
             ListTile(
               leading: const Icon(Icons.share, color: AppColors.secondary),
@@ -774,9 +766,9 @@ Future<void> _deleteProduct(String productId, String productName) async {
                 );
               },
             ),
-            
+
             const Divider(),
-            
+
             // ✅ SUPPRIMER (UTILISE _deleteProduct)
             ListTile(
               leading: const Icon(Icons.delete, color: AppColors.error),
@@ -786,7 +778,7 @@ Future<void> _deleteProduct(String productId, String productName) async {
               ),
               onTap: () async {
                 Navigator.pop(context);
-                
+
                 // Confirmation
                 final confirm = await showDialog<bool>(
                   context: context,
@@ -810,7 +802,7 @@ Future<void> _deleteProduct(String productId, String productName) async {
                     ],
                   ),
                 );
-                
+
                 if (confirm == true && mounted) {
                   // ✅ APPELER LA MÉTHODE
                   await _deleteProduct(product.id, product.name);
@@ -832,7 +824,7 @@ Future<void> _deleteProduct(String productId, String productName) async {
           Icon(
             Icons.inventory_2_outlined,
             size: 80,
-            color: AppColors.textSecondary.withValues(alpha:0.5),
+            color: AppColors.textSecondary.withValues(alpha: 0.5),
           ),
           const SizedBox(height: AppSpacing.lg),
           const Text(
@@ -853,7 +845,7 @@ Future<void> _deleteProduct(String productId, String productName) async {
           ElevatedButton.icon(
             onPressed: () {
               context.push('/vendeur/add-product');
-            }, 
+            },
             icon: const Icon(Icons.add),
             label: const Text('Ajouter un produit'),
             style: ElevatedButton.styleFrom(
@@ -869,4 +861,3 @@ Future<void> _deleteProduct(String productId, String productName) async {
     );
   }
 }
-

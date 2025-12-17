@@ -8,7 +8,7 @@ import '../../models/delivery_model.dart';
 import '../../services/delivery_service.dart';
 import '../../services/order_service.dart';
 import 'package:social_business_pro/config/constants.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class DeliveryTrackingScreen extends StatefulWidget {
   final String orderId;
@@ -102,9 +102,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
       if (_delivery != null) {
         // If we have a delivery, track it using trackDelivery stream
         _deliveryStream?.cancel();
-        _deliveryStream = _deliveryService
-            .trackDelivery(_delivery!.id)
-            .listen((delivery) {
+        _deliveryStream = _deliveryService.trackDelivery(_delivery!.id).listen((delivery) {
           setState(() {
             _delivery = delivery;
           });
@@ -210,7 +208,6 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
       CameraUpdate.newLatLngBounds(bounds, 50),
     );
   }
-
 
   Widget _buildMapSection() {
     if (_delivery == null) {
@@ -350,9 +347,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: isCompleted
-                              ? AppColors.primary
-                              : Colors.grey.shade300,
+                          color: isCompleted ? AppColors.primary : Colors.grey.shade300,
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -365,9 +360,7 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
                         Container(
                           width: 2,
                           height: 40,
-                          color: isCompleted
-                              ? AppColors.primary
-                              : Colors.grey.shade300,
+                          color: isCompleted ? AppColors.primary : Colors.grey.shade300,
                         ),
                     ],
                   ),
@@ -382,12 +375,8 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
                             status['label'] as String,
                             style: TextStyle(
                               fontSize: 16,
-                              fontWeight: isCurrent
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              color: isCompleted
-                                  ? AppColors.textPrimary
-                                  : AppColors.textSecondary,
+                              fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                              color: isCompleted ? AppColors.textPrimary : AppColors.textSecondary,
                             ),
                           ),
                           if (isCurrent)
@@ -619,4 +608,3 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
     );
   }
 }
-

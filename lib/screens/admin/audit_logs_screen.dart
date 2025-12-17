@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import '../../config/constants.dart';
 import '../../models/audit_log_model.dart';
 import '../../services/audit_service.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class AuditLogsScreen extends StatefulWidget {
   const AuditLogsScreen({super.key});
@@ -194,28 +194,24 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
               if (log.targetType != null) ...[
                 _buildDetailSection('Cible', [
                   _buildDetailRow('Type', log.targetType!),
-                  if (log.targetId != null)
-                    _buildDetailRow('ID', log.targetId!),
-                  if (log.targetLabel != null)
-                    _buildDetailRow('Label', log.targetLabel!),
+                  if (log.targetId != null) _buildDetailRow('ID', log.targetId!),
+                  if (log.targetLabel != null) _buildDetailRow('Label', log.targetLabel!),
                 ]),
               ],
 
               // Métadonnées
               if (log.metadata.isNotEmpty) ...[
                 _buildDetailSection('Métadonnées', [
-                  ...log.metadata.entries.map((entry) =>
-                      _buildDetailRow(entry.key, entry.value.toString())),
+                  ...log.metadata.entries
+                      .map((entry) => _buildDetailRow(entry.key, entry.value.toString())),
                 ]),
               ],
 
               // Contexte technique
               if (log.ipAddress != null || log.deviceInfo != null) ...[
                 _buildDetailSection('Contexte technique', [
-                  if (log.ipAddress != null)
-                    _buildDetailRow('Adresse IP', log.ipAddress!),
-                  if (log.deviceInfo != null)
-                    _buildDetailRow('Appareil', log.deviceInfo!),
+                  if (log.ipAddress != null) _buildDetailRow('Adresse IP', log.ipAddress!),
+                  if (log.deviceInfo != null) _buildDetailRow('Appareil', log.deviceInfo!),
                 ]),
               ],
 
@@ -719,9 +715,7 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
   Widget _buildPeriodOption(String label, String value) {
     return ListTile(
       title: Text(label),
-      trailing: _selectedPeriod == value
-          ? const Icon(Icons.check, color: AppColors.primary)
-          : null,
+      trailing: _selectedPeriod == value ? const Icon(Icons.check, color: AppColors.primary) : null,
       onTap: () {
         setState(() => _selectedPeriod = value);
         Navigator.pop(context);

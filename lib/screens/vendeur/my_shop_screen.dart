@@ -13,7 +13,7 @@ import '../../config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../models/user_model.dart';
 import '../../utils/number_formatter.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class MyShopScreen extends StatefulWidget {
   const MyShopScreen({super.key});
@@ -146,10 +146,7 @@ class _MyShopScreenState extends State<MyShopScreen> {
         debugPrint('✅ Image uploadée: $imageUrl');
 
         // Mettre à jour Firestore
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.id)
-            .update({
+        await FirebaseFirestore.instance.collection('users').doc(user.id).update({
           'profile.vendeurProfile.shopImageUrl': imageUrl,
         });
 
@@ -280,9 +277,8 @@ class _MyShopScreenState extends State<MyShopScreen> {
                   _buildInfoTile(
                     icon: Icons.business,
                     label: 'Type d\'entreprise',
-                    value: _vendeurProfile!.businessType == 'individual'
-                        ? 'Individuel'
-                        : 'Entreprise',
+                    value:
+                        _vendeurProfile!.businessType == 'individual' ? 'Individuel' : 'Entreprise',
                   ),
                   if (_vendeurProfile!.businessDescription != null)
                     _buildInfoTile(
@@ -334,17 +330,14 @@ class _MyShopScreenState extends State<MyShopScreen> {
                     _buildInfoTile(
                       icon: Icons.card_giftcard,
                       label: 'Livraison gratuite à partir de',
-                      value: formatPriceWithCurrency(
-                          _vendeurProfile!.freeDeliveryThreshold!),
+                      value: formatPriceWithCurrency(_vendeurProfile!.freeDeliveryThreshold!),
                     ),
                   _buildInfoTile(
                     icon: Icons.payment,
                     label: 'Modes de paiement',
                     value: [
-                      if (_vendeurProfile!.acceptsCashOnDelivery)
-                        'Paiement à la livraison',
-                      if (_vendeurProfile!.acceptsOnlinePayment)
-                        'Paiement en ligne',
+                      if (_vendeurProfile!.acceptsCashOnDelivery) 'Paiement à la livraison',
+                      if (_vendeurProfile!.acceptsOnlinePayment) 'Paiement en ligne',
                     ].join(', '),
                   ),
                 ],

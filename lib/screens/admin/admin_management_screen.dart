@@ -291,34 +291,43 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                TextButton.icon(
-                  onPressed: () => _showAdminDetails(admin),
-                  icon: const Icon(Icons.visibility, size: 18),
-                  label: const Text('Détails'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.info,
+                Flexible(
+                  fit: FlexFit.loose,
+                  child: TextButton.icon(
+                    onPressed: () => _showAdminDetails(admin),
+                    icon: const Icon(Icons.visibility, size: 18),
+                    label: const Text('Détails'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.info,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 if (!admin.isSuperAdmin) ...[
-                  TextButton.icon(
-                    onPressed: () => _showEditAdminDialog(admin),
-                    icon: const Icon(Icons.edit, size: 18),
-                    label: const Text('Modifier'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
+                  Flexible(
+                    fit: FlexFit.loose,
+                    child: TextButton.icon(
+                      onPressed: () => _showEditAdminDialog(admin),
+                      icon: const Icon(Icons.edit, size: 18),
+                      label: const Text('Modifier'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  TextButton.icon(
-                    onPressed: () => _toggleAdminStatus(admin),
-                    icon: Icon(
-                      admin.isActive ? Icons.block : Icons.check_circle,
-                      size: 18,
-                    ),
-                    label: Text(admin.isActive ? 'Suspendre' : 'Activer'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: admin.isActive ? AppColors.error : AppColors.success,
+                  Flexible(
+                    fit: FlexFit.loose,
+                    child: TextButton.icon(
+                      onPressed: () => _toggleAdminStatus(admin),
+                      icon: Icon(
+                        admin.isActive ? Icons.block : Icons.check_circle,
+                        size: 18,
+                      ),
+                      label: Text(admin.isActive ? 'Suspendre' : 'Activer'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: admin.isActive ? AppColors.error : AppColors.success,
+                      ),
                     ),
                   ),
                 ],

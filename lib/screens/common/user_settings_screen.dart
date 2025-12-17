@@ -5,7 +5,7 @@ import 'package:social_business_pro/config/constants.dart';
 import 'package:social_business_pro/models/user_model.dart';
 import 'package:social_business_pro/providers/auth_provider_firebase.dart' as auth;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class UserSettingsScreen extends StatefulWidget {
   const UserSettingsScreen({super.key});
@@ -66,10 +66,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
         currency: user.preferences.currency,
       );
 
-      await FirebaseFirestore.instance
-          .collection(FirebaseCollections.users)
-          .doc(user.id)
-          .update({
+      await FirebaseFirestore.instance.collection(FirebaseCollections.users).doc(user.id).update({
         'preferences': newPreferences.toMap(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -144,9 +141,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: AppSpacing.xl),
-
                   _buildSection(
                     'Apparence',
                     Icons.palette_outlined,
@@ -165,9 +160,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: AppSpacing.xl),
-
                   _buildSection(
                     'Langue',
                     Icons.language_outlined,
@@ -185,9 +178,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: AppSpacing.xl),
-
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(

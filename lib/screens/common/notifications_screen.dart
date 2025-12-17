@@ -11,7 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:social_business_pro/config/constants.dart';
 import '../../models/notification_model.dart';
 import '../../providers/auth_provider_firebase.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -71,9 +71,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           .limit(100)
           .get();
 
-      final notifications = snapshot.docs
-          .map((doc) => NotificationModel.fromMap(doc.data()))
-          .toList();
+      final notifications =
+          snapshot.docs.map((doc) => NotificationModel.fromMap(doc.data())).toList();
 
       if (mounted) {
         setState(() {
@@ -111,10 +110,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (notification.isRead) return;
 
     try {
-      await FirebaseFirestore.instance
-          .collection('notifications')
-          .doc(notification.id)
-          .update({
+      await FirebaseFirestore.instance.collection('notifications').doc(notification.id).update({
         'isRead': true,
         'readAt': FieldValue.serverTimestamp(),
       });
@@ -155,9 +151,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       // Mettre à jour toutes les notifications non lues
       final batch = FirebaseFirestore.instance.batch();
       for (final notification in unreadNotifications) {
-        final docRef = FirebaseFirestore.instance
-            .collection('notifications')
-            .doc(notification.id);
+        final docRef = FirebaseFirestore.instance.collection('notifications').doc(notification.id);
         batch.update(docRef, {
           'isRead': true,
           'readAt': FieldValue.serverTimestamp(),
@@ -214,10 +208,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (confirm != true) return;
 
     try {
-      await FirebaseFirestore.instance
-          .collection('notifications')
-          .doc(notification.id)
-          .delete();
+      await FirebaseFirestore.instance.collection('notifications').doc(notification.id).delete();
 
       if (mounted) {
         setState(() {
@@ -287,9 +278,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     try {
       final batch = FirebaseFirestore.instance.batch();
       for (final notification in readNotifications) {
-        final docRef = FirebaseFirestore.instance
-            .collection('notifications')
-            .doc(notification.id);
+        final docRef = FirebaseFirestore.instance.collection('notifications').doc(notification.id);
         batch.delete(docRef);
       }
       await batch.commit();
@@ -364,7 +353,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           left: AppSpacing.lg,
           right: AppSpacing.lg,
           top: AppSpacing.lg,
-          bottom: AppSpacing.lg + MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom,
+          bottom: AppSpacing.lg +
+              MediaQuery.of(context).viewInsets.bottom +
+              MediaQuery.of(context).padding.bottom,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -537,7 +528,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   children: [
                     Icon(Icons.delete_sweep, size: 20, color: AppColors.error),
                     SizedBox(width: AppSpacing.sm),
-                    Text('Supprimer les notifications lues', style: TextStyle(color: AppColors.error)),
+                    Text('Supprimer les notifications lues',
+                        style: TextStyle(color: AppColors.error)),
                   ],
                 ),
               ),
@@ -557,7 +549,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 const SizedBox(width: AppSpacing.sm),
                 _buildFilterChip('Non lues', 'unread', unreadCount, showBadge: true),
                 const SizedBox(width: AppSpacing.sm),
-                _buildFilterChip('Lues', 'read', _notifications.length - unreadCount, showBadge: false),
+                _buildFilterChip('Lues', 'read', _notifications.length - unreadCount,
+                    showBadge: false),
               ],
             ),
           ),
@@ -575,7 +568,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         child: ListView.separated(
                           padding: const EdgeInsets.all(AppSpacing.md),
                           itemCount: _filteredNotifications.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.sm),
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: AppSpacing.sm),
                           itemBuilder: (context, index) {
                             final notification = _filteredNotifications[index];
                             return _buildNotificationCard(notification);
@@ -661,7 +655,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
           side: BorderSide(
-            color: notification.isRead ? Colors.grey[200]! : AppColors.primary.withValues(alpha: 0.3),
+            color:
+                notification.isRead ? Colors.grey[200]! : AppColors.primary.withValues(alpha: 0.3),
             width: notification.isRead ? 1 : 2,
           ),
         ),
@@ -699,7 +694,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               notification.title,
                               style: TextStyle(
                                 fontSize: AppFontSizes.md,
-                                fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
+                                fontWeight:
+                                    notification.isRead ? FontWeight.normal : FontWeight.bold,
                                 color: AppColors.textPrimary,
                               ),
                               maxLines: 1,

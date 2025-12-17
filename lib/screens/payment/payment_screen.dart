@@ -10,7 +10,7 @@ import '../../services/mobile_money_service.dart';
 import '../../models/order_model.dart';
 // Import nécessaire pour Timer
 import 'dart:async';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class PaymentScreen extends StatefulWidget {
   final OrderModel order;
@@ -29,14 +29,14 @@ class PaymentScreen extends StatefulWidget {
 class _PaymentScreenState extends State<PaymentScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  
+
   String? _selectedProvider;
   bool _isProcessing = false;
   bool _acceptTerms = false;
   String? _transactionId;
   PaymentStatus? _paymentStatus;
   String? _ussdCode;
-  
+
   @override
   void initState() {
     super.initState();
@@ -122,13 +122,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
     // Vérifier le statut toutes les 3 secondes pendant 5 minutes maximum
     int attempts = 0;
     const maxAttempts = 100; // 5 minutes
-    
+
     Timer.periodic(const Duration(seconds: 3), (timer) async {
       attempts++;
-      
+
       try {
         final result = await MobileMoneyService.checkPaymentStatus(_transactionId!);
-        
+
         setState(() {
           _paymentStatus = result.status;
         });
@@ -136,9 +136,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
         if (result.status == PaymentStatus.success) {
           timer.cancel();
           _handlePaymentSuccess();
-        } else if (result.status == PaymentStatus.failed || 
-                   result.status == PaymentStatus.cancelled ||
-                   result.status == PaymentStatus.expired) {
+        } else if (result.status == PaymentStatus.failed ||
+            result.status == PaymentStatus.cancelled ||
+            result.status == PaymentStatus.expired) {
           timer.cancel();
           _handlePaymentFailure(result.message);
         } else if (attempts >= maxAttempts) {
@@ -157,7 +157,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // Paiement réussi
   void _handlePaymentSuccess() {
     Navigator.pop(context); // Fermer le modal d'instructions
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -170,9 +170,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ],
         ),
         content: Text(
-          'Votre paiement de ${widget.order.totalAmount.toStringAsFixed(0)} FCFA a été effectué avec succès.\n\n'
-          'Votre commande ${widget.order.orderNumber} sera traitée sous peu.'
-        ),
+            'Votre paiement de ${widget.order.totalAmount.toStringAsFixed(0)} FCFA a été effectué avec succès.\n\n'
+            'Votre commande ${widget.order.orderNumber} sera traitée sous peu.'),
         actions: [
           ElevatedButton(
             onPressed: () {
@@ -191,7 +190,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // Paiement échoué
   void _handlePaymentFailure(String message) {
     Navigator.pop(context); // Fermer le modal d'instructions
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -223,7 +222,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // Timeout du paiement
   void _handlePaymentTimeout() {
     Navigator.pop(context); // Fermer le modal d'instructions
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -234,10 +233,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
             Text('Vérification en cours'),
           ],
         ),
-        content: const Text(
-          'La vérification du paiement prend plus de temps que prévu. '
-          'Vous recevrez une notification dès que le statut sera confirmé.'
-        ),
+        content: const Text('La vérification du paiement prend plus de temps que prévu. '
+            'Vous recevrez une notification dès que le statut sera confirmé.'),
         actions: [
           ElevatedButton(
             onPressed: () {
@@ -278,19 +275,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
           children: [
             // Récapitulatif de la commande
             _buildOrderSummary(),
-            
+
             const SizedBox(height: AppSpacing.xl),
-            
+
             // Formulaire de paiement
             _buildPaymentForm(),
-            
+
             const SizedBox(height: AppSpacing.xl),
-            
+
             // Conditions d'utilisation
             _buildTermsAcceptance(),
-            
+
             const SizedBox(height: AppSpacing.xl),
-            
+
             // Bouton de paiement
             _buildPaymentButton(),
           ],
@@ -331,30 +328,26 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ),
               ],
             ),
-            
             const SizedBox(height: AppSpacing.md),
-            
             ...widget.order.items.map((item) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${item.quantity}x ${item.productName}',
-                      style: const TextStyle(color: AppColors.textSecondary),
-                    ),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${item.quantity}x ${item.productName}',
+                          style: const TextStyle(color: AppColors.textSecondary),
+                        ),
+                      ),
+                      Text(
+                        '${(item.price * item.quantity).toStringAsFixed(0)} FCFA',
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    ],
                   ),
-                  Text(
-                    '${(item.price * item.quantity).toStringAsFixed(0)} FCFA',
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                ],
-              ),
-            )),
-            
+                )),
             const Divider(),
-            
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -403,9 +396,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   color: AppColors.textPrimary,
                 ),
               ),
-              
+
               const SizedBox(height: AppSpacing.md),
-              
+
               // Numéro de téléphone
               TextFormField(
                 controller: _phoneController,
@@ -419,9 +412,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   hintText: 'Ex: 0749705404',
                   prefixIcon: const Icon(Icons.phone),
                   prefixText: '+225 ',
-                  suffixIcon: _selectedProvider != null
-                      ? _buildProviderIcon(_selectedProvider!)
-                      : null,
+                  suffixIcon:
+                      _selectedProvider != null ? _buildProviderIcon(_selectedProvider!) : null,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
@@ -439,9 +431,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   return null;
                 },
               ),
-              
+
               const SizedBox(height: AppSpacing.lg),
-              
+
               // Providers disponibles
               if (_selectedProvider != null) _buildSelectedProvider(),
               if (_selectedProvider == null) _buildProvidersList(),
@@ -456,14 +448,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Widget _buildSelectedProvider() {
     final config = MobileMoneyService.getProviderConfig(_selectedProvider!)!;
     final fees = MobileMoneyService.calculateFees(widget.order.totalAmount, _selectedProvider!);
-    
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: Color(int.parse('0xFF${config.color.substring(1)}')).withValues(alpha:0.1),
+        color: Color(int.parse('0xFF${config.color.substring(1)}')).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(
-          color: Color(int.parse('0xFF${config.color.substring(1)}')).withValues(alpha:0.3),
+          color: Color(int.parse('0xFF${config.color.substring(1)}')).withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -508,7 +500,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // Liste des providers
   Widget _buildProvidersList() {
     final providers = MobileMoneyService.getAvailableProviders();
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -572,7 +564,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Widget _buildProviderIcon(String providerId, {double size = 20}) {
     final config = MobileMoneyService.getProviderConfig(providerId);
     if (config == null) return const SizedBox.shrink();
-    
+
     return Container(
       width: size,
       height: size,
@@ -632,7 +624,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // Bouton de paiement
   Widget _buildPaymentButton() {
     final isEnabled = _selectedProvider != null && _acceptTerms && !_isProcessing;
-    
+
     return SizedBox(
       height: 50,
       child: ElevatedButton(
@@ -674,7 +666,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // Modal d'instructions de paiement
   Widget _buildPaymentInstructionsSheet() {
     final config = MobileMoneyService.getProviderConfig(_selectedProvider!)!;
-    
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.6,
       decoration: const BoxDecoration(
@@ -694,9 +686,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            
+
             const SizedBox(height: AppSpacing.lg),
-            
+
             // Titre
             Row(
               children: [
@@ -711,9 +703,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: AppSpacing.xl),
-            
+
             // Instructions
             if (_ussdCode != null) ...[
               const Text(
@@ -763,10 +755,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   ],
                 ),
               ),
-              
               const SizedBox(height: AppSpacing.lg),
             ],
-            
+
             // Étapes
             Expanded(
               child: ListView(
@@ -798,12 +789,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ],
               ),
             ),
-            
+
             // Statut du paiement
             if (_paymentStatus != null) _buildPaymentStatus(),
-            
+
             const SizedBox(height: AppSpacing.lg),
-            
+
             // Actions
             Row(
               children: [
@@ -822,10 +813,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: _paymentStatus == PaymentStatus.success ? () {
-                      Navigator.pop(context);
-                      _handlePaymentSuccess();
-                    } : null,
+                    onPressed: _paymentStatus == PaymentStatus.success
+                        ? () {
+                            Navigator.pop(context);
+                            _handlePaymentSuccess();
+                          }
+                        : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.success,
                     ),
@@ -939,9 +932,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: statusColor.withValues(alpha:0.1),
+        color: statusColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: statusColor.withValues(alpha:0.3)),
+        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -981,4 +974,3 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 }
-

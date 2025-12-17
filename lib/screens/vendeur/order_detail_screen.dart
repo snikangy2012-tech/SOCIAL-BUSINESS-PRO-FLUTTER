@@ -18,7 +18,7 @@ import '../../widgets/review_dialog.dart';
 import '../../utils/order_status_helper.dart';
 import '../../utils/number_formatter.dart';
 import 'assign_livreur_screen.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class OrderDetail extends StatefulWidget {
   final String orderId;
@@ -496,11 +496,9 @@ class _OrderDetailState extends State<OrderDetail> {
             const SizedBox(height: AppSpacing.md),
 
             // Informations livreur (si livreur assigné)
-            if (_order!.livreurId != null)
-              _buildLivreurSection(),
+            if (_order!.livreurId != null) _buildLivreurSection(),
 
-            if (_order!.livreurId != null)
-              const SizedBox(height: AppSpacing.md),
+            if (_order!.livreurId != null) const SizedBox(height: AppSpacing.md),
 
             // Noter le livreur (si commande livrée et livreur assigné)
             if (_order!.status.toLowerCase() == 'delivered' &&
@@ -541,7 +539,8 @@ class _OrderDetailState extends State<OrderDetail> {
                                 child: const Icon(Icons.image),
                               ),
                         title: Text(item.productName),
-                        subtitle: Text('${item.quantity} x ${formatPriceWithCurrency(item.price, currency: 'FCFA')}'),
+                        subtitle: Text(
+                            '${item.quantity} x ${formatPriceWithCurrency(item.price, currency: 'FCFA')}'),
                         trailing: Flexible(
                           child: Text(
                             formatPriceWithCurrency(item.price * item.quantity, currency: 'FCFA'),
@@ -569,8 +568,10 @@ class _OrderDetailState extends State<OrderDetail> {
               'Résumé',
               Column(
                 children: [
-                  _buildSummaryRow('Sous-total', formatPriceWithCurrency(_order!.subtotal, currency: 'FCFA')),
-                  _buildSummaryRow('Frais de livraison', formatPriceWithCurrency(_order!.deliveryFee, currency: 'FCFA')),
+                  _buildSummaryRow(
+                      'Sous-total', formatPriceWithCurrency(_order!.subtotal, currency: 'FCFA')),
+                  _buildSummaryRow('Frais de livraison',
+                      formatPriceWithCurrency(_order!.deliveryFee, currency: 'FCFA')),
                   const Divider(thickness: 2),
                   _buildSummaryRow(
                     'Total',
@@ -658,11 +659,16 @@ class _OrderDetailState extends State<OrderDetail> {
   String _getDeliveryStatusLabel() {
     if (_delivery == null) return 'En préparation';
     switch (_delivery!.status.toLowerCase()) {
-      case 'assigned': return 'Assignée';
-      case 'picked_up': return 'Récupérée';
-      case 'in_transit': return 'En cours';
-      case 'delivered': return 'Livrée';
-      default: return _delivery!.status;
+      case 'assigned':
+        return 'Assignée';
+      case 'picked_up':
+        return 'Récupérée';
+      case 'in_transit':
+        return 'En cours';
+      case 'delivered':
+        return 'Livrée';
+      default:
+        return _delivery!.status;
     }
   }
 

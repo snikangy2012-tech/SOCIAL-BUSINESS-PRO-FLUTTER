@@ -6,7 +6,7 @@ import '../../models/subscription_model.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../providers/subscription_provider.dart';
 import 'package:intl/intl.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 /// Écran Mon Abonnement - Tableau de bord vendeur
 class SubscriptionDashboardScreen extends StatefulWidget {
@@ -118,7 +118,8 @@ class _SubscriptionDashboardScreenState extends State<SubscriptionDashboardScree
               if (!isLivreur && (subscription as VendeurSubscription).nextBillingDate != null)
                 _buildNextBillingCard(subscription),
 
-              if (!isLivreur && (subscription as VendeurSubscription).nextBillingDate != null) const SizedBox(height: 16),
+              if (!isLivreur && (subscription as VendeurSubscription).nextBillingDate != null)
+                const SizedBox(height: 16),
 
               // Historique des paiements - Vendeurs uniquement
               if (!isLivreur) _buildPaymentHistory(),
@@ -226,9 +227,7 @@ class _SubscriptionDashboardScreenState extends State<SubscriptionDashboardScree
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        monthlyPrice == 0
-                            ? 'GRATUIT'
-                            : '${monthlyPrice.toStringAsFixed(0)} FCFA',
+                        monthlyPrice == 0 ? 'GRATUIT' : '${monthlyPrice.toStringAsFixed(0)} FCFA',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -266,7 +265,8 @@ class _SubscriptionDashboardScreenState extends State<SubscriptionDashboardScree
 
   Widget _buildAlertBanner(String message) {
     final isWarning = message.contains('⚠️') || message.contains('⏰');
-    final isError = message.contains('❌') || message.contains('expiré') || message.contains('suspendu');
+    final isError =
+        message.contains('❌') || message.contains('expiré') || message.contains('suspendu');
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -373,7 +373,8 @@ class _SubscriptionDashboardScreenState extends State<SubscriptionDashboardScree
               _buildUsageRow(
                 icon: Icons.inventory_2_outlined,
                 label: 'Produits',
-                value: '0 / ${(subscription as VendeurSubscription).productLimit == 999999 ? '∞' : subscription.productLimit}',
+                value:
+                    '0 / ${(subscription as VendeurSubscription).productLimit == 999999 ? '∞' : subscription.productLimit}',
                 progress: subscription.productLimit == 999999 ? 0.0 : 0.0,
                 color: AppColors.primary,
               ),
@@ -829,7 +830,8 @@ class _SubscriptionDashboardScreenState extends State<SubscriptionDashboardScree
     } else {
       endDate = subscriptionProvider.vendeurSubscription?.endDate;
       daysRemaining = subscriptionProvider.vendeurSubscription?.daysRemaining;
-      isPaidTier = subscriptionProvider.vendeurSubscription?.tier != VendeurSubscriptionTier.basique;
+      isPaidTier =
+          subscriptionProvider.vendeurSubscription?.tier != VendeurSubscriptionTier.basique;
       currentTierName = subscriptionProvider.currentTierName;
     }
 
@@ -948,14 +950,16 @@ class _SubscriptionDashboardScreenState extends State<SubscriptionDashboardScree
             onPressed: () async {
               Navigator.pop(context);
               final authProvider = Provider.of<AuthProvider>(context, listen: false);
-              final subscriptionProvider = Provider.of<SubscriptionProvider>(context, listen: false);
+              final subscriptionProvider =
+                  Provider.of<SubscriptionProvider>(context, listen: false);
 
               if (authProvider.user?.id != null) {
                 // ✅ Appeler la bonne méthode selon le type d'utilisateur
                 bool success;
                 if (isLivreur) {
                   // Pour les livreurs: downgrade vers STARTER
-                  success = await subscriptionProvider.downgradeLivreurSubscription(authProvider.user!.id);
+                  success = await subscriptionProvider
+                      .downgradeLivreurSubscription(authProvider.user!.id);
                 } else {
                   // Pour les vendeurs: downgrade vers BASIQUE
                   success = await subscriptionProvider.downgradeSubscription(authProvider.user!.id);

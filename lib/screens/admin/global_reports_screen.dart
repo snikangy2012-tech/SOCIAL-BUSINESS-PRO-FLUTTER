@@ -10,7 +10,7 @@ import '../../config/constants.dart';
 import '../../models/report_model.dart';
 import '../../services/global_report_service.dart';
 import '../../providers/auth_provider_firebase.dart' as auth;
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class GlobalReportsScreen extends StatefulWidget {
   const GlobalReportsScreen({super.key});
@@ -541,8 +541,7 @@ class _GlobalReportsScreenState extends State<GlobalReportsScreen>
               ],
 
               // Message d'erreur
-              if (report.status == ReportStatus.failed &&
-                  report.errorMessage != null) ...[
+              if (report.status == ReportStatus.failed && report.errorMessage != null) ...[
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -869,8 +868,7 @@ class _ReportConfigSheetState extends State<_ReportConfigSheet> {
 
   void _generateReport() {
     // Validation
-    if (widget.reportType == ReportType.userActivity &&
-        _targetUserController.text.trim().isEmpty) {
+    if (widget.reportType == ReportType.userActivity && _targetUserController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Veuillez spécifier un utilisateur cible'),
@@ -884,9 +882,7 @@ class _ReportConfigSheetState extends State<_ReportConfigSheet> {
     widget.onGenerate(
       _selectedPeriod,
       _selectedFormat,
-      widget.reportType == ReportType.userActivity
-          ? _targetUserController.text.trim()
-          : null,
+      widget.reportType == ReportType.userActivity ? _targetUserController.text.trim() : null,
       null,
     );
 

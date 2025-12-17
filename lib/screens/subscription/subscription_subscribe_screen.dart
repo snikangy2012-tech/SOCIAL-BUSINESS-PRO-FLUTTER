@@ -6,7 +6,7 @@ import 'package:social_business_pro/config/constants.dart';
 import '../../models/subscription_model.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../providers/subscription_provider.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 /// Écran de souscription à un plan avec paiement Mobile Money
 /// Accepte soit VendeurSubscriptionTier soit LivreurTier
@@ -116,10 +116,7 @@ class _SubscriptionSubscribeScreenState extends State<SubscriptionSubscribeScree
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              details['color'] as Color,
-              (details['color'] as Color).withOpacity(0.7)
-            ],
+            colors: [details['color'] as Color, (details['color'] as Color).withOpacity(0.7)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -200,9 +197,7 @@ class _SubscriptionSubscribeScreenState extends State<SubscriptionSubscribeScree
                     width: isSelected ? 2 : 1,
                   ),
                   borderRadius: BorderRadius.circular(12),
-                  color: isSelected
-                      ? (provider['color'] as Color).withOpacity(0.1)
-                      : Colors.white,
+                  color: isSelected ? (provider['color'] as Color).withOpacity(0.1) : Colors.white,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -571,8 +566,7 @@ class _SubscriptionSubscribeScreenState extends State<SubscriptionSubscribeScree
           paymentMethod: _selectedProvider,
           transactionId: transactionId,
         );
-      } else if (widget.tier is LivreurTier &&
-          user.userType == UserType.livreur) {
+      } else if (widget.tier is LivreurTier && user.userType == UserType.livreur) {
         // Nouveau modèle hybride pour livreurs
         // Vérifier d'abord que le livreur a les stats nécessaires
         final currentSubscription = subscriptionProvider.livreurSubscription;

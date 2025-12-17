@@ -9,8 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:social_business_pro/config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/analytics_service.dart';
-import '../widgets/system_ui_scaffold.dart';
-
+import '../../widgets/system_ui_scaffold.dart';
 
 class BusinessProScreen extends StatefulWidget {
   const BusinessProScreen({super.key});
@@ -22,7 +21,6 @@ class BusinessProScreen extends StatefulWidget {
 class _BusinessProScreenState extends State<BusinessProScreen> {
   final AnalyticsService _analytics = AnalyticsService();
   final firebase_auth.FirebaseAuth _auth = firebase_auth.FirebaseAuth.instance;
-  
 
   @override
   void initState() {
@@ -58,9 +56,7 @@ class _BusinessProScreenState extends State<BusinessProScreen> {
           appBar: AppBar(
             title: const Text('Mon Business Pro'),
           ),
-          body: auth.isAuthenticated
-              ? _buildAuthenticatedView(auth)
-              : _buildGuestView(),
+          body: auth.isAuthenticated ? _buildAuthenticatedView(auth) : _buildGuestView(),
         );
       },
     );
@@ -220,7 +216,7 @@ class _BusinessProScreenState extends State<BusinessProScreen> {
     final user = auth.user;
     final userName = user?.displayName ?? user?.email.split('@')[0] ?? 'Utilisateur';
     final userEmail = user?.email ?? '';
-    final String userType = auth.userType?.toString() ?? 'acheteur';  // ✅ OK
+    final String userType = auth.userType?.toString() ?? 'acheteur'; // ✅ OK
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -441,7 +437,7 @@ class _BusinessProScreenState extends State<BusinessProScreen> {
                     if (mounted) {
                       // Redirection immédiate
                       context.go('/');
-                      
+
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Déconnexion réussie'),

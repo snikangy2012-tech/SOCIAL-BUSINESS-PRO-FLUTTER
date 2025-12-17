@@ -156,5 +156,23 @@ service cloud.firestore {
     match /_connection_test/{document=**} {
       allow read, write: if true;
     }
+
+    // ===== PLATFORM TRANSACTIONS COLLECTION =====
+    // Gestion des commissions et transactions de la plateforme
+    match /platform_transactions/{transactionId} {
+      // Admins: full access to all transactions
+      allow read, write: if isAdmin();
+
+      // Livreurs: can read only their own transactions (to see commissions owed)
+      allow read: if isAuthenticated() &&
+                     resource.data.livreurId == request.auth.uid;
+
+      // Vendeurs: can read only their own transactions (to see pending settlements)
+      allow read: if isAuthenticated() &&
+                     resource.data.vendeurId == request.auth.uid;
+
+      // No one else can create/update/delete (only system via backend or admin)
+      // Buyers cannot access this collection directly
+    }
   }
 }

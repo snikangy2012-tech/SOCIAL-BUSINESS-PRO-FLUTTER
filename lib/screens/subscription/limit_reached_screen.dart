@@ -5,7 +5,7 @@ import 'package:social_business_pro/config/constants.dart';
 import '../../models/subscription_model.dart';
 import '../../providers/subscription_provider.dart';
 import '../../providers/auth_provider_firebase.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 /// Écran transversal affiché quand un utilisateur (vendeur ou livreur) atteint une limite
 /// - VENDEUR: limite de produits, messages AI
@@ -44,7 +44,8 @@ class LimitReachedScreen extends StatelessWidget {
   // ==================== VENDEUR LIMIT SCREEN ====================
 
   Widget _buildVendeurLimitScreen(BuildContext context, SubscriptionProvider subscriptionProvider) {
-    final currentTier = subscriptionProvider.vendeurSubscription?.tier ?? VendeurSubscriptionTier.basique;
+    final currentTier =
+        subscriptionProvider.vendeurSubscription?.tier ?? VendeurSubscriptionTier.basique;
 
     return SystemUIScaffold(
       appBar: AppBar(
@@ -175,7 +176,8 @@ class LimitReachedScreen extends StatelessWidget {
                 ? '100'
                 : 'illimité';
         title = 'Limite de produits atteinte';
-        message = 'Votre plan ${_getTierName(currentTier)} vous permet d\'avoir jusqu\'à $limit produits. '
+        message =
+            'Votre plan ${_getTierName(currentTier)} vous permet d\'avoir jusqu\'à $limit produits. '
             'Pour ajouter plus de produits, passez à un plan supérieur.';
     }
 
@@ -214,7 +216,8 @@ class LimitReachedScreen extends StatelessWidget {
     switch (limitType) {
       case 'ai_messages':
         limitLabel = 'Messages AI aujourd\'hui';
-        limitValue = '${subscription.aiMessagesPerDay ?? 0} / ${subscription.aiMessagesPerDay ?? 0}';
+        limitValue =
+            '${subscription.aiMessagesPerDay ?? 0} / ${subscription.aiMessagesPerDay ?? 0}';
         icon = Icons.message;
         break;
       default: // 'products'
@@ -524,7 +527,8 @@ class LimitReachedScreen extends StatelessWidget {
   // Note: Les livreurs n'ont pas de limites strictes dans le nouveau modèle hybride.
   // Cet écran encourage l'upgrade pour réduire la commission et obtenir plus d'avantages.
 
-  Widget _buildLivreurUpgradeScreen(BuildContext context, SubscriptionProvider subscriptionProvider) {
+  Widget _buildLivreurUpgradeScreen(
+      BuildContext context, SubscriptionProvider subscriptionProvider) {
     final currentSubscription = subscriptionProvider.livreurSubscription;
     final currentTier = currentSubscription?.tier ?? LivreurTier.starter;
 
@@ -571,7 +575,8 @@ class LimitReachedScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Carte commission actuelle
-            if (currentSubscription != null) _buildLivreurCurrentCommissionCard(currentSubscription),
+            if (currentSubscription != null)
+              _buildLivreurCurrentCommissionCard(currentSubscription),
             const SizedBox(height: 32),
 
             // Suggestions d'upgrade

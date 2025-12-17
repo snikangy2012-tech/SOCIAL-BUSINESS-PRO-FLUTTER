@@ -3,8 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/order_model.dart';
+import '../models/audit_log_model.dart';
 import 'package:social_business_pro/config/constants.dart';
 import 'stock_management_service.dart';
+import 'audit_service.dart';
+import 'notification_service.dart';
 
 class OrderService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -126,23 +129,27 @@ class OrderService {
 
       // Calculer les statistiques avec nouveaux statuts
       int totalOrders = allOrders.length;
-      int pendingOrders = allOrders.where((order) =>
-        order.status == OrderStatus.enAttente.value ||
-        order.status == OrderStatus.enCours.value
-      ).length;
 
-      int deliveredOrders = allOrders.where((order) =>
-        order.status == OrderStatus.livree.value
-      ).length;
+      int pendingOrders = allOrders.where((order) {
+        final status = order.status.toLowerCase();
+        return status == 'pending' || status == 'en_attente';
+      }).length;
 
-      int cancelledOrders = allOrders.where((order) =>
-        order.status == OrderStatus.annulee.value
-      ).length;
+      int deliveredOrders = allOrders.where((order) {
+        final status = order.status.toLowerCase();
+        return status == 'delivered' || status == 'completed' || status == 'livree';
+      }).length;
+
+      int cancelledOrders = allOrders.where((order) {
+        final status = order.status.toLowerCase();
+        return status == 'cancelled' || status == 'canceled' || status == 'annulee';
+      }).length;
 
       // Calculer le revenu total (uniquement commandes livrées)
-      double totalRevenue = allOrders
-          .where((order) => order.status == OrderStatus.livree.value)
-          .fold(0.0, (sum, order) => sum + order.totalAmount);
+      double totalRevenue = allOrders.where((order) {
+        final status = order.status.toLowerCase();
+        return status == 'delivered' || status == 'completed' || status == 'livree';
+      }).fold(0.0, (sum, order) => sum + order.totalAmount);
 
       debugPrint('✅ Stats calculées - Total: $totalOrders, Revenu: $totalRevenue FCFA');
 
@@ -161,7 +168,14 @@ class OrderService {
   }
 
   /// Mettre à jour le statut d'une commande
-  static Future<void> updateOrderStatus(String orderId, String newStatus) async {
+  static Future<void> updateOrderStatus(
+    String orderId,
+    String newStatus, {
+    String? userId,
+    String? userEmail,
+    String? userName,
+    String? userType,
+  }) async {
     try {
       debugPrint('🔄 MAJ statut commande $orderId → $newStatus');
 
@@ -198,6 +212,14 @@ class OrderService {
         }
       }
 
+      // Récupérer les infos de la commande pour les notifications
+      final orderDoc = await _firestore
+          .collection(FirebaseCollections.orders)
+          .doc(orderId)
+          .get();
+
+      final orderData = orderDoc.data();
+
       await _firestore
           .collection(FirebaseCollections.orders)
           .doc(orderId)
@@ -206,6 +228,9 @@ class OrderService {
         'updatedAt': FieldValue.serverTimestamp(),
         if (newStatus == OrderStatus.livree.value)
           'deliveredAt': FieldValue.serverTimestamp(),
+        // ✅ CLICK & COLLECT: Marquer prêt pour retrait
+        if (newStatus == 'ready' && orderData?['deliveryMethod'] == 'store_pickup')
+          'pickupReadyAt': FieldValue.serverTimestamp(),
       });
 
       // Ajouter une entrée dans l'historique de statut
@@ -218,6 +243,56 @@ class OrderService {
         'changedAt': FieldValue.serverTimestamp(),
       });
 
+      // Logger le changement de statut
+      if (userId != null && userEmail != null && userType != null) {
+        await AuditService.log(
+          userId: userId,
+          userType: userType,
+          userEmail: userEmail,
+          userName: userName,
+          action: 'order_status_updated',
+          actionLabel: 'Mise à jour statut commande',
+          category: AuditCategory.userAction,
+          severity: AuditSeverity.low,
+          description: 'Changement de statut de commande vers "$newStatus"',
+          targetType: 'order',
+          targetId: orderId,
+          targetLabel: 'Commande #${orderId.substring(0, 8)}',
+          metadata: {
+            'orderId': orderId,
+            'newStatus': newStatus,
+            'oldStatus': 'previous', // On pourrait récupérer l'ancien statut si besoin
+          },
+        );
+      }
+
+      // ✅ CLICK & COLLECT: Notification quand commande prête
+      if (newStatus == 'ready' && orderData?['deliveryMethod'] == 'store_pickup') {
+        try {
+          final buyerId = orderData?['buyerId'] as String?;
+          final displayNumber = orderData?['displayNumber'] as int?;
+
+          if (buyerId != null && displayNumber != null) {
+            await NotificationService().createNotification(
+              userId: buyerId,
+              type: 'pickup_ready',
+              title: '🎉 Votre commande est prête !',
+              body: 'Commande #$displayNumber - Vous pouvez venir la récupérer en boutique',
+              data: {
+                'orderId': orderId,
+                'displayNumber': displayNumber,
+                'route': '/acheteur/pickup-qr/$orderId',
+                'action': 'view_qr_code',
+              },
+            );
+            debugPrint('✅ Notification "Commande prête" envoyée à l\'acheteur');
+          }
+        } catch (e) {
+          debugPrint('❌ Erreur envoi notification pickup ready: $e');
+          // L'erreur n'empêche pas la mise à jour du statut
+        }
+      }
+
       debugPrint('✅ Statut mis à jour avec succès');
 
     } catch (e) {
@@ -227,7 +302,14 @@ class OrderService {
   }
 
   /// Annuler une commande
-  static Future<void> cancelOrder(String orderId, String reason) async {
+  static Future<void> cancelOrder(
+    String orderId,
+    String reason, {
+    String? userId,
+    String? userEmail,
+    String? userName,
+    String? userType,
+  }) async {
     try {
       debugPrint('❌ Annulation commande $orderId - Raison: $reason');
 
@@ -266,6 +348,28 @@ class OrderService {
         'reason': reason,
         'changedAt': FieldValue.serverTimestamp(),
       });
+
+      // Logger l'annulation
+      if (userId != null && userEmail != null && userType != null) {
+        await AuditService.log(
+          userId: userId,
+          userType: userType,
+          userEmail: userEmail,
+          userName: userName,
+          action: 'order_cancelled',
+          actionLabel: 'Annulation de commande',
+          category: AuditCategory.userAction,
+          severity: AuditSeverity.medium,
+          description: 'Annulation de commande - Raison: $reason',
+          targetType: 'order',
+          targetId: orderId,
+          targetLabel: 'Commande #${orderId.substring(0, 8)}',
+          metadata: {
+            'orderId': orderId,
+            'cancellationReason': reason,
+          },
+        );
+      }
 
       debugPrint('✅ Commande annulée avec succès');
 

@@ -6,7 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../config/constants.dart';
 import '../../models/subscription_model.dart';
 import '../../models/user_model.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class AdminSubscriptionManagementScreen extends StatefulWidget {
   const AdminSubscriptionManagementScreen({super.key});
@@ -59,7 +59,8 @@ class _AdminSubscriptionManagementScreenState extends State<AdminSubscriptionMan
 
         // Si on a déjà un abonnement pour cet utilisateur, garder le plus récent
         if (vendeurSubscriptionsMap.containsKey(vendeurId)) {
-          final existing = vendeurSubscriptionsMap[vendeurId]!['subscription'] as VendeurSubscription;
+          final existing =
+              vendeurSubscriptionsMap[vendeurId]!['subscription'] as VendeurSubscription;
           // Garder le plus récent (ou le plus actif)
           if (subscription.createdAt.isAfter(existing.createdAt)) {
             vendeurSubscriptionsMap[vendeurId] = {'subscription': subscription, 'user': null};
@@ -99,7 +100,8 @@ class _AdminSubscriptionManagementScreenState extends State<AdminSubscriptionMan
 
         // Si on a déjà un abonnement pour cet utilisateur, garder le plus récent
         if (livreurSubscriptionsMap.containsKey(livreurId)) {
-          final existing = livreurSubscriptionsMap[livreurId]!['subscription'] as LivreurSubscription;
+          final existing =
+              livreurSubscriptionsMap[livreurId]!['subscription'] as LivreurSubscription;
           if (subscription.createdAt.isAfter(existing.createdAt)) {
             livreurSubscriptionsMap[livreurId] = {'subscription': subscription, 'user': null};
           }
@@ -379,9 +381,7 @@ class _AdminSubscriptionManagementScreenState extends State<AdminSubscriptionMan
         padding: const EdgeInsets.all(16),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: isCurrentPlan
-              ? BorderSide(color: AppColors.primary, width: 2)
-              : BorderSide.none,
+          side: isCurrentPlan ? BorderSide(color: AppColors.primary, width: 2) : BorderSide.none,
         ),
       ),
       child: Column(

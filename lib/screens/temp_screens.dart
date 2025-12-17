@@ -4,7 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:social_business_pro/config/constants.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 // Écran générique temporaire (équivalent à PlaceholderComponent.tsx)
 class TempScreen extends StatelessWidget {
@@ -34,7 +34,7 @@ class TempScreen extends StatelessWidget {
       ),
       body: Container(
         width: double.infinity,
-        color: backgroundColor?.withValues(alpha:0.1),
+        color: backgroundColor?.withValues(alpha: 0.1),
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
@@ -45,7 +45,7 @@ class TempScreen extends StatelessWidget {
                 width: 100,
                 height: 100,
                 decoration: BoxDecoration(
-                  color: (backgroundColor ?? AppColors.primary).withValues(alpha:0.2),
+                  color: (backgroundColor ?? AppColors.primary).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(AppRadius.xl),
                 ),
                 child: Icon(
@@ -54,9 +54,9 @@ class TempScreen extends StatelessWidget {
                   color: backgroundColor ?? AppColors.primary,
                 ),
               ),
-              
+
               const SizedBox(height: AppSpacing.xl),
-              
+
               // Titre
               Text(
                 title,
@@ -67,9 +67,9 @@ class TempScreen extends StatelessWidget {
                 ),
                 textAlign: TextAlign.center,
               ),
-              
+
               const SizedBox(height: AppSpacing.md),
-              
+
               // Sous-titre
               Text(
                 subtitle,
@@ -94,7 +94,7 @@ class TempScreen extends StatelessWidget {
               ],
 
               const SizedBox(height: AppSpacing.xl),
-              
+
               // Badge "En développement"
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -102,7 +102,7 @@ class TempScreen extends StatelessWidget {
                   vertical: AppSpacing.sm,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha:0.2),
+                  color: AppColors.warning.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(AppRadius.lg),
                   border: Border.all(color: AppColors.warning),
                 ),
@@ -114,25 +114,25 @@ class TempScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: AppSpacing.xl),
-              
+
               // Boutons de navigation de test
               if (buttons != null)
                 ...buttons!.map((btn) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => btn.onPressed(context),
-                      icon: Icon(btn.icon),
-                      label: Text(btn.label),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: btn.color ?? AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => btn.onPressed(context),
+                          icon: Icon(btn.icon),
+                          label: Text(btn.label),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: btn.color ?? AppColors.primary,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ))
+                    ))
               else
                 _buildDefaultNavigationButtons(context),
             ],
@@ -154,7 +154,7 @@ class TempScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        
+
         Wrap(
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
@@ -192,9 +192,9 @@ class TempScreen extends StatelessWidget {
             ),
           ],
         ),
-        
+
         const SizedBox(height: AppSpacing.lg),
-        
+
         // Bouton retour intelligent
         OutlinedButton.icon(
           onPressed: () {

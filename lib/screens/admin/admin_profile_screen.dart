@@ -8,7 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/auth_provider_firebase.dart';
 import 'package:social_business_pro/config/constants.dart';
 import '../shared/my_activity_screen.dart';
-import '../widgets/system_ui_scaffold.dart';
+import '../../widgets/system_ui_scaffold.dart';
 
 class AdminProfileScreen extends StatefulWidget {
   const AdminProfileScreen({super.key});
@@ -221,9 +221,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            user.displayName.isNotEmpty
-                                ? user.displayName
-                                : 'Admin',
+                            user.displayName.isNotEmpty ? user.displayName : 'Admin',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 20,
@@ -353,7 +351,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                     // Gestion des vendeurs
+                    // Gestion des vendeurs
                     _buildMenuTile(
                       icon: Icons.store,
                       title: 'Gestion des vendeurs',

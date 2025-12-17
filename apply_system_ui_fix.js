@@ -9,20 +9,20 @@
  * node apply_system_ui_fix.js
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 // Fichiers à exclure (déjà corrigés manuellement)
 const EXCLUDED_FILES = [
-  'main_scaffold.dart',
-  'vendeur_main_screen.dart',
-  'admin_main_screen.dart',
-  'livreur_main_screen.dart',
-  'system_ui_scaffold.dart', // Le widget lui-même
+  "main_scaffold.dart",
+  "vendeur_main_screen.dart",
+  "admin_main_screen.dart",
+  "livreur_main_screen.dart",
+  "system_ui_scaffold.dart", // Le widget lui-même
 ];
 
 // Fichiers à traiter (tous les fichiers dans lib/screens/)
-const SCREENS_DIR = path.join(__dirname, 'lib', 'screens');
+const SCREENS_DIR = path.join(__dirname, "lib", "screens");
 
 let modifiedFiles = 0;
 let skippedFiles = 0;
@@ -40,7 +40,7 @@ function shouldProcessFile(filePath) {
   }
 
   // Ne traiter que les fichiers .dart
-  if (!filePath.endsWith('.dart')) {
+  if (!filePath.endsWith(".dart")) {
     return false;
   }
 
@@ -51,7 +51,10 @@ function shouldProcessFile(filePath) {
  * Vérifie si un fichier utilise déjà SystemUIScaffold
  */
 function alreadyUsesSystemUIScaffold(content) {
-  return content.includes('SystemUIScaffold') || content.includes('SystemUIPopScaffold');
+  return (
+    content.includes("SystemUIScaffold") ||
+    content.includes("SystemUIPopScaffold")
+  );
 }
 
 /**
@@ -66,7 +69,7 @@ function hasScaffoldToReplace(content) {
  * Ajoute l'import de SystemUIScaffold si nécessaire
  */
 function addImportIfNeeded(content) {
-  const importStatement = "import '../widgets/system_ui_scaffold.dart';";
+  const importStatement = "import '../../widgets/system_ui_scaffold.dart';";
 
   // Si l'import existe déjà, ne rien faire
   if (content.includes(importStatement)) {
@@ -74,11 +77,11 @@ function addImportIfNeeded(content) {
   }
 
   // Trouver la dernière ligne d'import
-  const lines = content.split('\n');
+  const lines = content.split("\n");
   let lastImportIndex = -1;
 
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i].trim().startsWith('import ')) {
+    if (lines[i].trim().startsWith("import ")) {
       lastImportIndex = i;
     }
   }
@@ -86,11 +89,11 @@ function addImportIfNeeded(content) {
   // Ajouter l'import après le dernier import existant
   if (lastImportIndex !== -1) {
     lines.splice(lastImportIndex + 1, 0, importStatement);
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
   // Si aucun import trouvé, ajouter au début du fichier
-  return importStatement + '\n' + content;
+  return importStatement + "\n" + content;
 }
 
 /**
@@ -100,15 +103,27 @@ function replaceScaffolds(content) {
   let modified = content;
 
   // Remplacer "return Scaffold(" par "return SystemUIScaffold("
-  modified = modified.replace(/return\s+Scaffold\(/g, 'return SystemUIScaffold(');
+  modified = modified.replace(
+    /return\s+Scaffold\(/g,
+    "return SystemUIScaffold("
+  );
 
   // Remplacer "return const Scaffold(" par "return SystemUIScaffold("
   // (on retire const car SystemUIScaffold n'est pas const)
-  modified = modified.replace(/return\s+const\s+Scaffold\(/g, 'return SystemUIScaffold(');
+  modified = modified.replace(
+    /return\s+const\s+Scaffold\(/g,
+    "return SystemUIScaffold("
+  );
 
   // Remplacer les occurrences de "child: Scaffold(" par "child: SystemUIScaffold("
-  modified = modified.replace(/child:\s+Scaffold\(/g, 'child: SystemUIScaffold(');
-  modified = modified.replace(/child:\s+const\s+Scaffold\(/g, 'child: SystemUIScaffold(');
+  modified = modified.replace(
+    /child:\s+Scaffold\(/g,
+    "child: SystemUIScaffold("
+  );
+  modified = modified.replace(
+    /child:\s+const\s+Scaffold\(/g,
+    "child: SystemUIScaffold("
+  );
 
   return modified;
 }
@@ -118,7 +133,7 @@ function replaceScaffolds(content) {
  */
 function processFile(filePath) {
   try {
-    const content = fs.readFileSync(filePath, 'utf8');
+    const content = fs.readFileSync(filePath, "utf8");
 
     // Vérifier si déjà corrigé
     if (alreadyUsesSystemUIScaffold(content)) {
@@ -142,18 +157,21 @@ function processFile(filePath) {
 
     // Vérifier si des modifications ont été faites
     if (modified === content) {
-      console.log(`⏭️  Ignoré (aucune modification): ${path.basename(filePath)}`);
+      console.log(
+        `⏭️  Ignoré (aucune modification): ${path.basename(filePath)}`
+      );
       skippedFiles++;
       return;
     }
 
     // Sauvegarder le fichier modifié
-    fs.writeFileSync(filePath, modified, 'utf8');
+    fs.writeFileSync(filePath, modified, "utf8");
     console.log(`✅ Modifié: ${path.basename(filePath)}`);
     modifiedFiles++;
-
   } catch (error) {
-    console.error(`❌ Erreur pour ${path.basename(filePath)}: ${error.message}`);
+    console.error(
+      `❌ Erreur pour ${path.basename(filePath)}: ${error.message}`
+    );
     errors.push({ file: filePath, error: error.message });
   }
 }
@@ -180,10 +198,10 @@ function processDirectory(directory) {
 /**
  * Main
  */
-console.log('🚀 Début de l\'application de SystemUIScaffold...\n');
+console.log("🚀 Début de l'application de SystemUIScaffold...\n");
 console.log(`📂 Dossier: ${SCREENS_DIR}\n`);
-console.log('📝 Fichiers exclus:', EXCLUDED_FILES.join(', '));
-console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+console.log("📝 Fichiers exclus:", EXCLUDED_FILES.join(", "));
+console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
 // Vérifier que le dossier existe
 if (!fs.existsSync(SCREENS_DIR)) {
@@ -195,20 +213,20 @@ if (!fs.existsSync(SCREENS_DIR)) {
 processDirectory(SCREENS_DIR);
 
 // Rapport final
-console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('📊 RAPPORT FINAL\n');
+console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+console.log("📊 RAPPORT FINAL\n");
 console.log(`✅ Fichiers modifiés: ${modifiedFiles}`);
 console.log(`⏭️  Fichiers ignorés: ${skippedFiles}`);
 console.log(`❌ Erreurs: ${errors.length}`);
 
 if (errors.length > 0) {
-  console.log('\n❌ ERREURS DÉTAILLÉES:');
+  console.log("\n❌ ERREURS DÉTAILLÉES:");
   errors.forEach(({ file, error }) => {
     console.log(`  - ${path.basename(file)}: ${error}`);
   });
 }
 
-console.log('\n✅ Script terminé !');
+console.log("\n✅ Script terminé !");
 
 // Retourner un code d'erreur si des erreurs se sont produites
 process.exit(errors.length > 0 ? 1 : 0);
