@@ -319,7 +319,7 @@ class _VendorShopScreenState extends State<VendorShopScreen> {
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     childAspectRatio:
-                        0.55, // ✅ CORRECTION: 0.55 pour carte complète avec tous les éléments
+                        0.58, // ✅ CORRECTION: 0.58 pour éviter l'overflow de 13 pixels
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
                   ),

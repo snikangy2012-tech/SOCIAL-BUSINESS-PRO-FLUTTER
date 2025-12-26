@@ -9,6 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'firebase_service.dart';
 import 'notification_service.dart';
+import 'kyc_adaptive_service.dart';
 import 'package:social_business_pro/config/constants.dart';
 
 class AuthServiceExtended {
@@ -95,7 +96,52 @@ class AuthServiceExtended {
 
       debugPrint('✅ Inscription directe réussie');
 
-      // 4. Notifier les admins pour vendeurs et livreurs
+      // 4. ✨ NOUVEAU: Évaluation risque adaptative (non-bloquante)
+      UserRiskAssessment? riskAssessment;
+
+      if (userType == UserType.vendeur || userType == UserType.livreur) {
+        try {
+          debugPrint('🔍 Évaluation risque pour ${credential.user!.uid}...');
+
+          riskAssessment = await KYCAdaptiveService.assessUserRisk(
+            userId: credential.user!.uid,
+            phoneNumber: phone,
+            email: email,
+          );
+
+          debugPrint('✅ Risque évalué: ${riskAssessment.tier.displayName} (Score: ${riskAssessment.riskScore}/100)');
+
+          // SEUL CAS BLOQUANT: Blacklisté avéré
+          if (riskAssessment.tier == RiskTier.blacklisted) {
+            debugPrint('🛑 Utilisateur blacklisté détecté - Blocage inscription');
+
+            // Supprimer le compte créé
+            await credential.user!.delete();
+
+            // Supprimer le document Firestore
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(credential.user!.uid)
+                .delete();
+
+            return {
+              'success': false,
+              'message': 'Votre inscription ne peut être traitée. '
+                  'Pour plus d\'informations, contactez notre support : '
+                  'support@socialbusiness.ci ou WhatsApp +225 XX XX XX XX',
+            };
+          }
+
+          // ✅ Tous les autres cas : Accès accordé avec limites adaptées
+          debugPrint('✅ Accès accordé - Tier: ${riskAssessment.tier.name}');
+
+        } catch (e) {
+          debugPrint('⚠️ Erreur évaluation risque (non-bloquant): $e');
+          // En cas d'erreur, on laisse passer (mode sécurisé appliqué par défaut)
+        }
+      }
+
+      // 5. Notifier les admins pour vendeurs et livreurs
       if (userType == UserType.vendeur || userType == UserType.livreur) {
         try {
           await NotificationService.notifyAllAdmins(
@@ -107,6 +153,8 @@ class AuthServiceExtended {
               'userType': userType.name,
               'userName': username,
               'userEmail': email,
+              if (riskAssessment != null) 'riskTier': riskAssessment.tier.name,
+              if (riskAssessment != null) 'riskScore': riskAssessment.riskScore.toString(),
             },
           );
           debugPrint('✅ Admins notifiés de la nouvelle inscription');
@@ -120,6 +168,7 @@ class AuthServiceExtended {
         'success': true,
         'user': credential.user,
         'message': 'Compte créé avec succès',
+        'riskAssessment': riskAssessment, // Pour afficher les limites à l'utilisateur
       };
 
     } catch (e) {

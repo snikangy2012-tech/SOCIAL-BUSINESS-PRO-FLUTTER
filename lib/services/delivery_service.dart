@@ -13,6 +13,7 @@ import '../models/delivery_model.dart';
 import '../models/order_model.dart';
 import '../models/platform_transaction_model.dart';
 import 'kyc_verification_service.dart';
+import 'kyc_adaptive_service.dart';
 import 'platform_transaction_service.dart';
 import 'livreur_trust_service.dart';
 import 'payment_enforcement_service.dart';
@@ -285,6 +286,26 @@ class DeliveryService {
     }
   }
 
+  /// Compter les livraisons quotidiennes d'un livreur (pour limites KYC)
+  Future<int> getDailyDeliveryCount(String livreurId) async {
+    try {
+      final today = DateTime.now();
+      final startOfDay = DateTime(today.year, today.month, today.day);
+
+      final snapshot = await _db
+          .collection(FirebaseCollections.deliveries)
+          .where('livreurId', isEqualTo: livreurId)
+          .where('assignedAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .get();
+
+      return snapshot.docs.length;
+
+    } catch (e) {
+      debugPrint('❌ Erreur comptage livraisons quotidiennes: $e');
+      return 0;
+    }
+  }
+
   /// Récupérer les livraisons disponibles
   Future<List<Map<String, dynamic>>> getAvailableDeliveries({
     required Map<String, dynamic> livreurLocation,
@@ -339,19 +360,45 @@ class DeliveryService {
     }
   }
 
-  /// Assigner une livraison à un livreur
-  Future<void> assignDelivery({
+  /// Assigner une livraison à un livreur avec vérification KYC adaptative
+  Future<Map<String, dynamic>> assignDelivery({
     required String deliveryId,
     required String livreurId,
     required DateTime estimatedPickup,
     required DateTime estimatedDelivery,
   }) async {
     try {
+      debugPrint('🚚 Assignation livraison $deliveryId au livreur $livreurId');
+
+      // ✨ ÉTAPE 1: Vérification KYC adaptative (limites tier)
+      final dailyDeliveries = await getDailyDeliveryCount(livreurId);
+
+      final permission = await KYCAdaptiveService.canPerformAction(
+        userId: livreurId,
+        action: 'accept_delivery',
+        currentDailyOrders: dailyDeliveries, // Utilise même compteur
+      );
+
+      if (!permission.allowed) {
+        debugPrint('❌ Limite KYC atteinte - ${permission.reason}');
+        return {
+          'success': false,
+          'error': 'kyc_limit_reached',
+          'message': permission.reason,
+          'requiresKYC': permission.requiresKYC,
+          'currentTier': permission.currentTier?.name,
+          'nextTier': permission.nextTier?.name,
+        };
+      }
+
+      debugPrint('✅ Vérification KYC passée - Tier: ${permission.currentTier?.name}');
+
+      // ✨ ÉTAPE 2: Assigner la livraison (transaction atomique)
       await _db.runTransaction((transaction) async {
         final deliveryRef = _db
             .collection(FirebaseCollections.deliveries)
             .doc(deliveryId);
-        
+
         final deliveryDoc = await transaction.get(deliveryRef);
 
         if (!deliveryDoc.exists) {
@@ -401,8 +448,24 @@ class DeliveryService {
           'updatedAt': FieldValue.serverTimestamp(),
         });
       });
+
+      debugPrint('✅ Livraison assignée avec succès');
+
+      // ✨ ÉTAPE 3: Vérifier si éligible à upgrade de tier
+      await KYCAdaptiveService.upgradeTierIfEligible(livreurId);
+
+      return {
+        'success': true,
+        'message': 'Livraison acceptée avec succès',
+      };
+
     } catch (e) {
-      throw Exception('Erreur assignation livraison: $e');
+      debugPrint('❌ Erreur assignation livraison: $e');
+      return {
+        'success': false,
+        'error': 'assignment_failed',
+        'message': 'Erreur lors de l\'assignation: $e',
+      };
     }
   }
 

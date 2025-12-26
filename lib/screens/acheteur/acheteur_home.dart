@@ -475,6 +475,23 @@ class _AcheteurHomeState extends State<AcheteurHome> {
               ),
             ),
 
+            // ✅ SÉPARATEUR VISUEL
+            SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Divider(
+                      thickness: 1,
+                      color: Colors.grey[300],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+
             // ✅ BANNIÈRE PROMOTIONNELLE
             SliverToBoxAdapter(
               child: Container(

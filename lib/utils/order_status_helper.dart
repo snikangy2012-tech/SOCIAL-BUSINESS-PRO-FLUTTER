@@ -25,6 +25,7 @@ class OrderStatusHelper {
 
       // Statuts en cours
       case 'en_cours':
+      case 'in_delivery':
         return 'En cours de livraison';
 
       // Statuts livrés
@@ -67,6 +68,7 @@ class OrderStatusHelper {
         return AppColors.info; // Bleu
 
       case 'en_cours':
+      case 'in_delivery':
         return AppColors.primary; // Orange (en livraison)
 
       case 'livree':
@@ -106,6 +108,7 @@ class OrderStatusHelper {
         return Icons.kitchen_outlined; // En préparation
 
       case 'en_cours':
+      case 'in_delivery':
         return Icons.delivery_dining; // Livreur en route
 
       case 'livree':

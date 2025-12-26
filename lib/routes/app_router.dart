@@ -7,6 +7,7 @@ import 'package:social_business_pro/screens/acheteur/categories_screen.dart';
 import 'package:social_business_pro/screens/acheteur/favorite_screen.dart';
 import 'package:social_business_pro/screens/acheteur/product_search_screen.dart';
 import 'package:social_business_pro/screens/acheteur/my_reviews_screen.dart';
+import 'package:social_business_pro/screens/acheteur/nearby_vendors_screen.dart';
 import 'package:social_business_pro/screens/admin/admin_livreur_management_screen.dart';
 import 'package:social_business_pro/screens/admin/admin_livreur_detail_screen.dart';
 import 'package:social_business_pro/screens/admin/global_statistics_screen.dart';
@@ -272,6 +273,7 @@ class AppRouter {
         GoRoute(path: '/acheteur/payment-methods', builder: (context, state) => const PaymentMethodsScreen()),
         GoRoute(path: '/acheteur/my-reviews', builder: (context, state) => const MyReviewsScreen()),
         GoRoute(path: '/acheteur/search', builder: (context, state) => const ProductSearchScreen()),
+        GoRoute(path: '/acheteur/nearby-vendors', builder: (context, state) => const NearbyVendorsScreen()),
         GoRoute(path: '/product/:id', builder: (context, state) => ProductDetailScreen(productId: state.pathParameters['id']!)),
 
         // Routes communes acheteur (accessibles sans /acheteur)

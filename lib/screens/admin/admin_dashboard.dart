@@ -14,6 +14,7 @@ import 'package:social_business_pro/utils/create_test_activities.dart';
 import 'package:social_business_pro/screens/admin/admin_management_screen.dart';
 import 'package:social_business_pro/screens/admin/audit_logs_screen.dart';
 import 'package:social_business_pro/screens/admin/global_reports_screen.dart';
+import 'package:social_business_pro/screens/admin/kyc_management_screen.dart';
 import '../../providers/auth_provider_firebase.dart' as auth;
 import '../../providers/notification_provider.dart';
 import '../../widgets/custom_widgets.dart';
@@ -866,6 +867,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const AuditLogsScreen(),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: AppSpacing.sm),
+
+            // Bouton Gestion KYC Adaptative
+            CustomButton(
+              text: 'Gestion KYC Adaptative',
+              icon: Icons.verified_user,
+              backgroundColor: AppColors.success,
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const KYCManagementScreen(),
                 ),
               ),
             ),

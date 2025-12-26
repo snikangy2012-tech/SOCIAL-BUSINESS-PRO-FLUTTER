@@ -14,6 +14,7 @@ import '../../services/product_service.dart';
 import '../../services/audit_service.dart';
 import '../../config/product_categories.dart';
 import '../../widgets/system_ui_scaffold.dart';
+import '../../utils/number_formatter.dart';
 
 class ProductManagement extends StatefulWidget {
   const ProductManagement({super.key, required String storeId});
@@ -648,7 +649,7 @@ class _ProductManagementState extends State<ProductManagement> {
                       children: [
                         Expanded(
                           child: Text(
-                            '${product.price.toStringAsFixed(0)} F',
+                            formatPriceWithCurrency(product.price, currency: 'F'),
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               color: AppColors.primary,

@@ -57,6 +57,11 @@ dependencies:
   http: ^1.2.0                     # ✅ Requêtes HTTP pour Mobile Money API
   uuid: ^4.5.1                     # ✅ Génération d'identifiants uniques
 
+  # ===== KYC & ANTI-FRAUDE =====
+  device_info_plus: ^10.0.0        # ✅ Device fingerprinting
+  package_info_plus: ^8.0.0        # ✅ App version info
+  crypto: ^3.0.3                   # ✅ Hash génération (face hashes, CNI)
+
   # ===== EXPORT & FICHIERS =====
   pdf: ^3.11.1                     # ✅ Génération PDF
   path_provider: ^2.1.4            # ✅ Accès aux dossiers système

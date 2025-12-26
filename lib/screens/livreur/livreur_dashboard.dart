@@ -11,6 +11,7 @@ import '../../services/livreur_stats_service.dart';
 import '../../services/review_service.dart';
 import '../../utils/number_formatter.dart';
 import '../../widgets/system_ui_scaffold.dart';
+import '../../widgets/kyc_tier_banner.dart';
 
 class DeliveryDashboard extends StatefulWidget {
   const DeliveryDashboard({super.key});
@@ -241,6 +242,9 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            // ✨ Bannière KYC adaptative
+            KYCTierBanner(userId: user.id),
+
             // Switch Disponibilité
             Card(
               elevation: 2,

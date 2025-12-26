@@ -14,6 +14,7 @@ import '../../services/vendor_stats_service.dart';
 import '../../utils/order_status_helper.dart';
 import '../../utils/number_formatter.dart';
 import '../../widgets/system_ui_scaffold.dart';
+import '../../widgets/kyc_tier_banner.dart';
 
 class VendeurDashboard extends StatefulWidget {
   const VendeurDashboard({super.key});
@@ -320,6 +321,14 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // ✨ Bannière KYC adaptative
+                    Consumer<auth.AuthProvider>(
+                      builder: (context, authProvider, _) {
+                        if (authProvider.user == null) return const SizedBox.shrink();
+                        return KYCTierBanner(userId: authProvider.user!.id);
+                      },
+                    ),
+
                     // Revenus du mois
                     Container(
                       padding: const EdgeInsets.all(20),

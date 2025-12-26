@@ -140,7 +140,14 @@ class _MyShopScreenState extends State<MyShopScreen> {
         final storageRef = FirebaseStorage.instance.ref().child(fileName);
         final imageFile = File(image.path);
 
-        await storageRef.putFile(imageFile);
+        // Ajouter les métadonnées pour s'assurer que Firebase accepte l'image
+        final metadata = SettableMetadata(
+          contentType: 'image/jpeg',
+          customMetadata: {'uploadedBy': user.id},
+        );
+
+        debugPrint('📤 Upload image boutique: $fileName');
+        await storageRef.putFile(imageFile, metadata);
         final imageUrl = await storageRef.getDownloadURL();
 
         debugPrint('✅ Image uploadée: $imageUrl');
@@ -285,6 +292,12 @@ class _MyShopScreenState extends State<MyShopScreen> {
                       icon: Icons.description,
                       label: 'Description',
                       value: _vendeurProfile!.businessDescription!,
+                    ),
+                  if (_vendeurProfile!.businessPhone != null)
+                    _buildInfoTile(
+                      icon: Icons.phone,
+                      label: 'Téléphone',
+                      value: _vendeurProfile!.businessPhone!,
                     ),
                 ],
               ),

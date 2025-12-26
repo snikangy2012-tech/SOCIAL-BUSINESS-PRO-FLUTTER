@@ -495,6 +495,11 @@ class _OrderDetailState extends State<OrderDetail> {
 
             const SizedBox(height: AppSpacing.md),
 
+            // Informations boutique
+            _buildShopSection(),
+
+            const SizedBox(height: AppSpacing.md),
+
             // Informations livreur (si livreur assigné)
             if (_order!.livreurId != null) _buildLivreurSection(),
 
@@ -595,6 +600,55 @@ class _OrderDetailState extends State<OrderDetail> {
         ),
       ),
       bottomNavigationBar: _buildBottomActions(),
+    );
+  }
+
+  // Section informations boutique
+  Widget _buildShopSection() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.user;
+
+    if (user == null) return const SizedBox.shrink();
+
+    // Récupérer le profil vendeur
+    final profileData = user.profile['vendeurProfile'] as Map<String, dynamic>?;
+
+    if (profileData == null) return const SizedBox.shrink();
+
+    final businessPhone = profileData['businessPhone'] as String?;
+    final businessAddress = profileData['businessAddress'] as String?;
+    final businessLatitude = profileData['businessLatitude'] as double?;
+    final businessLongitude = profileData['businessLongitude'] as double?;
+
+    return _buildSection(
+      'Informations boutique',
+      Column(
+        children: [
+          if (businessPhone != null) ...[
+            _buildInfoRow(
+              Icons.phone,
+              'Téléphone boutique',
+              businessPhone,
+            ),
+            const Divider(),
+          ],
+          if (businessAddress != null) ...[
+            _buildInfoRow(
+              Icons.location_on,
+              'Adresse boutique',
+              businessAddress,
+            ),
+          ],
+          if (businessLatitude != null && businessLongitude != null) ...[
+            const Divider(),
+            _buildInfoRow(
+              Icons.gps_fixed,
+              'Coordonnées GPS',
+              '${businessLatitude.toStringAsFixed(6)}, ${businessLongitude.toStringAsFixed(6)}',
+            ),
+          ],
+        ],
+      ),
     );
   }
 

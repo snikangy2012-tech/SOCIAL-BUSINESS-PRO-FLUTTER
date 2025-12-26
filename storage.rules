@@ -27,6 +27,13 @@ service firebase.storage {
       allow delete: if isAuthenticated() && isOwner(userId);
     }
 
+    // Shop/Boutique images
+    match /shops/{userId}/{imageId} {
+      allow read: if true; // Public read for shop images
+      allow write: if isAuthenticated() && isOwner(userId);
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+
     // Delivery proof images
     match /deliveries/{deliveryId}/{imageId} {
       allow read: if isAuthenticated();

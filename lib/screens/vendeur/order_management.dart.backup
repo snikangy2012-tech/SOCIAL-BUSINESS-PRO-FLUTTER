@@ -531,20 +531,14 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
 
   // Carte de commande
   Widget _buildOrderCard(OrderModel order) {
-    try {
-      debugPrint('🃏 Building card for order: ${order.id}, ${order.displayNumber}');
-      debugPrint('🃏 Order data: buyerName=${order.buyerName}, items=${order.items.length}, total=${order.totalAmount}');
+    final isSelected = _selectedOrderIds.contains(order.id);
+    // Seules les commandes non assignées (en attente, confirmées) peuvent être sélectionnées
+    final status = order.status.toLowerCase();
+    final canBeSelected = _isSelectionMode &&
+                          (status == 'en_attente' || status == 'pending' ||
+                           status == 'confirmed' || status == 'preparing');
 
-      final isSelected = _selectedOrderIds.contains(order.id);
-      // Seules les commandes non assignées (en attente, confirmées) peuvent être sélectionnées
-      final status = order.status.toLowerCase();
-      final canBeSelected = _isSelectionMode &&
-                            (status == 'en_attente' || status == 'pending' ||
-                             status == 'confirmed' || status == 'preparing');
-
-      debugPrint('🃏 Status: $status, isSelected: $isSelected, canBeSelected: $canBeSelected');
-
-      return Card(
+    return Card(
         margin: const EdgeInsets.only(bottom: AppSpacing.md),
         elevation: isSelected ? 4 : 2,
         color: isSelected ? AppColors.primary.withOpacity(0.1) : null,
@@ -673,7 +667,7 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
                             ),
                           ),
                           Text(
-                            formatPriceWithCurrency(item.price * item.quantity, currency: 'FCFA'),
+                            '${(item.price * item.quantity).toStringAsFixed(0)} FCFA',
                             style: const TextStyle(
                               fontSize: AppFontSizes.sm,
                               color: AppColors.textPrimary,
@@ -711,7 +705,7 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
                           ),
                         ),
                         Text(
-                          formatPriceWithCurrency(order.totalAmount, currency: 'FCFA'),
+                          '${order.totalAmount.toStringAsFixed(0)} FCFA',
                           style: const TextStyle(
                             fontSize: AppFontSizes.lg,
                             fontWeight: FontWeight.bold,
@@ -720,52 +714,38 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
                         ),
                       ],
                     ),
-                    // Actions simplifiées sans overflow
-                    _buildStatusAction(order),
+                    Row(
+                      children: [
+                        // Bouton détail
+                        OutlinedButton(
+                          onPressed: () => _showOrderDetail(order),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AppColors.primary),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
+                              vertical: AppSpacing.xs,
+                            ),
+                          ),
+                          child: const Text(
+                            'Détail',
+                            style: TextStyle(color: AppColors.primary),
+                          ),
+                        ),
+
+                        const SizedBox(width: AppSpacing.xs),
+
+                        // Actions selon le statut
+                        Flexible(
+                          child: _buildStatusAction(order),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ],
             ),
           ),
         ));
-    } catch (e, stackTrace) {
-      debugPrint('❌ ERROR building order card for ${order.id}: $e');
-      debugPrint('Stack trace: $stackTrace');
-
-      // Retourner une carte simple en cas d'erreur pour voir l'erreur
-      return Card(
-        margin: const EdgeInsets.only(bottom: AppSpacing.md),
-        color: AppColors.error.withValues(alpha: 0.1),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Commande ${order.displayNumber}',
-                style: const TextStyle(
-                  fontSize: AppFontSizes.md,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Erreur d\'affichage: $e',
-                style: const TextStyle(
-                  fontSize: AppFontSizes.sm,
-                  color: AppColors.error,
-                ),
-              ),
-              const SizedBox(height: 8),
-              ElevatedButton(
-                onPressed: () => _goToOrderDetail(order.id),
-                child: const Text('Voir détails'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
   }
 
   // Badge de statut
@@ -778,88 +758,85 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
     switch (order.status.toLowerCase()) {
       case 'en_attente':
       case 'pending':
-        // Bouton principal "Détail" qui ouvre la modal
-        return ElevatedButton(
-          onPressed: () => _showOrderDetail(order),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.xs,
+        // ✅ NOUVEAU: Afficher le bouton de confirmation pour le vendeur
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextButton(
+              onPressed: () => _goToOrderDetail(order.id),
+              style: TextButton.styleFrom(
+                backgroundColor: AppColors.success,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.check_circle, size: 16),
+                  SizedBox(width: 4),
+                  Text('Confirmer', style: TextStyle(fontSize: 13)),
+                ],
+              ),
             ),
-          ),
-          child: const Text('Voir & Confirmer'),
+            const SizedBox(width: 8),
+            // Bouton "Je livre" pour commandes >= 50k FCFA
+            if (order.totalAmount >= 50000) ...[
+              TextButton(
+                onPressed: () => _vendorSelfDelivery(order),
+                style: TextButton.styleFrom(
+                  backgroundColor: AppColors.info,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.local_shipping, size: 16),
+                    SizedBox(width: 4),
+                    Text('Je livre', style: TextStyle(fontSize: 13)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            TextButton(
+              onPressed: () => _cancelOrder(order),
+              child: const Text('Annuler', style: TextStyle(color: AppColors.error, fontSize: 13)),
+            ),
+          ],
         );
 
       case 'en_cours':
       case 'confirmed':
       case 'preparing':
-        // Bouton pour voir les détails
-        return OutlinedButton(
-          onPressed: () => _showOrderDetail(order),
-          style: OutlinedButton.styleFrom(
-            side: const BorderSide(color: AppColors.primary),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.xs,
+        // Si aucun livreur n'est assigné, permettre l'assignation manuelle
+        if (order.livreurId == null || order.livreurId!.isEmpty) {
+          return ElevatedButton(
+            onPressed: () => _assignLivreur(order),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.info,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.xs,
+              ),
             ),
-          ),
-          child: const Text(
-            'Détails',
-            style: TextStyle(color: AppColors.primary),
-          ),
-        );
+            child: const Text('Assigner livreur'),
+          );
+        }
+        return const SizedBox.shrink();
 
       case 'livree':
-      case 'delivered':
-      case 'completed':
-        // Commande livrée - juste voir détails
-        return OutlinedButton(
-          onPressed: () => _showOrderDetail(order),
-          style: OutlinedButton.styleFrom(
-            side: const BorderSide(color: AppColors.success),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.xs,
-            ),
-          ),
-          child: const Text(
-            'Détails',
-            style: TextStyle(color: AppColors.success),
-          ),
-        );
-
       case 'annulee':
-      case 'cancelled':
-      case 'canceled':
-        // Commande annulée - juste voir détails
-        return OutlinedButton(
-          onPressed: () => _showOrderDetail(order),
-          style: OutlinedButton.styleFrom(
-            side: const BorderSide(color: AppColors.error),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.xs,
-            ),
-          ),
-          child: const Text(
-            'Détails',
-            style: TextStyle(color: AppColors.error),
-          ),
-        );
+        return const SizedBox.shrink();
 
       default:
-        // Par défaut, bouton détails
-        return OutlinedButton(
-          onPressed: () => _showOrderDetail(order),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.xs,
-            ),
-          ),
-          child: const Text('Détails'),
-        );
+        return const SizedBox.shrink();
     }
   }
 
@@ -1023,7 +1000,7 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
                               ),
                             ),
                             Text(
-                              'Prix unitaire: ${formatPriceWithCurrency(item.price, currency: 'FCFA')}',
+                              'Prix unitaire: ${item.price.toStringAsFixed(0)} FCFA',
                               style: const TextStyle(
                                 fontSize: AppFontSizes.sm,
                                 color: AppColors.textSecondary,
@@ -1033,7 +1010,7 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
                         ),
                       ),
                       Text(
-                        formatPriceWithCurrency(item.price * item.quantity, currency: 'FCFA'),
+                        '${(item.price * item.quantity).toStringAsFixed(0)} FCFA',
                         style: const TextStyle(
                           fontSize: AppFontSizes.md,
                           fontWeight: FontWeight.bold,
@@ -1049,11 +1026,11 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
 
           // Récapitulatif des prix
           _buildDetailSection('Récapitulatif', [
-            _buildDetailRow('Sous-total', formatPriceWithCurrency(order.subtotal, currency: 'FCFA')),
+            _buildDetailRow('Sous-total', '${order.subtotal.toStringAsFixed(0)} FCFA'),
             if (order.deliveryFee > 0)
-              _buildDetailRow('Frais de livraison', formatPriceWithCurrency(order.deliveryFee, currency: 'FCFA')),
+              _buildDetailRow('Frais de livraison', '${order.deliveryFee.toStringAsFixed(0)} FCFA'),
             if (order.discount > 0)
-              _buildDetailRow('Remise', '-${formatPriceWithCurrency(order.discount, currency: 'FCFA')}'),
+              _buildDetailRow('Remise', '-${order.discount.toStringAsFixed(0)} FCFA'),
             const Divider(),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1067,7 +1044,7 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
                   ),
                 ),
                 Text(
-                  formatPriceWithCurrency(order.totalAmount, currency: 'FCFA'),
+                  '${order.totalAmount.toStringAsFixed(0)} FCFA',
                   style: const TextStyle(
                     fontSize: AppFontSizes.lg,
                     fontWeight: FontWeight.bold,
@@ -1080,8 +1057,12 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
 
           const SizedBox(height: AppSpacing.xl),
 
-          // Actions selon le statut
-          ..._buildDetailActions(order),
+          // Actions
+          if (order.status.toLowerCase() != 'livree' && order.status.toLowerCase() != 'annulee')
+            SizedBox(
+              width: double.infinity,
+              child: _buildStatusAction(order),
+            ),
         ],
       ),
     );
@@ -1130,106 +1111,6 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
         ],
       ),
     );
-  }
-
-  // Actions détaillées dans la modal selon le statut
-  List<Widget> _buildDetailActions(OrderModel order) {
-    final status = order.status.toLowerCase();
-
-    switch (status) {
-      case 'en_attente':
-      case 'pending':
-        // Commande en attente - proposer confirmation, auto-livraison ou annulation
-        return [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pop(context); // Fermer la modal
-                _updateOrderStatus(order.id, 'confirmed');
-              },
-              icon: const Icon(Icons.check_circle),
-              label: const Text('Confirmer la commande'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.success,
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-              ),
-            ),
-          ),
-          if (order.totalAmount >= 50000) ...[
-            const SizedBox(height: AppSpacing.md),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pop(context); // Fermer la modal
-                  _vendorSelfDelivery(order);
-                },
-                icon: const Icon(Icons.local_shipping),
-                label: const Text('Je livre moi-même (>= 50k)'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.info,
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.md),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                Navigator.pop(context); // Fermer la modal
-                _cancelOrder(order);
-              },
-              icon: const Icon(Icons.cancel),
-              label: const Text('Annuler la commande'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.error,
-                side: const BorderSide(color: AppColors.error),
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-              ),
-            ),
-          ),
-        ];
-
-      case 'en_cours':
-      case 'confirmed':
-      case 'preparing':
-        // Commande en cours - proposer assignation de livreur si pas encore assigné
-        if (order.livreurId == null || order.livreurId!.isEmpty) {
-          return [
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pop(context); // Fermer la modal
-                  _assignLivreur(order);
-                },
-                icon: const Icon(Icons.delivery_dining),
-                label: const Text('Assigner un livreur'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.info,
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                ),
-              ),
-            ),
-          ];
-        }
-        return [];
-
-      case 'livree':
-      case 'delivered':
-      case 'completed':
-      case 'annulee':
-      case 'cancelled':
-      case 'canceled':
-        // Commande terminée ou annulée - pas d'actions
-        return [];
-
-      default:
-        return [];
-    }
   }
 
   // Obtenir le label du statut pour les onglets (SIMPLIFIÉ)

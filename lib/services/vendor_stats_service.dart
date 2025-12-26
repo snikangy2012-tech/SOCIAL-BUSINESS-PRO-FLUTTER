@@ -21,9 +21,7 @@ class VendorStatsService {
           .where('vendeurId', isEqualTo: vendeurId)
           .get();
 
-      final orders = ordersSnapshot.docs
-          .map((doc) => OrderModel.fromFirestore(doc))
-          .toList();
+      final orders = ordersSnapshot.docs.map((doc) => OrderModel.fromFirestore(doc)).toList();
 
       debugPrint('📦 Total commandes: ${orders.length}');
 
@@ -44,47 +42,49 @@ class VendorStatsService {
 
       for (var order in orders) {
         final status = order.status.toLowerCase();
+        debugPrint('📦 Commande ${order.id}: statut="${order.status}" (lowercase: "$status")');
 
         // Compter par statut
         switch (status) {
           case 'pending':
+          case 'en_attente':
             pendingOrders++;
             break;
           case 'confirmed':
-            confirmedOrders++;
-            break;
-          case 'preparing':
-            preparingOrders++;
-            break;
           case 'ready':
-            readyOrders++;
-            break;
+          case 'preparing':
           case 'in_delivery':
-            inDeliveryOrders++;
+          case 'in delivery':
+          case 'processing':
+          case 'en_cours':
+            confirmedOrders++; // On utilise confirmedOrders pour "en cours"
             break;
           case 'delivered':
+          case 'completed':
+          case 'livree':
             deliveredOrders++;
             totalRevenue += order.totalAmount;
             break;
           case 'cancelled':
+          case 'canceled':
+          case 'annulee':
             cancelledOrders++;
+            break;
+          default:
+            debugPrint('⚠️ Statut non reconnu: $status pour commande ${order.id}');
             break;
         }
 
         // Revenu mensuel (uniquement commandes livrées ce mois)
-        if (status == 'delivered' &&
-            order.createdAt.isAfter(startOfMonth)) {
+        if (status == 'delivered' && order.createdAt.isAfter(startOfMonth)) {
           monthlyRevenue += order.totalAmount;
         }
       }
 
-      debugPrint('📊 Pending: $pendingOrders');
-      debugPrint('📊 Confirmed: $confirmedOrders');
-      debugPrint('📊 Preparing: $preparingOrders');
-      debugPrint('📊 Ready: $readyOrders');
-      debugPrint('📊 In Delivery: $inDeliveryOrders');
-      debugPrint('📊 Delivered: $deliveredOrders');
-      debugPrint('📊 Cancelled: $cancelledOrders');
+      debugPrint('📊 En attente: $pendingOrders');
+      debugPrint('📊 En cours: $confirmedOrders');
+      debugPrint('📊 Livrées: $deliveredOrders');
+      debugPrint('📊 Annulées: $cancelledOrders');
 
       // 3. Charger les produits du vendeur
       final productsSnapshot = await _firestore
@@ -124,7 +124,6 @@ class VendorStatsService {
         activeProducts: activeProducts,
         viewsThisMonth: viewsThisMonth,
       );
-
     } catch (e) {
       debugPrint('❌ Erreur calcul statistiques: $e');
       throw Exception('Impossible de calculer les statistiques: $e');
@@ -151,10 +150,8 @@ class VendorStatsService {
         // Récupérer le nom de l'acheteur
         String customerName = 'Client inconnu';
         try {
-          final buyerDoc = await _firestore
-              .collection(FirebaseCollections.users)
-              .doc(order.buyerId)
-              .get();
+          final buyerDoc =
+              await _firestore.collection(FirebaseCollections.users).doc(order.buyerId).get();
 
           if (buyerDoc.exists) {
             customerName = buyerDoc.data()?['displayName'] ?? 'Client inconnu';
@@ -176,7 +173,6 @@ class VendorStatsService {
 
       debugPrint('✅ ${recentOrders.length} commandes récentes chargées');
       return recentOrders;
-
     } catch (e) {
       debugPrint('❌ Erreur chargement commandes récentes: $e');
       throw Exception('Impossible de charger les commandes récentes: $e');
@@ -217,7 +213,8 @@ class VendorStats {
   });
 
   /// Commandes actives = pending + confirmed + preparing + ready + in_delivery
-  int get activeOrders => pendingOrders + confirmedOrders + preparingOrders + readyOrders + inDeliveryOrders;
+  int get activeOrders =>
+      pendingOrders + confirmedOrders + preparingOrders + readyOrders + inDeliveryOrders;
 
   /// Commandes complétées = delivered
   int get completedOrders => deliveredOrders;

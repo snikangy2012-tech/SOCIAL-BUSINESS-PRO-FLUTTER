@@ -104,10 +104,35 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
     if (_order == null) return const SizedBox.shrink();
 
     final currentStatus = _order!.status.toLowerCase();
-    final statuses = ['pending', 'confirmed', 'preparing', 'in_delivery', 'delivered'];
 
-    int currentIndex = statuses.indexOf(currentStatus);
-    if (currentIndex == -1) currentIndex = 0;
+    // Workflow réel avec traduction française
+    final statuses = [
+      {'key': 'en_attente', 'label': 'En attente'},
+      {'key': 'confirmed', 'label': 'Confirmée'},
+      {'key': 'preparing', 'label': 'En préparation'},
+      {'key': 'in_delivery', 'label': 'En livraison'},
+      {'key': 'delivered', 'label': 'Livrée'},
+    ];
+
+    // Déterminer l'index actuel selon le statut réel
+    int currentIndex = 0;
+
+    if (currentStatus == 'en_attente' || currentStatus == 'pending') {
+      currentIndex = 0; // En attente
+    } else if (currentStatus == 'livree' || currentStatus == 'delivered') {
+      currentIndex = 4; // Livrée (toutes les étapes complétées)
+    } else if (currentStatus == 'en_cours') {
+      // Pour en_cours, déterminer la sous-étape selon la livraison
+      if (_order!.livreurId != null && _order!.livreurId!.isNotEmpty) {
+        // Si livreur assigné, au moins en livraison (étape 3)
+        currentIndex = 3;
+      } else {
+        // Si pas de livreur, en préparation (étape 2)
+        currentIndex = 2;
+      }
+    } else {
+      currentIndex = 0;
+    }
 
     return Card(
       child: Padding(
@@ -124,7 +149,7 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
             ),
             const SizedBox(height: AppSpacing.md),
             ...List.generate(statuses.length, (index) {
-              final status = statuses[index];
+              final statusData = statuses[index];
               final isCompleted = index <= currentIndex;
               final isCurrent = index == currentIndex;
 
@@ -174,7 +199,7 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _getStatusLabel(status),
+                            statusData['label'] as String,
                             style: TextStyle(
                               fontSize: AppFontSizes.md,
                               fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,

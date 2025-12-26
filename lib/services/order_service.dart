@@ -8,6 +8,7 @@ import 'package:social_business_pro/config/constants.dart';
 import 'stock_management_service.dart';
 import 'audit_service.dart';
 import 'notification_service.dart';
+import 'kyc_adaptive_service.dart';
 
 class OrderService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -16,23 +17,57 @@ class OrderService {
   static Future<List<OrderModel>> getVendorOrders(String vendeurId) async {
     try {
       debugPrint('📦 Chargement commandes vendeur: $vendeurId');
+      debugPrint('📦 Collection: ${FirebaseCollections.orders}');
 
       final querySnapshot = await _firestore
           .collection(FirebaseCollections.orders)
           .where('vendeurId', isEqualTo: vendeurId)
           .orderBy('createdAt', descending: true)
-          .get();
+          .get()
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              debugPrint('⏱️ Timeout lors de la requête Firestore (30s)');
+              throw Exception('Timeout: La requête a pris trop de temps');
+            },
+          );
 
-      final orders = querySnapshot.docs.map((doc) {
-        return OrderModel.fromFirestore(doc);
-      }).toList();
+      debugPrint('📊 Résultats Firestore: ${querySnapshot.docs.length} documents');
 
-      debugPrint('✅ ${orders.length} commandes chargées');
+      if (querySnapshot.docs.isEmpty) {
+        debugPrint('⚠️ Aucun document trouvé dans Firestore pour vendeurId=$vendeurId');
+        debugPrint('⚠️ Vérifiez que:');
+        debugPrint('   1. Des commandes existent dans la collection "${FirebaseCollections.orders}"');
+        debugPrint('   2. Le champ "vendeurId" correspond exactement à "$vendeurId"');
+        debugPrint('   3. L\'index Firestore est déployé');
+        return [];
+      }
+
+      final orders = <OrderModel>[];
+      for (var doc in querySnapshot.docs) {
+        try {
+          final order = OrderModel.fromFirestore(doc);
+          orders.add(order);
+        } catch (e) {
+          debugPrint('❌ Erreur parsing commande ${doc.id}: $e');
+          // Continue avec les autres commandes
+        }
+      }
+
+      debugPrint('✅ ${orders.length} commandes chargées avec succès');
+      if (orders.isNotEmpty) {
+        debugPrint('   Premier statut: ${orders.first.status}');
+        debugPrint('   Dernier statut: ${orders.last.status}');
+      }
       return orders;
 
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('❌ Erreur chargement commandes: $e');
-      throw Exception('Impossible de charger les commandes: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
+
+      // Retourner une liste vide au lieu de lancer une exception
+      // pour permettre à l'UI de continuer à fonctionner
+      return [];
     }
   }
 
@@ -102,10 +137,224 @@ class OrderService {
         return OrderModel.fromFirestore(doc);
       }
       return null;
-      
+
     } catch (e) {
       debugPrint('❌ Erreur récupération commande: $e');
       return null;
+    }
+  }
+
+  /// Compter les commandes quotidiennes d'un utilisateur (pour limites KYC)
+  static Future<int> getDailyOrderCount(String userId) async {
+    try {
+      final today = DateTime.now();
+      final startOfDay = DateTime(today.year, today.month, today.day);
+
+      final querySnapshot = await _firestore
+          .collection(FirebaseCollections.orders)
+          .where('vendeurId', isEqualTo: userId)
+          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .get();
+
+      return querySnapshot.docs.length;
+
+    } catch (e) {
+      debugPrint('❌ Erreur comptage commandes quotidiennes: $e');
+      return 0;
+    }
+  }
+
+  /// Créer une nouvelle commande avec vérification KYC automatique
+  /// Vérifie les limites tier avant de créer la commande
+  static Future<Map<String, dynamic>> createOrder({
+    required String vendeurId,
+    required String buyerId,
+    required String buyerName,
+    required String buyerPhone,
+    required List<Map<String, dynamic>> items,
+    required double subtotal,
+    required double deliveryFee,
+    required double totalAmount,
+    String deliveryMethod = 'delivery',
+    String? deliveryAddress,
+    double? deliveryLatitude,
+    double? deliveryLongitude,
+    double? pickupLatitude,
+    double? pickupLongitude,
+    String? paymentMethod,
+    Map<String, dynamic>? additionalData,
+  }) async {
+    try {
+      debugPrint('🛒 Création commande - Vendeur: $vendeurId, Montant: $totalAmount FCFA');
+
+      // ✨ ÉTAPE 1: Vérification KYC adaptative (limites tier)
+      final dailyOrders = await getDailyOrderCount(vendeurId);
+
+      final permission = await KYCAdaptiveService.canPerformAction(
+        userId: vendeurId,
+        action: 'create_order',
+        orderValue: totalAmount,
+        currentDailyOrders: dailyOrders,
+      );
+
+      if (!permission.allowed) {
+        debugPrint('❌ Limite KYC atteinte - ${permission.reason}');
+        return {
+          'success': false,
+          'error': 'kyc_limit_reached',
+          'message': permission.reason,
+          'requiresKYC': permission.requiresKYC,
+          'currentTier': permission.currentTier?.name,
+          'nextTier': permission.nextTier?.name,
+        };
+      }
+
+      debugPrint('✅ Vérification KYC passée - Tier: ${permission.currentTier?.name}');
+
+      // ✨ ÉTAPE 2: Réserver le stock
+      final productsQuantities = <String, int>{};
+      for (final item in items) {
+        productsQuantities[item['productId'] as String] = item['quantity'] as int;
+      }
+
+      final stockReserved = await StockManagementService.reserveStockBatch(
+        productsQuantities: productsQuantities,
+      );
+
+      if (!stockReserved) {
+        debugPrint('❌ Stock insuffisant pour certains produits');
+        return {
+          'success': false,
+          'error': 'insufficient_stock',
+          'message': 'Stock insuffisant pour un ou plusieurs produits',
+        };
+      }
+
+      debugPrint('✅ Stock réservé pour ${items.length} produit(s)');
+
+      // ✨ ÉTAPE 3: Générer le numéro de commande
+      final orderNumber = 'ORD-${DateTime.now().millisecondsSinceEpoch}';
+
+      // Compter les commandes existantes pour le displayNumber
+      final allOrdersSnapshot = await _firestore
+          .collection(FirebaseCollections.orders)
+          .orderBy('displayNumber', descending: true)
+          .limit(1)
+          .get();
+
+      final displayNumber = allOrdersSnapshot.docs.isEmpty
+          ? 1
+          : ((allOrdersSnapshot.docs.first.data()['displayNumber'] ?? 0) as int) + 1;
+
+      // ✨ ÉTAPE 4: Récupérer les informations du vendeur
+      String? vendeurName;
+      String? vendeurShopName;
+      String? vendeurPhone;
+      String? vendeurLocation;
+
+      try {
+        final vendeurDoc = await _firestore
+            .collection(FirebaseCollections.users)
+            .doc(vendeurId)
+            .get();
+
+        if (vendeurDoc.exists) {
+          final data = vendeurDoc.data();
+          vendeurName = data?['displayName'];
+
+          // Récupérer les infos de la boutique depuis le profil vendeur
+          final profile = data?['profile'] as Map<String, dynamic>?;
+          if (profile != null) {
+            vendeurShopName = profile['businessName'];
+            vendeurPhone = profile['businessPhone'];
+            vendeurLocation = profile['businessAddress'];
+          }
+        }
+
+        debugPrint('✅ Infos vendeur récupérées - Boutique: $vendeurShopName, Tél: $vendeurPhone');
+      } catch (e) {
+        debugPrint('⚠️ Erreur récupération infos vendeur: $e');
+      }
+
+      // ✨ ÉTAPE 5: Créer le document de commande
+      final orderData = {
+        'orderNumber': orderNumber,
+        'displayNumber': displayNumber,
+        'vendeurId': vendeurId,
+        'vendeurName': vendeurName,
+        'vendeurShopName': vendeurShopName,
+        'vendeurPhone': vendeurPhone,
+        'vendeurLocation': vendeurLocation,
+        'buyerId': buyerId,
+        'buyerName': buyerName,
+        'buyerPhone': buyerPhone,
+        'items': items,
+        'subtotal': subtotal,
+        'deliveryFee': deliveryFee,
+        'totalAmount': totalAmount,
+        'status': OrderStatus.enAttente.value,
+        'deliveryMethod': deliveryMethod,
+        'deliveryAddress': deliveryAddress,
+        'deliveryLatitude': deliveryLatitude,
+        'deliveryLongitude': deliveryLongitude,
+        'pickupLatitude': pickupLatitude,
+        'pickupLongitude': pickupLongitude,
+        'paymentMethod': paymentMethod,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        ...?additionalData,
+      };
+
+      final docRef = await _firestore
+          .collection(FirebaseCollections.orders)
+          .add(orderData);
+
+      debugPrint('✅ Commande créée: ${docRef.id}');
+
+      // ✨ ÉTAPE 6: Logger la création
+      await AuditService.log(
+        userId: vendeurId,
+        userType: 'vendeur',
+        userEmail: '',
+        userName: '',
+        action: 'order_created',
+        actionLabel: 'Création de commande',
+        category: AuditCategory.userAction,
+        severity: AuditSeverity.low,
+        description: 'Commande créée - Montant: $totalAmount FCFA',
+        targetType: 'order',
+        targetId: docRef.id,
+        targetLabel: 'Commande #$displayNumber',
+        metadata: {
+          'orderId': docRef.id,
+          'orderNumber': orderNumber,
+          'totalAmount': totalAmount,
+          'itemCount': items.length,
+          'tier': permission.currentTier?.name,
+          'dailyOrderCount': dailyOrders + 1,
+        },
+      );
+
+      // ✨ ÉTAPE 6: Vérifier si éligible à upgrade de tier
+      await KYCAdaptiveService.upgradeTierIfEligible(vendeurId);
+
+      return {
+        'success': true,
+        'orderId': docRef.id,
+        'orderNumber': orderNumber,
+        'displayNumber': displayNumber,
+        'message': 'Commande créée avec succès',
+      };
+
+    } catch (e, stackTrace) {
+      debugPrint('❌ Erreur création commande: $e');
+      debugPrint('Stack trace: $stackTrace');
+
+      return {
+        'success': false,
+        'error': 'creation_failed',
+        'message': 'Erreur lors de la création de la commande: $e',
+      };
     }
   }
 
