@@ -160,28 +160,6 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
     _filterOrdersByStatus();
   }
 
-  // Mettre à jour le statut d'une commande
-  Future<void> _updateOrderStatus(String orderId, String newStatus) async {
-    try {
-      await OrderService.updateOrderStatus(orderId, newStatus);
-      _loadOrders(); // Recharger les commandes
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Statut mis à jour: $newStatus'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur: $e'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-    }
-  }
-
   // Vérifier s'il y a des commandes en cours
   bool _hasOrdersInProgress() {
     return _allOrders.any((order) {
@@ -1139,17 +1117,17 @@ class _OrderManagementState extends State<OrderManagement> with TickerProviderSt
     switch (status) {
       case 'en_attente':
       case 'pending':
-        // Commande en attente - proposer confirmation, auto-livraison ou annulation
+        // Commande en attente - proposer de voir le détail pour démarrer la préparation
         return [
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () {
                 Navigator.pop(context); // Fermer la modal
-                _updateOrderStatus(order.id, 'confirmed');
+                _goToOrderDetail(order.id); // Ouvrir le détail pour workflow complet
               },
               icon: const Icon(Icons.check_circle),
-              label: const Text('Confirmer la commande'),
+              label: const Text('Voir & Confirmer'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.success,
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),

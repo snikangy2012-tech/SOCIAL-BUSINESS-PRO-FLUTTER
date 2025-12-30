@@ -98,27 +98,13 @@ class CategoryBanner extends StatelessWidget {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Shop Now',
-                            style: TextStyle(
-                              color: gradientColors.first,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '>>',
-                            style: TextStyle(
-                              color: gradientColors.first,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        'Shop Now >>',
+                        style: TextStyle(
+                          color: gradientColors.first,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
