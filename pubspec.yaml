@@ -11,7 +11,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  
+  flutter_localizations:
+    sdk: flutter
+
   shimmer: ^3.0.0
 
   # Icônes Material Design
@@ -27,9 +29,12 @@ dependencies:
   # ===== AUTHENTIFICATION =====
   google_sign_in: ^6.2.1
   google_sign_in_web: ^0.12.4
+  flutter_facebook_auth: ^7.1.1        # ✅ Connexion Facebook
+  sign_in_with_apple: ^6.1.2           # ✅ Connexion Apple (iOS)
   
   # ===== NAVIGATION =====
   go_router: ^14.6.1
+  app_links: ^6.3.2                    # ✅ Deep links moderne
   
   # ===== GESTION D'ÉTAT =====
   provider: ^6.1.2
@@ -48,9 +53,14 @@ dependencies:
   country_code_picker: ^3.0.0      # Sélecteur pays
   image_picker: ^1.0.4             # Sélection d'images
   fl_chart: ^0.68.0                # Graphiques
+  flex_color_scheme: ^8.0.2        # ✅ Thèmes professionnels pré-construits (MIT License) - Compatible Flutter 3.24+
+  smooth_page_indicator: ^1.2.0+3  # ✅ Indicateurs de pagination (onboarding)
+  cached_network_image: ^3.4.1     # ✅ Cache d'images réseau
+  shared_preferences: ^2.3.2       # ✅ Stockage local (onboarding_completed)
+  google_fonts: ^6.2.1             # ✅ Polices Google Fonts (Inter, Poppins, etc.)
   
   # ===== UTILITAIRES =====
-  intl: ^0.19.0                    # ✅ Nouveau - Formatage dates/nombres
+  intl: ^0.20.2                    # ✅ Nouveau - Formatage dates/nombres (compatible avec flutter_localizations)
   url_launcher: ^6.3.1             # ✅ Nouveau - Ouvrir URLs/téléphone
   share_plus: ^10.1.2              # ✅ Nouveau - Partage social
   permission_handler: ^11.3.1      # ✅ Nouveau - Gestion permissions
@@ -84,6 +94,8 @@ flutter:
     - assets/icons/
     - assets/images/
     - assets/Mobile Money LOGO/
+    - assets/BANNIERE ET CATEGORIE/
+    - assets/BANNIERE ET CATEGORIE/CARROUSSEL ACCUEIL/
   
   # Polices personnalisées (optionnel - pour matcher React Native)
   # fonts:
