@@ -1,7 +1,8 @@
-// ===== lib/screens/admin/global_reports_screen.dart =====
+﻿// ===== lib/screens/admin/global_reports_screen.dart =====
 // Écran de génération et gestion des rapports globaux (Super Admin uniquement)
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -154,6 +155,17 @@ class _GlobalReportsScreenState extends State<GlobalReportsScreen>
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Rapports Globaux'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -928,3 +940,4 @@ class _NewReportSheet extends StatelessWidget {
     );
   }
 }
+

@@ -1,4 +1,4 @@
-// ===== lib/screens/payment/payment_screen.dart =====
+﻿// ===== lib/screens/payment/payment_screen.dart =====
 // Interface de paiement Mobile Money - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
@@ -263,6 +263,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
     return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Paiement'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -974,3 +985,4 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 }
+

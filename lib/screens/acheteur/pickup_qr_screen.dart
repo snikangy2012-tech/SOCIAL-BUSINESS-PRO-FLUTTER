@@ -1,7 +1,8 @@
-// ===== lib/screens/acheteur/pickup_qr_screen.dart =====
+﻿// ===== lib/screens/acheteur/pickup_qr_screen.dart =====
 // Écran d'affichage du QR code de retrait - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -75,8 +76,20 @@ class _PickupQRScreenState extends State<PickupQRScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/acheteur');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('QR Code de retrait'),
         backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -505,3 +518,4 @@ class _PickupQRScreenState extends State<PickupQRScreen> {
     );
   }
 }
+

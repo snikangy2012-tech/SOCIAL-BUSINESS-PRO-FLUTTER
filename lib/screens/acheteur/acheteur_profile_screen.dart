@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -28,6 +28,10 @@ class _AcheteurProfileScreenState extends State<AcheteurProfileScreen> {
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
 
+  // New fields for birth date and gender
+  DateTime? _selectedBirthDate;
+  String? _selectedGender;
+
   @override
   void initState() {
     super.initState();
@@ -35,6 +39,12 @@ class _AcheteurProfileScreenState extends State<AcheteurProfileScreen> {
     _nameController = TextEditingController(text: user?.displayName ?? '');
     _emailController = TextEditingController(text: user?.email ?? '');
     _phoneController = TextEditingController(text: user?.phoneNumber ?? '');
+
+    // Initialize birth date and gender from user profile
+    if (user?.profile['birthDate'] != null) {
+      _selectedBirthDate = (user!.profile['birthDate'] as Timestamp).toDate();
+    }
+    _selectedGender = user?.profile['gender'] as String?;
   }
 
   @override
@@ -43,6 +53,36 @@ class _AcheteurProfileScreenState extends State<AcheteurProfileScreen> {
     _emailController.dispose();
     _phoneController.dispose();
     super.dispose();
+  }
+
+  /// Sélectionner une date de naissance
+  Future<void> _selectBirthDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedBirthDate ?? DateTime(2000),
+      firstDate: DateTime(1940),
+      lastDate: DateTime.now(),
+      locale: const Locale('fr', 'FR'),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != _selectedBirthDate) {
+      setState(() {
+        _selectedBirthDate = picked;
+      });
+    }
   }
 
   /// Upload de la photo de profil vers Firebase Storage
@@ -89,22 +129,29 @@ class _AcheteurProfileScreenState extends State<AcheteurProfileScreen> {
         collection: FirebaseCollections.users,
         docId: userId,
         data: {
-          'photoURL': imageUrl,
+          'profile.photoURL': imageUrl,
           'updatedAt': FieldValue.serverTimestamp(),
         },
       );
 
       if (mounted) {
         Navigator.pop(context); // Fermer le dialog de chargement
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Photo de profil mise à jour avec succès'),
-            backgroundColor: AppColors.success,
-          ),
-        );
 
-        // Recharger le profil pour afficher la nouvelle photo
-        setState(() {});
+        // Recharger le profil utilisateur depuis Firestore
+        final authProvider = context.read<AuthProvider>();
+        await authProvider.refreshUser();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Photo de profil mise à jour avec succès'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+
+          // Recharger le profil pour afficher la nouvelle photo
+          setState(() {});
+        }
       }
     } catch (e) {
       debugPrint('❌ Erreur upload photo: $e');
@@ -132,17 +179,41 @@ class _AcheteurProfileScreenState extends State<AcheteurProfileScreen> {
       if (userId == null) throw Exception('Utilisateur non connecté');
 
       // Mettre à jour Firestore
-      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+      final updateData = <String, dynamic>{
         'displayName': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'phoneNumber': _phoneController.text.trim(),
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      };
+
+      // Add birth date and gender to profile map
+      if (_selectedBirthDate != null) {
+        updateData['profile.birthDate'] = Timestamp.fromDate(_selectedBirthDate!);
+      }
+      if (_selectedGender != null) {
+        updateData['profile.gender'] = _selectedGender!;
+      }
+
+      await FirebaseFirestore.instance.collection('users').doc(userId).update(updateData);
 
       // Recharger les données utilisateur
       await authProvider.refreshUser();
 
       if (mounted) {
+        // Mettre à jour les controllers avec les nouvelles valeurs
+        final updatedUser = authProvider.user;
+        if (updatedUser != null) {
+          _nameController.text = updatedUser.displayName;
+          _emailController.text = updatedUser.email;
+          _phoneController.text = updatedUser.phoneNumber ?? '';
+
+          // Mettre à jour date de naissance et genre
+          if (updatedUser.profile['birthDate'] != null) {
+            _selectedBirthDate = (updatedUser.profile['birthDate'] as Timestamp).toDate();
+          }
+          _selectedGender = updatedUser.profile['gender'] as String?;
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Profil mis à jour avec succès'),
@@ -204,8 +275,21 @@ class _AcheteurProfileScreenState extends State<AcheteurProfileScreen> {
 
     return SystemUIScaffold(
       appBar: AppBar(
-        title: const Text('Mon Profil'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/acheteur-home');
+            }
+          },
+          tooltip: 'Retour',
+        ),
+    title: const Text('Mon Profil'),
         centerTitle: true,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         actions: [
           if (!_isEditing)
             IconButton(
@@ -231,16 +315,21 @@ class _AcheteurProfileScreenState extends State<AcheteurProfileScreen> {
                           CircleAvatar(
                             radius: 60,
                             backgroundColor: AppColors.primary,
-                            child: Text(
-                              user.displayName.isNotEmpty
-                                  ? user.displayName[0].toUpperCase()
-                                  : '?',
-                              style: const TextStyle(
-                                fontSize: 48,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
+                            backgroundImage: user.profile['photoURL'] != null
+                                ? NetworkImage(user.profile['photoURL'])
+                                : null,
+                            child: user.profile['photoURL'] == null
+                                ? Text(
+                                    user.displayName.isNotEmpty
+                                        ? user.displayName[0].toUpperCase()
+                                        : '?',
+                                    style: const TextStyle(
+                                      fontSize: 48,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : null,
                           ),
                           if (_isEditing)
                             Positioned(
@@ -334,6 +423,59 @@ class _AcheteurProfileScreenState extends State<AcheteurProfileScreen> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 16),
+
+                    // Date de naissance
+                    InkWell(
+                      onTap: _isEditing ? _selectBirthDate : null,
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'Date de naissance',
+                          prefixIcon: const Icon(Icons.cake),
+                          suffixIcon: _isEditing ? const Icon(Icons.calendar_today) : null,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          enabled: _isEditing,
+                        ),
+                        child: Text(
+                          _selectedBirthDate != null
+                              ? '${_selectedBirthDate!.day}/${_selectedBirthDate!.month}/${_selectedBirthDate!.year}'
+                              : 'Non renseignée',
+                          style: TextStyle(
+                            color: _selectedBirthDate != null ? Colors.black : Colors.grey,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Genre
+                    DropdownButtonFormField<String>(
+                      initialValue: _selectedGender,
+                      decoration: InputDecoration(
+                        labelText: 'Genre',
+                        prefixIcon: const Icon(Icons.person_outline),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        enabled: _isEditing,
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'homme', child: Text('Homme')),
+                        DropdownMenuItem(value: 'femme', child: Text('Femme')),
+                        DropdownMenuItem(value: 'autre', child: Text('Autre')),
+                      ],
+                      onChanged: _isEditing
+                          ? (value) {
+                              setState(() {
+                                _selectedGender = value;
+                              });
+                            }
+                          : null,
+                      hint: const Text('Sélectionnez votre genre'),
+                    ),
                     const SizedBox(height: 24),
 
                     // Boutons de sauvegarde/annulation (si en mode édition)
@@ -349,6 +491,13 @@ class _AcheteurProfileScreenState extends State<AcheteurProfileScreen> {
                                   _nameController.text = user.displayName;
                                   _emailController.text = user.email;
                                   _phoneController.text = user.phoneNumber ?? '';
+                                  // Reset birth date and gender
+                                  if (user.profile['birthDate'] != null) {
+                                    _selectedBirthDate = (user.profile['birthDate'] as Timestamp).toDate();
+                                  } else {
+                                    _selectedBirthDate = null;
+                                  }
+                                  _selectedGender = user.profile['gender'] as String?;
                                 });
                               },
                               child: const Text('Annuler'),
@@ -499,3 +648,4 @@ class _AcheteurProfileScreenState extends State<AcheteurProfileScreen> {
     );
   }
 }
+

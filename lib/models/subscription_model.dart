@@ -254,6 +254,10 @@ class LivreurSubscription {
   final int currentDeliveries;
   final double currentRating;
 
+  // Nouveaux champs pour désassignation MVP
+  final int dailyUnassignments; // Compteur quotidien
+  final DateTime? lastUnassignmentDate;
+
   final DateTime createdAt;
   final DateTime updatedAt;
   final Map<String, dynamic> metadata;
@@ -275,6 +279,8 @@ class LivreurSubscription {
     required this.unlockStatus,
     required this.currentDeliveries,
     required this.currentRating,
+    this.dailyUnassignments = 0,
+    this.lastUnassignmentDate,
     required this.createdAt,
     required this.updatedAt,
     this.metadata = const {},
@@ -300,6 +306,8 @@ class LivreurSubscription {
       unlockStatus: LivreurTierUnlockStatus.subscribed, // Toujours actif
       currentDeliveries: 0,
       currentRating: 0.0,
+      dailyUnassignments: 0,
+      lastUnassignmentDate: null,
       createdAt: now,
       updatedAt: now,
       metadata: {'autoCreated': true},
@@ -339,6 +347,10 @@ class LivreurSubscription {
       ),
       currentDeliveries: map['currentDeliveries'] ?? 0,
       currentRating: (map['currentRating'] ?? 0.0).toDouble(),
+      dailyUnassignments: map['dailyUnassignments'] ?? 0,
+      lastUnassignmentDate: map['lastUnassignmentDate'] != null
+          ? (map['lastUnassignmentDate'] as Timestamp).toDate()
+          : null,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
       metadata: Map<String, dynamic>.from(map['metadata'] ?? {}),
@@ -362,6 +374,9 @@ class LivreurSubscription {
       'unlockStatus': unlockStatus.name,
       'currentDeliveries': currentDeliveries,
       'currentRating': currentRating,
+      'dailyUnassignments': dailyUnassignments,
+      'lastUnassignmentDate':
+          lastUnassignmentDate != null ? Timestamp.fromDate(lastUnassignmentDate!) : null,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
       'metadata': metadata,
@@ -385,6 +400,8 @@ class LivreurSubscription {
     LivreurTierUnlockStatus? unlockStatus,
     int? currentDeliveries,
     double? currentRating,
+    int? dailyUnassignments,
+    DateTime? lastUnassignmentDate,
     DateTime? createdAt,
     DateTime? updatedAt,
     Map<String, dynamic>? metadata,
@@ -406,6 +423,8 @@ class LivreurSubscription {
       unlockStatus: unlockStatus ?? this.unlockStatus,
       currentDeliveries: currentDeliveries ?? this.currentDeliveries,
       currentRating: currentRating ?? this.currentRating,
+      dailyUnassignments: dailyUnassignments ?? this.dailyUnassignments,
+      lastUnassignmentDate: lastUnassignmentDate ?? this.lastUnassignmentDate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       metadata: metadata ?? this.metadata,
@@ -459,6 +478,39 @@ class LivreurSubscription {
       case LivreurTier.premium:
         return '30,000 FCFA/mois - Pour les experts';
     }
+  }
+
+  /// Obtient le nombre maximum de désassignations quotidiennes selon le tier
+  int get dailyUnassignmentLimit {
+    switch (tier) {
+      case LivreurTier.starter:
+        return 1;
+      case LivreurTier.pro:
+        return 2;
+      case LivreurTier.premium:
+        return 3;
+    }
+  }
+
+  /// Vérifie si le compteur quotidien doit être réinitialisé
+  bool get needsDailyReset {
+    if (lastUnassignmentDate == null) return false;
+    final now = DateTime.now();
+    final lastDate = lastUnassignmentDate!;
+    return now.year != lastDate.year ||
+        now.month != lastDate.month ||
+        now.day != lastDate.day;
+  }
+
+  /// Obtient le nombre de désassignations restantes aujourd'hui
+  int get remainingUnassignments {
+    if (needsDailyReset) return dailyUnassignmentLimit;
+    return dailyUnassignmentLimit - dailyUnassignments;
+  }
+
+  /// Vérifie si le livreur peut encore se désassigner aujourd'hui
+  bool get canUnassignToday {
+    return remainingUnassignments > 0;
   }
 }
 

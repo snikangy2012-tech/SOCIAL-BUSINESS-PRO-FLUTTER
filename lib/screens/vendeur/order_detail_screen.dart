@@ -1,7 +1,8 @@
-// ===== lib/screens/vendeur/order_detail.dart =====
+﻿// ===== lib/screens/vendeur/order_detail.dart =====
 // Détail d'une commande vendeur - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -351,6 +352,17 @@ class _OrderDetailState extends State<OrderDetail> {
     if (_isLoading) {
       return SystemUIScaffold(
         appBar: AppBar(
+          leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/vendeur-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
           title: const Text('Détail de la commande'),
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
@@ -362,6 +374,17 @@ class _OrderDetailState extends State<OrderDetail> {
     if (_order == null) {
       return SystemUIScaffold(
         appBar: AppBar(
+          leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/vendeur-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
           title: const Text('Détail de la commande'),
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
@@ -377,6 +400,17 @@ class _OrderDetailState extends State<OrderDetail> {
     return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/vendeur-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Détail de la commande'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,

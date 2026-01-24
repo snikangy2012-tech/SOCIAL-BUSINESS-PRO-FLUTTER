@@ -1,4 +1,4 @@
-// ===== lib/screens/acheteur/checkout_screen.dart =====
+﻿// ===== lib/screens/acheteur/checkout_screen.dart =====
 // Processus de commande et paiement - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
@@ -254,7 +254,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (_currentStep < 2) {
         setState(() => _currentStep++);
       } else {
-        _confirmOrder();
+        // À l'étape 3, afficher d'abord la confirmation des frais de livraison
+        _showDeliveryFeeConfirmation();
       }
     } else {
       if (_currentStep == 1 && _selectedPaymentMethod == null) {
@@ -272,6 +273,263 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void _previousStep() {
     if (_currentStep > 0) {
       setState(() => _currentStep--);
+    }
+  }
+
+  // Afficher la confirmation des frais de livraison
+  Future<void> _showDeliveryFeeConfirmation() async {
+    final cartProvider = context.read<CartProvider>();
+
+    // Pour le Click & Collect, pas de calcul de frais
+    if (_deliveryMethod == 'store_pickup') {
+      await _confirmOrder();
+      return;
+    }
+
+    // Calculer les frais de livraison pour chaque vendeur
+    try {
+      final itemsByVendor = <String, List<CartItem>>{};
+      for (final item in cartProvider.items) {
+        itemsByVendor.putIfAbsent(item.vendeurId, () => []).add(item);
+      }
+
+      double totalDeliveryFee = 0.0;
+      final vendorFees = <String, double>{};
+
+      // Calculer les frais pour chaque vendeur
+      for (final entry in itemsByVendor.entries) {
+        final vendeurId = entry.key;
+
+        // Récupérer les coordonnées GPS de la boutique
+        final pickupCoords = await VendorLocationService.getVendorPickupCoordinates(vendeurId);
+        final pickupLatitude = pickupCoords?['latitude'] ?? 5.316667;
+        final pickupLongitude = pickupCoords?['longitude'] ?? -4.033333;
+
+        // Coordonnées de livraison
+        final deliveryLatitude = _selectedAddress!.coordinates!.latitude;
+        final deliveryLongitude = _selectedAddress!.coordinates!.longitude;
+
+        // Calculer la distance
+        final distance = GeolocationService.calculateDistance(
+          pickupLatitude,
+          pickupLongitude,
+          deliveryLatitude,
+          deliveryLongitude,
+        );
+
+        // Calculer les frais
+        final fee = _calculateDeliveryFee(distance);
+        vendorFees[vendeurId] = fee;
+        totalDeliveryFee += fee;
+
+        debugPrint(
+            '📍 Vendeur $vendeurId: Distance ${distance.toStringAsFixed(2)} km = ${fee.toStringAsFixed(0)} FCFA');
+      }
+
+      // Afficher le dialog de confirmation
+      if (mounted) {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.local_shipping, color: AppColors.primary, size: 28),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Confirmation des frais',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Adresse de livraison
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_on, color: AppColors.primary, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _selectedAddress!.label,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${_selectedAddress!.street}, ${_selectedAddress!.commune}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Frais de livraison
+                  const Text(
+                    'Frais de livraison calculés:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Afficher les frais par vendeur si plusieurs vendeurs
+                  if (vendorFees.length > 1)
+                    ...vendorFees.entries.map((entry) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Vendeur ${vendorFees.keys.toList().indexOf(entry.key) + 1}:',
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                            Text(
+                              formatPriceWithCurrency(entry.value, currency: 'FCFA'),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+
+                  // Total des frais
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.warning.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Total livraison:',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          formatPriceWithCurrency(totalDeliveryFee, currency: 'FCFA'),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.warning,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Question
+                  Text(
+                    'Voulez-vous confirmer votre commande ou changer d\'adresse?',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              // Bouton Changer d'adresse
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.pop(context, false);
+                },
+                icon: const Icon(Icons.edit_location, size: 18),
+                label: const Text('Changer d\'adresse'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                ),
+              ),
+
+              // Bouton Confirmer
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context, true);
+                },
+                icon: const Icon(Icons.check_circle, size: 18),
+                label: const Text('Confirmer'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.success,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+
+        // Si l'utilisateur a confirmé, créer la commande
+        if (confirmed == true) {
+          await _confirmOrder();
+        } else {
+          // Retour à l'étape 1 pour changer l'adresse
+          setState(() => _currentStep = 0);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('💡 Sélectionnez une autre adresse pour recalculer les frais'),
+                backgroundColor: AppColors.info,
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur calcul frais de livraison: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors du calcul des frais: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
@@ -311,13 +569,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       debugPrint('📍 Using selected address: ${_selectedAddress?.label ?? "NONE"}');
       debugPrint('   GPS coordinates: ${_selectedAddress?.coordinates != null ? "YES" : "NO"}');
 
-      // Préparer l'adresse de livraison (format texte simple)
+      // Préparer l'adresse de livraison (format texte - seulement localisation)
       final deliveryAddressText = '''
-Nom: ${_nameController.text}
-Téléphone: ${_phoneController.text}
 Commune: ${_communeController.text}
 Adresse: ${_addressController.text}
-${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
 '''
           .trim();
 
@@ -401,6 +656,50 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
         final pickupLatitude = pickupCoords?['latitude'] ?? 5.316667;
         final pickupLongitude = pickupCoords?['longitude'] ?? -4.033333;
 
+        // ✅ RÉCUPÉRER LES INFORMATIONS DU VENDEUR pour la livraison
+        String? vendeurName;
+        String? vendeurShopName;
+        String? vendeurPhone;
+        String? vendeurLocation;
+
+        try {
+          final vendeurDoc = await _firestore
+              .collection(FirebaseCollections.users)
+              .doc(vendeurId)
+              .get();
+
+          if (vendeurDoc.exists) {
+            final vendeurData = vendeurDoc.data();
+            vendeurName = vendeurData?['displayName'];
+
+            // Récupérer les infos de la boutique depuis le profil vendeur
+            // Structure: profile.vendeurProfile.businessName (comme dans shop_setup_screen)
+            final profile = vendeurData?['profile'] as Map<String, dynamic>?;
+            if (profile != null) {
+              // ✅ Chercher dans vendeurProfile (structure correcte)
+              final vendeurProfile = profile['vendeurProfile'] as Map<String, dynamic>?;
+              if (vendeurProfile != null) {
+                vendeurShopName = vendeurProfile['businessName'];
+                vendeurPhone = vendeurProfile['businessPhone'];
+                vendeurLocation = vendeurProfile['businessAddress'];
+                debugPrint('📦 Infos trouvées dans vendeurProfile: shop=$vendeurShopName, phone=$vendeurPhone');
+              }
+
+              // Fallback sur profile direct si vendeurProfile vide
+              vendeurShopName ??= profile['businessName'] ?? profile['shopName'];
+              vendeurPhone ??= profile['businessPhone'] ?? profile['phone'];
+              vendeurLocation ??= profile['businessAddress'] ?? profile['address'];
+            }
+
+            // Fallback sur les champs de premier niveau si profil vide
+            vendeurShopName ??= vendeurData?['shopName'] ?? vendeurData?['businessName'] ?? vendeurName;
+            vendeurPhone ??= vendeurData?['phoneNumber'] ?? vendeurData?['phone'];
+          }
+          debugPrint('✅ Infos vendeur récupérées - Boutique: $vendeurShopName, Tél: $vendeurPhone, Adresse: $vendeurLocation');
+        } catch (e) {
+          debugPrint('⚠️ Erreur récupération infos vendeur: $e');
+        }
+
         // Variables pour les coordonnées et frais
         double deliveryLatitude;
         double deliveryLongitude;
@@ -470,7 +769,8 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
 
         // Calculer le montant total
         final total = subtotal + deliveryFee;
-        debugPrint('💵 Total commande: ${total.toStringAsFixed(0)} FCFA (Sous-total: ${subtotal.toStringAsFixed(0)} + Livraison: ${deliveryFee.toStringAsFixed(0)})');
+        debugPrint(
+            '💵 Total commande: ${total.toStringAsFixed(0)} FCFA (Sous-total: ${subtotal.toStringAsFixed(0)} + Livraison: ${deliveryFee.toStringAsFixed(0)})');
 
         // Créer la commande dans Firestore
         final orderData = {
@@ -480,6 +780,11 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
           'buyerName': user.displayName,
           'buyerPhone': user.phoneNumber ?? _phoneController.text,
           'vendeurId': vendeurId,
+          // ✅ INFORMATIONS VENDEUR pour le livreur
+          'vendeurName': vendeurName,
+          'vendeurShopName': vendeurShopName,
+          'vendeurPhone': vendeurPhone,
+          'vendeurLocation': vendeurLocation,
           'items': orderItems,
           'subtotal': subtotal,
           'deliveryFee': deliveryFee,
@@ -691,7 +996,7 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
               TextButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  context.go('/');
+                  context.go('/acheteur-home');
                 },
                 child: const Text('Accueil'),
               ),
@@ -748,9 +1053,9 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
   /// Utilise la même logique que delivery_service.dart
   double _calculateDeliveryFee(double distance) {
     // Tarifs par distance (paliers identiques à DeliveryService)
-    if (distance <= 10) return 1000;  // 1000 FCFA pour 0-10km
-    if (distance <= 20) return 1500;  // 1500 FCFA pour 10-20km
-    if (distance <= 30) return 2000;  // 2000 FCFA pour 20-30km
+    if (distance <= 10) return 1000; // 1000 FCFA pour 0-10km
+    if (distance <= 20) return 1500; // 1500 FCFA pour 10-20km
+    if (distance <= 30) return 2000; // 2000 FCFA pour 20-30km
     return 2000 + ((distance - 30) * 100); // 2000 FCFA + 100 FCFA/km au-delà de 30km
   }
 
@@ -775,8 +1080,20 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
 
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/acheteur-home');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Finaliser ma commande'),
         backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
@@ -956,10 +1273,14 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
               setState(() => _deliveryMethod = value!);
             },
             title: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Retrait en boutique',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                const Flexible(
+                  child: Text(
+                    'Retrait en boutique',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Container(
@@ -1014,97 +1335,97 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
           const SizedBox(height: AppSpacing.sm),
 
           // Bouton de sélection d'adresse moderne
-        Card(
-          elevation: 2,
-          child: InkWell(
-            onTap: _openAddressPicker,
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.location_on,
-                          color: AppColors.primary,
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _selectedAddress != null
-                                  ? (_selectedAddress!.label.isNotEmpty
-                                      ? _selectedAddress!.label
-                                      : 'Adresse sélectionnée')
-                                  : 'Sélectionner une adresse',
-                              style: const TextStyle(
-                                fontSize: AppFontSizes.md,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _selectedAddress != null
-                                  ? '${_selectedAddress!.street}, ${_selectedAddress!.commune}'
-                                  : 'Choisissez parmi vos adresses ou utilisez la carte',
-                              style: TextStyle(
-                                fontSize: AppFontSizes.sm,
-                                color: AppColors.textSecondary,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        size: 16,
-                        color: AppColors.textSecondary,
-                      ),
-                    ],
-                  ),
-                  if (_selectedAddress?.coordinates != null) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    const Divider(),
+          Card(
+            elevation: 2,
+            child: InkWell(
+              onTap: _openAddressPicker,
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Row(
                       children: [
-                        const Icon(
-                          Icons.check_circle,
-                          color: AppColors.success,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'GPS validé',
-                          style: TextStyle(
-                            fontSize: AppFontSizes.sm,
-                            color: AppColors.success,
-                            fontWeight: FontWeight.w500,
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
                           ),
+                          child: const Icon(
+                            Icons.location_on,
+                            color: AppColors.primary,
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _selectedAddress != null
+                                    ? (_selectedAddress!.label.isNotEmpty
+                                        ? _selectedAddress!.label
+                                        : 'Adresse sélectionnée')
+                                    : 'Sélectionner une adresse',
+                                style: const TextStyle(
+                                  fontSize: AppFontSizes.md,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _selectedAddress != null
+                                    ? '${_selectedAddress!.street}, ${_selectedAddress!.commune}'
+                                    : 'Choisissez parmi vos adresses ou utilisez la carte',
+                                style: TextStyle(
+                                  fontSize: AppFontSizes.sm,
+                                  color: AppColors.textSecondary,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          size: 16,
+                          color: AppColors.textSecondary,
                         ),
                       ],
                     ),
+                    if (_selectedAddress?.coordinates != null) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      const Divider(),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.check_circle,
+                            color: AppColors.success,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'GPS validé',
+                            style: TextStyle(
+                              fontSize: AppFontSizes.sm,
+                              color: AppColors.success,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
-        ),
 
           const SizedBox(height: AppSpacing.md),
 
@@ -1491,7 +1812,8 @@ ${_notesController.text.isNotEmpty ? 'Notes: ${_notesController.text}' : ''}
               _buildSummaryItem('Téléphone', _phoneController.text),
               _buildSummaryItem('Commune', _communeController.text),
               _buildSummaryItem('Adresse', _addressController.text),
-              if (_notesController.text.isNotEmpty) _buildSummaryItem('Notes', _notesController.text),
+              if (_notesController.text.isNotEmpty)
+                _buildSummaryItem('Notes', _notesController.text),
             ],
           ],
           _deliveryMethod == 'store_pickup' ? Icons.store : Icons.local_shipping,

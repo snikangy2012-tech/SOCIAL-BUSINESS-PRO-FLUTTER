@@ -1,4 +1,4 @@
-// ===== lib/screens/livreur/delivery_list_screen.dart =====
+﻿// ===== lib/screens/livreur/delivery_list_screen.dart =====
 // Liste des livraisons disponibles et en cours pour le livreur
 
 import 'dart:async';
@@ -177,6 +177,17 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
 
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/livreur');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Mes Livraisons'),
         centerTitle: true,
         backgroundColor: AppColors.primary,
@@ -1032,3 +1043,4 @@ class _DeliveryListScreenState extends State<DeliveryListScreen>
     }
   }
 }
+

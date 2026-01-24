@@ -1,4 +1,4 @@
-// ===== lib/screens/kyc/kyc_upload_screen.dart =====
+﻿// ===== lib/screens/kyc/kyc_upload_screen.dart =====
 // Écran d'upload des documents KYC pour vendeurs
 
 import 'dart:io';
@@ -52,6 +52,17 @@ class _KYCUploadScreenState extends State<KYCUploadScreen> {
     return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Vérification d\'identité'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -516,3 +527,4 @@ class _KYCUploadScreenState extends State<KYCUploadScreen> {
     }
   }
 }
+

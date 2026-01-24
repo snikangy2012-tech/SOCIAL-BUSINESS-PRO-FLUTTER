@@ -33,6 +33,7 @@ class VendorStatsService {
       int inDeliveryOrders = 0;
       int deliveredOrders = 0;
       int cancelledOrders = 0;
+      int returnedOrders = 0;
 
       num totalRevenue = 0;
       num monthlyRevenue = 0;
@@ -63,12 +64,17 @@ class VendorStatsService {
           case 'completed':
           case 'livree':
             deliveredOrders++;
-            totalRevenue += order.totalAmount;
+            totalRevenue += order.subtotal; // Revenu brut du vendeur (sans frais de livraison)
             break;
           case 'cancelled':
           case 'canceled':
           case 'annulee':
             cancelledOrders++;
+            break;
+          case 'retourne':
+          case 'retournee':
+          case 'returned':
+            returnedOrders++;
             break;
           default:
             debugPrint('⚠️ Statut non reconnu: $status pour commande ${order.id}');
@@ -76,8 +82,9 @@ class VendorStatsService {
         }
 
         // Revenu mensuel (uniquement commandes livrées ce mois)
-        if (status == 'delivered' && order.createdAt.isAfter(startOfMonth)) {
-          monthlyRevenue += order.totalAmount;
+        if ((status == 'delivered' || status == 'completed' || status == 'livree') &&
+            order.createdAt.isAfter(startOfMonth)) {
+          monthlyRevenue += order.subtotal; // Utiliser subtotal au lieu de totalAmount
         }
       }
 
@@ -85,6 +92,7 @@ class VendorStatsService {
       debugPrint('📊 En cours: $confirmedOrders');
       debugPrint('📊 Livrées: $deliveredOrders');
       debugPrint('📊 Annulées: $cancelledOrders');
+      debugPrint('📊 Retournées: $returnedOrders');
 
       // 3. Charger les produits du vendeur
       final productsSnapshot = await _firestore
@@ -118,6 +126,7 @@ class VendorStatsService {
         inDeliveryOrders: inDeliveryOrders,
         deliveredOrders: deliveredOrders,
         cancelledOrders: cancelledOrders,
+        returnedOrders: returnedOrders,
         totalRevenue: totalRevenue,
         monthlyRevenue: monthlyRevenue,
         totalProducts: totalProducts,
@@ -190,6 +199,7 @@ class VendorStats {
   final int inDeliveryOrders;
   final int deliveredOrders;
   final int cancelledOrders;
+  final int returnedOrders;
   final num totalRevenue;
   final num monthlyRevenue;
   final int totalProducts;
@@ -205,6 +215,7 @@ class VendorStats {
     required this.inDeliveryOrders,
     required this.deliveredOrders,
     required this.cancelledOrders,
+    required this.returnedOrders,
     required this.totalRevenue,
     required this.monthlyRevenue,
     required this.totalProducts,

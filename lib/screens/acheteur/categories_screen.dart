@@ -25,12 +25,10 @@ class CategoriesScreen extends StatefulWidget {
 }
 
 class _CategoriesScreenState extends State<CategoriesScreen> {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context) {
     return SystemUIScaffold(
-      key: _scaffoldKey,
       drawer: const MainDrawer(),
       endDrawer: const FilterDrawer(),
       body: CustomScrollView(
@@ -41,9 +39,15 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
             pinned: true,
             backgroundColor: AppColors.primary,
             elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.menu_rounded, color: Colors.white),
-              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+            leading: Builder(
+              builder: (BuildContext scaffoldContext) {
+                return IconButton(
+                  icon: const Icon(Icons.dehaze_rounded, color: Colors.white, size: 28),
+                  onPressed: () => Scaffold.of(scaffoldContext).openDrawer(),
+                  tooltip: 'Menu',
+                  splashRadius: 24,
+                );
+              },
             ),
             title: const Text(
               'Categories',
@@ -134,9 +138,13 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     hintText: 'Search',
                     hintStyle: TextStyle(color: Colors.grey[400]),
                     prefixIcon: Icon(Icons.search_rounded, color: Colors.grey[400]),
-                    suffixIcon: IconButton(
-                      icon: Icon(Icons.tune_rounded, color: Colors.grey[600]),
-                      onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+                    suffixIcon: Builder(
+                      builder: (BuildContext scaffoldContext) {
+                        return IconButton(
+                          icon: Icon(Icons.tune_rounded, color: Colors.grey[600]),
+                          onPressed: () => Scaffold.of(scaffoldContext).openEndDrawer(),
+                        );
+                      },
                     ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

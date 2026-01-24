@@ -1,7 +1,8 @@
-// ===== lib/screens/vendeur/vendeur_statistics.dart =====
+﻿// ===== lib/screens/vendeur/vendeur_statistics.dart =====
 // Migration complète de src/components/Vendeur/Statistics.tsx vers Flutter
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 
@@ -108,6 +109,17 @@ class _StatisticsState extends State<Statistics> with TickerProviderStateMixin {
     return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/vendeur-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Statistiques'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,

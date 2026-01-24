@@ -1,4 +1,4 @@
-// ===== lib/screens/vendeur/sale_detail_screen.dart =====
+﻿// ===== lib/screens/vendeur/sale_detail_screen.dart =====
 // Écran de détail d'une vente - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 
 import '../../config/constants.dart';
 import '../../models/order_model.dart';
+import '../../services/order_service.dart';
 import '../../utils/order_status_helper.dart';
 import '../../utils/number_formatter.dart';
 import '../../widgets/system_ui_scaffold.dart';
@@ -65,15 +66,105 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     }
   }
 
+  /// Vérifier si la commande peut être annulée
+  /// Une commande peut être annulée si elle n'a pas encore été assignée à un livreur
+  bool _canCancelOrder() {
+    if (_sale == null) return false;
+
+    // La commande ne peut pas être annulée si elle est déjà livrée ou déjà annulée
+    if (_sale!.status == 'livree' ||
+        _sale!.status == 'delivered' ||
+        _sale!.status == 'annulee' ||
+        _sale!.status == 'cancelled') {
+      return false;
+    }
+
+    // La commande peut être annulée si elle n'a pas de livreur assigné
+    return _sale!.livreurId == null || _sale!.livreurId!.isEmpty;
+  }
+
+  /// Annuler la commande
+  Future<void> _cancelOrder() async {
+    if (_sale == null) return;
+
+    // Demander confirmation
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Annuler la commande'),
+        content: const Text(
+          'Êtes-vous sûr de vouloir annuler cette commande ? '
+          'Cette action libérera le stock réservé et ne peut pas être annulée.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Non'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+            ),
+            child: const Text('Oui, annuler'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      debugPrint('🚫 Annulation commande: ${_sale!.id}');
+
+      // Utiliser le OrderService pour annuler la commande
+      // Cela libérera automatiquement le stock réservé
+      await OrderService.cancelOrder(_sale!.id, _sale!.vendeurId);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Commande annulée avec succès'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+
+        // Recharger les détails
+        await _loadSaleDetails();
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur annulation commande: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Erreur: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Détails de la vente'),
         backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/vendeur-dashboard');
+            }
+          },
+          tooltip: 'Retour',
         ),
         actions: [
           IconButton(
@@ -138,7 +229,8 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
             [
               _buildInfoRow('Nom', _sale!.buyerName),
               _buildInfoRow('Téléphone', _sale!.buyerPhone),
-              _buildInfoRow('Adresse de livraison', _sale!.deliveryAddress),
+              if (_sale!.deliveryAddress.isNotEmpty)
+                _buildInfoRow('Adresse', _sale!.deliveryAddress),
             ],
           ),
 
@@ -146,17 +238,16 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
 
           // Informations boutique (ramassage)
           _buildSection(
-            'Informations Boutique (Ramassage)',
+            'Point de Ramassage',
             Icons.store,
             [
               if (_sale!.vendeurShopName != null)
-                _buildInfoRow('Nom de la boutique', _sale!.vendeurShopName!),
-              if (_sale!.vendeurPhone != null)
-                _buildInfoRow('Téléphone', _sale!.vendeurPhone!),
+                _buildInfoRow('Boutique', _sale!.vendeurShopName!),
+              if (_sale!.vendeurPhone != null) _buildInfoRow('Téléphone', _sale!.vendeurPhone!),
               if (_sale!.pickupLatitude != null && _sale!.pickupLongitude != null)
                 _buildInfoRow(
-                  'Coordonnées GPS',
-                  '${_sale!.pickupLatitude!.toStringAsFixed(6)}, ${_sale!.pickupLongitude!.toStringAsFixed(6)}',
+                  'GPS',
+                  '${_sale!.pickupLatitude!.toStringAsFixed(4)}, ${_sale!.pickupLongitude!.toStringAsFixed(4)}',
                 ),
             ],
           ),
@@ -198,6 +289,12 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
 
           // Historique
           _buildTimelineSection(),
+
+          // Bouton d'annulation (si applicable)
+          if (_canCancelOrder()) ...[
+            const SizedBox(height: 24),
+            _buildCancelButton(),
+          ],
 
           const SizedBox(height: 24),
         ],
@@ -305,6 +402,8 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
+              softWrap: true,
+              overflow: TextOverflow.visible,
             ),
           ),
         ],
@@ -566,6 +665,33 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCancelButton() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _cancelOrder,
+        icon: const Icon(Icons.cancel_outlined),
+        label: const Text(
+          'Annuler cette commande',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.error,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 2,
+        ),
       ),
     );
   }

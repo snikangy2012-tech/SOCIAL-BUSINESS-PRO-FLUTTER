@@ -1,7 +1,8 @@
-// ===== lib/screens/vendeur/commission_payment_screen.dart =====
+﻿// ===== lib/screens/vendeur/commission_payment_screen.dart =====
 // Écran de paiement des commissions - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -239,8 +240,20 @@ class _CommissionPaymentScreenState extends State<CommissionPaymentScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/vendeur-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Versement commissions'),
         backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -647,3 +660,4 @@ class _CommissionPaymentScreenState extends State<CommissionPaymentScreen> {
     return '${date.day}/${date.month}/${date.year}';
   }
 }
+

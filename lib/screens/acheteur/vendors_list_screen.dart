@@ -1,7 +1,8 @@
-// ===== lib/screens/acheteur/vendors_list_screen.dart =====
+﻿// ===== lib/screens/acheteur/vendors_list_screen.dart =====
 // Liste des vendeurs triés par note
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../config/constants.dart';
@@ -126,6 +127,17 @@ class _VendorsListScreenState extends State<VendorsListScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/acheteur');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Découvrir les vendeurs'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -431,3 +443,4 @@ class VendorWithRating {
     this.shopLocation,
   });
 }
+

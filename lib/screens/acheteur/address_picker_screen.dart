@@ -1,7 +1,8 @@
-// ===== lib/screens/acheteur/address_picker_screen.dart =====
+﻿// ===== lib/screens/acheteur/address_picker_screen.dart =====
 // Écran de sélection d'adresse avec carte interactive - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geocoding/geocoding.dart';
@@ -10,6 +11,7 @@ import 'dart:async';
 import '../../config/constants.dart';
 import '../../models/user_model.dart';
 import '../../widgets/system_ui_scaffold.dart';
+import '../../services/places_autocomplete_service.dart';
 
 /// Écran de sélection d'adresse avec 2 options :
 /// 1. Sélectionner parmi les adresses enregistrées
@@ -43,10 +45,12 @@ class _AddressPickerScreenState extends State<AddressPickerScreen> with SingleTi
   // Adresse sélectionnée
   Address? _selectedSavedAddress;
 
-  // Recherche
+  // Recherche avec autocomplétion
   final TextEditingController _searchController = TextEditingController();
-  List<Location> _searchResults = [];
+  List<PlaceSuggestion> _suggestions = [];
   bool _isSearching = false;
+  Timer? _debounceTimer;
+  String? _sessionToken; // Pour regrouper les requêtes Places API
 
   @override
   void initState() {
@@ -68,6 +72,7 @@ class _AddressPickerScreenState extends State<AddressPickerScreen> with SingleTi
     _tabController.dispose();
     _mapController?.dispose();
     _searchController.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
   }
 
@@ -172,48 +177,131 @@ class _AddressPickerScreenState extends State<AddressPickerScreen> with SingleTi
     });
   }
 
-  // Rechercher une adresse
-  Future<void> _searchAddress(String query) async {
-    if (query.isEmpty) {
-      setState(() => _searchResults = []);
+  // ✅ NOUVELLE MÉTHODE: Autocomplétion en temps réel avec debounce
+  void _onSearchChanged(String query) {
+    // Annuler le timer précédent
+    _debounceTimer?.cancel();
+
+    if (query.isEmpty || query.length < 2) {
+      setState(() {
+        _suggestions = [];
+        _isSearching = false;
+      });
       return;
     }
+
+    // Générer un nouveau token de session si nécessaire
+    _sessionToken ??= PlacesAutocompleteService.generateSessionToken();
+
+    setState(() => _isSearching = true);
+
+    // Debounce de 300ms pour éviter trop de requêtes
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+      try {
+        final suggestions = await PlacesAutocompleteService.getAutocomplete(
+          query,
+          sessionToken: _sessionToken,
+        );
+
+        if (mounted) {
+          setState(() {
+            _suggestions = suggestions;
+            _isSearching = false;
+          });
+        }
+      } catch (e) {
+        debugPrint('❌ Erreur autocomplétion: $e');
+        if (mounted) {
+          setState(() {
+            _suggestions = [];
+            _isSearching = false;
+          });
+        }
+      }
+    });
+  }
+
+  // ✅ Sélectionner une suggestion d'adresse
+  Future<void> _selectSuggestion(PlaceSuggestion suggestion) async {
+    setState(() {
+      _isSearching = true;
+      _suggestions = [];
+    });
+
+    try {
+      // Récupérer les détails du lieu (coordonnées GPS)
+      final details = await PlacesAutocompleteService.getPlaceDetails(
+        suggestion.placeId,
+        sessionToken: _sessionToken,
+      );
+
+      // Réinitialiser le token de session après utilisation
+      _sessionToken = null;
+
+      if (details != null) {
+        final latLng = details.coordinates;
+
+        setState(() {
+          _selectedLocation = latLng;
+          _selectedAddressText = details.formattedAddress;
+          _searchController.text = suggestion.mainText;
+          _isSearching = false;
+        });
+
+        // Mettre à jour la carte
+        _mapController?.animateCamera(
+          CameraUpdate.newLatLngZoom(latLng, 16),
+        );
+
+        _updateMarker(latLng);
+
+        debugPrint('✅ Adresse sélectionnée: ${details.formattedAddress}');
+        debugPrint('   GPS: ${latLng.latitude}, ${latLng.longitude}');
+      } else {
+        _showError('Impossible de récupérer les détails de l\'adresse');
+        setState(() => _isSearching = false);
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur sélection suggestion: $e');
+      _showError('Erreur lors de la sélection de l\'adresse');
+      setState(() => _isSearching = false);
+    }
+  }
+
+  // Méthode de fallback pour recherche manuelle (si l'utilisateur appuie sur Entrée)
+  Future<void> _searchAddressFallback(String query) async {
+    if (query.isEmpty) return;
 
     setState(() => _isSearching = true);
 
     try {
       final locations = await locationFromAddress(query);
 
-      setState(() {
-        _searchResults = locations;
-        _isSearching = false;
-      });
+      if (locations.isNotEmpty) {
+        final location = locations.first;
+        final latLng = LatLng(location.latitude, location.longitude);
+
+        setState(() {
+          _selectedLocation = latLng;
+          _suggestions = [];
+          _isSearching = false;
+        });
+
+        _mapController?.animateCamera(
+          CameraUpdate.newLatLngZoom(latLng, 15),
+        );
+
+        _updateMarker(latLng);
+        _getAddressFromCoordinates(latLng);
+      } else {
+        _showError('Aucune adresse trouvée');
+        setState(() => _isSearching = false);
+      }
     } catch (e) {
-      debugPrint('❌ Erreur recherche: $e');
-      setState(() {
-        _searchResults = [];
-        _isSearching = false;
-      });
+      debugPrint('❌ Erreur recherche fallback: $e');
       _showError('Aucune adresse trouvée');
+      setState(() => _isSearching = false);
     }
-  }
-
-  // Sélectionner un résultat de recherche
-  void _selectSearchResult(Location location) {
-    final latLng = LatLng(location.latitude, location.longitude);
-
-    setState(() {
-      _selectedLocation = latLng;
-      _searchResults = [];
-      _searchController.clear();
-    });
-
-    _mapController?.animateCamera(
-      CameraUpdate.newLatLngZoom(latLng, 15),
-    );
-
-    _updateMarker(latLng);
-    _getAddressFromCoordinates(latLng);
   }
 
   void _showError(String message) {
@@ -231,7 +319,20 @@ class _AddressPickerScreenState extends State<AddressPickerScreen> with SingleTi
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/acheteur-home');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Adresse de livraison'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -437,13 +538,14 @@ class _AddressPickerScreenState extends State<AddressPickerScreen> with SingleTi
           mapToolbarEnabled: false,
         ),
 
-        // Barre de recherche
+        // ✅ Barre de recherche avec autocomplétion style Google Maps / Yango
         Positioned(
           top: 16,
           left: 16,
           right: 16,
           child: Column(
             children: [
+              // Champ de recherche
               Card(
                 elevation: 4,
                 shape: RoundedRectangleBorder(
@@ -452,48 +554,128 @@ class _AddressPickerScreenState extends State<AddressPickerScreen> with SingleTi
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Rechercher une adresse...',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
+                    hintText: 'Rechercher un lieu, une adresse...',
+                    prefixIcon: const Icon(Icons.search, color: AppColors.primary),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Indicateur de chargement
+                        if (_isSearching)
+                          const Padding(
+                            padding: EdgeInsets.only(right: 8),
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        // Bouton effacer
+                        if (_searchController.text.isNotEmpty && !_isSearching)
+                          IconButton(
                             icon: const Icon(Icons.clear),
                             onPressed: () {
                               _searchController.clear();
-                              setState(() => _searchResults = []);
+                              setState(() => _suggestions = []);
                             },
-                          )
-                        : null,
+                          ),
+                      ],
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
                     ),
                     filled: true,
                     fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
-                  onSubmitted: _searchAddress,
+                  // ✅ Autocomplétion en temps réel
+                  onChanged: _onSearchChanged,
+                  // Fallback si l'utilisateur appuie sur Entrée
+                  onSubmitted: _searchAddressFallback,
                 ),
               ),
 
-              // Résultats de recherche
-              if (_searchResults.isNotEmpty)
+              // ✅ Liste des suggestions d'adresses
+              if (_suggestions.isNotEmpty)
                 Card(
-                  margin: const EdgeInsets.only(top: 8),
+                  margin: const EdgeInsets.only(top: 4),
+                  elevation: 6,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 280),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: _suggestions.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1, indent: 56),
+                      itemBuilder: (context, index) {
+                        final suggestion = _suggestions[index];
+                        return ListTile(
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.location_on,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                          ),
+                          title: Text(
+                            suggestion.mainText,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            suggestion.secondaryText,
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          onTap: () => _selectSuggestion(suggestion),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+
+              // Message d'aide si pas de suggestions
+              if (_searchController.text.length >= 2 && _suggestions.isEmpty && !_isSearching)
+                Card(
+                  margin: const EdgeInsets.only(top: 4),
                   elevation: 4,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: _searchResults.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final location = _searchResults[index];
-                      return ListTile(
-                        leading: const Icon(Icons.location_on, color: AppColors.primary),
-                        title: Text('${location.latitude}, ${location.longitude}'),
-                        onTap: () => _selectSearchResult(location),
-                      );
-                    },
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.grey[400], size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Aucune suggestion. Appuyez sur Entrée pour rechercher ou touchez la carte.',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
             ],
@@ -635,3 +817,4 @@ class _AddressPickerScreenState extends State<AddressPickerScreen> with SingleTi
     }
   }
 }
+

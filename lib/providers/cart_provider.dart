@@ -75,9 +75,9 @@ class CartProvider extends ChangeNotifier {
   }
 
   double get deliveryFee {
-    // Frais de livraison dynamiques selon le vendeur
-    // Pour l'instant, frais fixe
-    return _items.isEmpty ? 0 : 1500;
+    // ✅ Les frais de livraison ne sont PAS calculés dans le panier
+    // Ils seront calculés dynamiquement selon la distance GPS dans le checkout
+    return 0;
   }
 
   double get total => subtotal + deliveryFee;

@@ -101,9 +101,9 @@ class _VendeurMainScreenState extends State<VendeurMainScreen> {
             unselectedFontSize: 12,
             items: const [
               BottomNavigationBarItem(
-                icon: Icon(Icons.store),
-                activeIcon: Icon(Icons.store, size: 28),
-                label: 'Ma Boutique',
+                icon: Icon(Icons.dashboard_customize_outlined),
+                activeIcon: Icon(Icons.dashboard_customize, size: 28),
+                label: 'Dashboard',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.inventory_2_outlined),

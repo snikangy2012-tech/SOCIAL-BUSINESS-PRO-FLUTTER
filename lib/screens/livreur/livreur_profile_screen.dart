@@ -1,4 +1,4 @@
-// ===== lib/screens/livreur/livreur_profile_screen.dart =====
+﻿// ===== lib/screens/livreur/livreur_profile_screen.dart =====
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -536,7 +536,20 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
 
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/livreur');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Mon Profil'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
@@ -766,12 +779,46 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
                       onTap: () => context.push('/change-password'),
                     ),
                     _buildMenuTile(
-                      icon: Icons.logout,
-                      title: 'Se Déconnecter',
-                      subtitle: 'Se déconnecter de l\'application',
-                      onTap: _showLogoutDialog,
+                      icon: Icons.help,
+                      title: 'Aide & Support',
+                      subtitle: 'Besoin d\'aide ?',
+                      onTap: () => context.push('/help'),
                     ),
                   ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Bouton de déconnexion
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _showLogoutDialog,
+                    icon: const Icon(Icons.logout, color: AppColors.error),
+                    label: const Text(
+                      'Se déconnecter',
+                      style: TextStyle(color: AppColors.error),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.error),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Version
+              Center(
+                child: Text(
+                  'Version 1.0.0',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                  ),
                 ),
               ),
 
@@ -875,3 +922,4 @@ class _LivreurProfileScreenState extends State<LivreurProfileScreen> {
     );
   }
 }
+

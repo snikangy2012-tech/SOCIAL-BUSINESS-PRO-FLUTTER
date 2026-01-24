@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:social_business_pro/config/constants.dart';
@@ -69,13 +69,28 @@ class _SubscriptionDashboardScreenState extends State<SubscriptionDashboardScree
 
     if (subscription == null) {
       return SystemUIScaffold(
-        appBar: AppBar(title: const Text('Mon Abonnement')),
+        appBar: AppBar(leading: IconButton(
+      icon: const Icon(Icons.arrow_back),
+      onPressed: () => context.pop(),
+    ),
+    title: const Text('Mon Abonnement')),
         body: const Center(child: Text('Aucun abonnement trouvé')),
       );
     }
 
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Mon Abonnement'),
         centerTitle: true,
         actions: [
@@ -1013,3 +1028,4 @@ class _SubscriptionDashboardScreenState extends State<SubscriptionDashboardScree
     }
   }
 }
+

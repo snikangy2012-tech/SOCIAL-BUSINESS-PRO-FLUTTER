@@ -1,7 +1,8 @@
-// ===== lib/screens/admin/admin_order_management_screen.dart =====
+﻿// ===== lib/screens/admin/admin_order_management_screen.dart =====
 // Écran de gestion de toutes les commandes par l'admin
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
@@ -53,6 +54,17 @@ class _AdminOrderManagementScreenState extends State<AdminOrderManagementScreen>
     return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Gestion des Commandes'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -928,3 +940,4 @@ class _AdminOrderManagementScreenState extends State<AdminOrderManagementScreen>
     }
   }
 }
+

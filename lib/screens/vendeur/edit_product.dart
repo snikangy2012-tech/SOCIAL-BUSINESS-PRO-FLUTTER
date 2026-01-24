@@ -1,4 +1,4 @@
-// ===== lib/screens/vendeur/edit_product.dart =====
+﻿// ===== lib/screens/vendeur/edit_product.dart =====
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -10,7 +10,9 @@ import 'package:social_business_pro/config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/product_service.dart';
 import '../../services/audit_service.dart';
+import '../../services/category_service.dart';
 import '../../models/audit_log_model.dart';
+import '../../models/category_model.dart';
 import '../../config/product_categories.dart';
 import '../../config/product_subcategories.dart';
 import '../../widgets/system_ui_scaffold.dart';
@@ -53,11 +55,50 @@ class _EditProductState extends State<EditProduct> {
   bool _isActive = true;
   bool _isLoading = true;
   bool _isSaving = false;
+  List<CategoryModel> _availableCategories = []; // Catégories depuis Firestore
+  bool _isLoadingCategories = false;
 
   @override
   void initState() {
     super.initState();
+    _loadCategories();
     _loadProduct();
+  }
+
+  // Charger les catégories depuis Firestore
+  Future<void> _loadCategories() async {
+    setState(() => _isLoadingCategories = true);
+
+    try {
+      final categories = await CategoryService.getActiveCategories();
+      debugPrint('✅ ${categories.length} catégories chargées depuis Firestore');
+
+      setState(() {
+        _availableCategories = categories;
+      });
+    } catch (e) {
+      debugPrint('⚠️ Erreur Firestore, fallback vers catégories statiques: $e');
+
+      // Fallback: Convertir les catégories statiques en CategoryModel
+      final fallbackCategories = ProductCategories.allCategories.map((pc) {
+        return CategoryModel(
+          id: pc.id,
+          name: pc.name,
+          iconCodePoint: IconHelper.iconToCodePoint(pc.icon),
+          iconFontFamily: IconHelper.getIconFontFamily(pc.icon),
+          subCategories: pc.subCategories ?? [],
+          isActive: true,
+          displayOrder: 0,
+          createdAt: DateTime.now(),
+        );
+      }).toList();
+
+      setState(() {
+        _availableCategories = fallbackCategories;
+      });
+    } finally {
+      setState(() => _isLoadingCategories = false);
+    }
   }
 
   @override
@@ -121,7 +162,19 @@ class _EditProductState extends State<EditProduct> {
           _selectedSubcategory = product.subCategory ?? '';
 
           // Si c'est une sous-catégorie personnalisée (pas dans la liste prédéfinie)
-          final predefinedSubs = ProductSubcategories.getSubcategories(_selectedCategory);
+          final categoryObj = _availableCategories.firstWhere(
+            (cat) => cat.id == _selectedCategory,
+            orElse: () => _availableCategories.isNotEmpty
+                ? _availableCategories.first
+                : CategoryModel(
+                    id: 'default',
+                    name: 'Défaut',
+                    iconCodePoint: 'e88a',
+                    subCategories: [],
+                    createdAt: DateTime.now(),
+                  ),
+          );
+          final predefinedSubs = categoryObj.subCategories;
           if (_selectedSubcategory.isNotEmpty && !predefinedSubs.contains(_selectedSubcategory)) {
             _otherSubcategoryController.text = _selectedSubcategory;
             _selectedSubcategory = 'Autre (à préciser)';
@@ -170,9 +223,18 @@ class _EditProductState extends State<EditProduct> {
 
   // ✅ HELPER : Trouver l'ID de catégorie depuis le nom
   String _getCategoryIdFromName(String categoryName) {
-    final category = ProductCategories.allCategories.firstWhere(
+    if (_availableCategories.isEmpty) {
+      // Fallback vers catégories statiques si Firestore pas encore chargé
+      final category = ProductCategories.allCategories.firstWhere(
+        (cat) => cat.name == categoryName || cat.id == categoryName,
+        orElse: () => ProductCategories.allCategories.first,
+      );
+      return category.id;
+    }
+
+    final category = _availableCategories.firstWhere(
       (cat) => cat.name == categoryName || cat.id == categoryName,
-      orElse: () => ProductCategories.allCategories.first,
+      orElse: () => _availableCategories.first,
     );
     return category.id;
   }
@@ -349,6 +411,10 @@ class _EditProductState extends State<EditProduct> {
     if (_isLoading) {
       return SystemUIScaffold(
         appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => context.pop(),
+          ),
           title: const Text('Modifier le produit'),
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
@@ -360,6 +426,17 @@ class _EditProductState extends State<EditProduct> {
     return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/vendeur-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Modifier le produit'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -389,23 +466,31 @@ class _EditProductState extends State<EditProduct> {
 
               const SizedBox(height: 16),
 
-              // Catégorie - ✅ DROPDOWN CORRIGÉ
+              // Catégorie - ✅ DROPDOWN CORRIGÉ (Firestore)
               DropdownButtonFormField<String>(
-                initialValue: _selectedCategory,
+                value: _availableCategories.any((cat) => cat.id == _selectedCategory)
+                    ? _selectedCategory
+                    : null,
                 decoration: const InputDecoration(
                   labelText: 'Catégorie *',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.category),
                 ),
-                items: ProductCategories.allCategories.map((category) {
+                items: _availableCategories.map((category) {
                   return DropdownMenuItem<String>(
                     value: category.id, // ✅ Utiliser l'ID
-                    child: Text('${category.icon} ${category.name}'),
+                    child: Row(
+                      children: [
+                        Icon(category.icon, size: 20),
+                        const SizedBox(width: 8),
+                        Text(category.name),
+                      ],
+                    ),
                   );
                 }).toList(),
                 onChanged: (value) {
                   setState(() {
-                    _selectedCategory = value ?? 'electronique';
+                    _selectedCategory = value ?? '';
                     _selectedSubcategory = ''; // Reset sous-catégorie
                     _otherSubcategory = '';
                     _otherSubcategoryController.clear();
@@ -424,14 +509,48 @@ class _EditProductState extends State<EditProduct> {
               // Sous-catégorie
               if (_selectedCategory.isNotEmpty) ...[
                 DropdownButtonFormField<String>(
-                  value: _selectedSubcategory.isEmpty ? null : _selectedSubcategory,
+                  value: () {
+                    // Récupérer les sous-catégories de la catégorie sélectionnée
+                    final selectedCat = _availableCategories.firstWhere(
+                      (cat) => cat.id == _selectedCategory,
+                      orElse: () => _availableCategories.isNotEmpty
+                          ? _availableCategories.first
+                          : CategoryModel(
+                              id: 'default',
+                              name: 'Défaut',
+                              iconCodePoint: 'e88a',
+                              subCategories: [],
+                              createdAt: DateTime.now(),
+                            ),
+                    );
+
+                    // Vérifier que la sous-catégorie sélectionnée existe dans la liste
+                    if (_selectedSubcategory.isNotEmpty &&
+                        selectedCat.subCategories.contains(_selectedSubcategory)) {
+                      return _selectedSubcategory;
+                    }
+                    return null;
+                  }(),
                   decoration: const InputDecoration(
                     labelText: 'Sous-catégorie *',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.list),
                   ),
-                  items:
-                      ProductSubcategories.getSubcategories(_selectedCategory).map((subcategory) {
+                  items: _availableCategories
+                      .firstWhere(
+                        (cat) => cat.id == _selectedCategory,
+                        orElse: () => _availableCategories.isNotEmpty
+                            ? _availableCategories.first
+                            : CategoryModel(
+                                id: 'default',
+                                name: 'Défaut',
+                                iconCodePoint: 'e88a',
+                                subCategories: [],
+                                createdAt: DateTime.now(),
+                              ),
+                      )
+                      .subCategories
+                      .map((subcategory) {
                     return DropdownMenuItem<String>(
                       value: subcategory,
                       child: Text(subcategory),

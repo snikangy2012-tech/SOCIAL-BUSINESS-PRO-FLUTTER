@@ -1,4 +1,4 @@
-// ===== lib/screens/acheteur/order_history_screen.dart =====
+﻿// ===== lib/screens/acheteur/order_history_screen.dart =====
 // Historique des commandes pour l'acheteur
 // Affiche toutes les commandes passées avec filtres par statut
 
@@ -131,8 +131,21 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/acheteur-home');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Mes Commandes'),
         centerTitle: true,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -580,3 +593,4 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
     }
   }
 }
+

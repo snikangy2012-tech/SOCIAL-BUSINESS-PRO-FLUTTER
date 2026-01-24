@@ -1,4 +1,4 @@
-// ===== lib/screens/livreur/available_orders_screen.dart =====
+﻿// ===== lib/screens/livreur/available_orders_screen.dart =====
 // Écran des commandes disponibles pour livreurs - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
@@ -458,6 +458,17 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/livreur');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Commandes disponibles'),
         backgroundColor: AppColors.primary,
         actions: [
@@ -941,3 +952,4 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
     );
   }
 }
+

@@ -1,5 +1,6 @@
-// ===== lib/screens/acheteur/delivery_tracking_screen.dart =====
+﻿// ===== lib/screens/acheteur/delivery_tracking_screen.dart =====
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
@@ -529,7 +530,20 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/acheteur-home');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Suivi de livraison'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -608,3 +622,4 @@ class _DeliveryTrackingScreenState extends State<DeliveryTrackingScreen> {
     );
   }
 }
+

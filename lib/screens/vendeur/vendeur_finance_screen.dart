@@ -1,4 +1,4 @@
-// ===== lib/screens/vendeur/vendeur_finance_screen.dart =====
+﻿// ===== lib/screens/vendeur/vendeur_finance_screen.dart =====
 // Écran de gestion des finances - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import '../../config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../models/order_model.dart';
+import '../../services/subscription_service.dart';
 import '../../utils/order_status_helper.dart';
 import '../../utils/number_formatter.dart';
 import '../../widgets/system_ui_scaffold.dart';
@@ -35,6 +36,11 @@ class _VendeurFinanceScreenState extends State<VendeurFinanceScreen>
   double _weekRevenue = 0;
   int _totalOrders = 0;
   int _completedOrders = 0;
+
+  // Commission et revenu net
+  double _commissionRate = 0.0;
+  double _monthCommission = 0.0;
+  double _monthNetRevenue = 0.0;
 
   // Filtres
   late TabController _tabController;
@@ -81,6 +87,21 @@ class _VendeurFinanceScreenState extends State<VendeurFinanceScreen>
 
       _calculateStatistics();
 
+      // Charger le taux de commission
+      final subscriptionService = SubscriptionService();
+      try {
+        _commissionRate = await subscriptionService.getVendeurCommissionRate(userId);
+        _monthCommission = _monthRevenue * _commissionRate;
+        _monthNetRevenue = _monthRevenue - _monthCommission;
+        debugPrint('💰 Commission mensuelle: $_monthCommission FCFA');
+        debugPrint('✅ Revenu net mensuel: $_monthNetRevenue FCFA');
+      } catch (e) {
+        debugPrint('⚠️ Erreur chargement commission: $e');
+        _commissionRate = 0.15; // Valeur par défaut 15%
+        _monthCommission = _monthRevenue * _commissionRate;
+        _monthNetRevenue = _monthRevenue - _monthCommission;
+      }
+
       setState(() {
         _isLoading = false;
       });
@@ -107,16 +128,17 @@ class _VendeurFinanceScreenState extends State<VendeurFinanceScreen>
     _completedOrders = 0;
 
     for (var sale in _allSales) {
-      if (sale.status == 'delivered' || sale.status == 'completed') {
-        _totalRevenue += sale.totalAmount;
+      final st = sale.status.toLowerCase();
+      if (st == 'delivered' || st == 'completed' || st == 'livree') {
+        _totalRevenue += sale.subtotal; // Revenu brut vendeur (sans frais de livraison)
         _completedOrders++;
 
         if (sale.createdAt.isAfter(startOfMonth)) {
-          _monthRevenue += sale.totalAmount;
+          _monthRevenue += sale.subtotal;
         }
 
         if (sale.createdAt.isAfter(startOfWeek)) {
-          _weekRevenue += sale.totalAmount;
+          _weekRevenue += sale.subtotal;
         }
       }
     }
@@ -193,8 +215,20 @@ class _VendeurFinanceScreenState extends State<VendeurFinanceScreen>
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/vendeur-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Finances & Ventes'),
         backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -304,10 +338,32 @@ class _VendeurFinanceScreenState extends State<VendeurFinanceScreen>
               const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
-                  'Ce Mois',
+                  'Ce Mois (Brut)',
                   formatPriceWithCurrency(_monthRevenue, currency: 'FCFA'),
                   Icons.calendar_today,
                   AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  'Commission (${(_commissionRate * 100).toStringAsFixed(0)}%)',
+                  '- ${formatPriceWithCurrency(_monthCommission, currency: 'FCFA')}',
+                  Icons.percent,
+                  AppColors.error,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  'Revenu Net',
+                  formatPriceWithCurrency(_monthNetRevenue, currency: 'FCFA'),
+                  Icons.account_balance,
+                  AppColors.success,
                 ),
               ),
             ],

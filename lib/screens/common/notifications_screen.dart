@@ -1,4 +1,4 @@
-// lib/screens/common/notifications_screen.dart
+﻿// lib/screens/common/notifications_screen.dart
 // Écran de gestion des notifications - SOCIAL BUSINESS Pro
 // Transversal : utilisable par tous les types d'utilisateurs
 
@@ -480,6 +480,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: Column(
           children: [
             const Text('Notifications'),
@@ -883,3 +894,4 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 }
+

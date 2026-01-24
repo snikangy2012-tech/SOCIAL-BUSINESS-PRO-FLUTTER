@@ -1,4 +1,4 @@
-// ===== lib/screens/acheteur/product_search_screen.dart =====
+﻿// ===== lib/screens/acheteur/product_search_screen.dart =====
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -468,7 +468,20 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/acheteur');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Rechercher'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.tune),
@@ -631,3 +644,4 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
     );
   }
 }
+

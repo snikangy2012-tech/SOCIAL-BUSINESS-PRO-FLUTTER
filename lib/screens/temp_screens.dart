@@ -1,4 +1,4 @@
-// ===== lib/screens/temp_screens.dart =====
+﻿// ===== lib/screens/temp_screens.dart =====
 // Écrans temporaires pour tester la navigation
 
 import 'package:flutter/material.dart';
@@ -29,6 +29,17 @@ class TempScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: Text(title),
         centerTitle: true,
       ),
@@ -317,3 +328,4 @@ class _SplashScreenTempState extends State<SplashScreenTemp> {
     );
   }
 }
+

@@ -1,7 +1,8 @@
-// ===== lib/screens/vendeur/assign_livreur_screen.dart =====
+﻿// ===== lib/screens/vendeur/assign_livreur_screen.dart =====
 // �cran d'assignation manuelle de livreur par le vendeur
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -219,11 +220,24 @@ class _AssignLivreurScreenState extends State<AssignLivreurScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/vendeur-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: Text(
           widget.orderIds.length == 1
               ? 'Assigner un livreur'
               : 'Assigner ${widget.orderIds.length} commandes',
         ),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         actions: [
           if (!_isLoading)
             IconButton(
@@ -500,3 +514,4 @@ class _AssignLivreurScreenState extends State<AssignLivreurScreen> {
     );
   }
 }
+

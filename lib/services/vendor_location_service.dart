@@ -37,11 +37,43 @@ class VendorLocationService {
 
       // NIVEAU 1: Utiliser les coordonnées GPS configurées par le vendeur
       if (profile != null) {
+        // ✅ Structure correcte: profile.vendeurProfile.businessLatitude/businessLongitude
+        // (comme défini dans shop_setup_screen.dart)
+        final vendeurProfile = profile['vendeurProfile'] as Map<String, dynamic>?;
+
+        if (vendeurProfile != null) {
+          final businessLat = vendeurProfile['businessLatitude'] as num?;
+          final businessLng = vendeurProfile['businessLongitude'] as num?;
+
+          if (businessLat != null && businessLng != null) {
+            debugPrint('✅ Coordonnées GPS boutique trouvées dans vendeurProfile: $businessLat, $businessLng');
+            return {
+              'latitude': businessLat.toDouble(),
+              'longitude': businessLng.toDouble(),
+            };
+          }
+
+          // Fallback: Essayer shopLocation si businessLatitude n'existe pas
+          final shopLocation = vendeurProfile['shopLocation'] as Map<String, dynamic>?;
+          if (shopLocation != null) {
+            final lat = shopLocation['latitude'] as num?;
+            final lng = shopLocation['longitude'] as num?;
+            if (lat != null && lng != null) {
+              debugPrint('✅ Coordonnées GPS boutique trouvées dans shopLocation: $lat, $lng');
+              return {
+                'latitude': lat.toDouble(),
+                'longitude': lng.toDouble(),
+              };
+            }
+          }
+        }
+
+        // Fallback sur profile direct (ancien système)
         final businessLat = profile['businessLatitude'] as num?;
         final businessLng = profile['businessLongitude'] as num?;
 
         if (businessLat != null && businessLng != null) {
-          debugPrint('✅ Coordonnées GPS boutique trouvées: $businessLat, $businessLng');
+          debugPrint('✅ Coordonnées GPS boutique trouvées dans profile direct: $businessLat, $businessLng');
           return {
             'latitude': businessLat.toDouble(),
             'longitude': businessLng.toDouble(),
@@ -84,6 +116,27 @@ class VendorLocationService {
 
       if (profile == null) return false;
 
+      // ✅ Vérifier dans vendeurProfile (structure correcte)
+      final vendeurProfile = profile['vendeurProfile'] as Map<String, dynamic>?;
+      if (vendeurProfile != null) {
+        final businessLat = vendeurProfile['businessLatitude'] as num?;
+        final businessLng = vendeurProfile['businessLongitude'] as num?;
+        if (businessLat != null && businessLng != null) {
+          return true;
+        }
+
+        // Vérifier aussi shopLocation
+        final shopLocation = vendeurProfile['shopLocation'] as Map<String, dynamic>?;
+        if (shopLocation != null) {
+          final lat = shopLocation['latitude'] as num?;
+          final lng = shopLocation['longitude'] as num?;
+          if (lat != null && lng != null) {
+            return true;
+          }
+        }
+      }
+
+      // Fallback: vérifier profile direct (ancien système)
       final businessLat = profile['businessLatitude'] as num?;
       final businessLng = profile['businessLongitude'] as num?;
 
@@ -103,9 +156,10 @@ class VendorLocationService {
     try {
       debugPrint('📍 Mise à jour coordonnées boutique vendeur $vendeurId: $latitude, $longitude');
 
+      // ✅ Sauvegarder dans vendeurProfile (structure correcte comme shop_setup_screen)
       await _firestore.collection(FirebaseCollections.users).doc(vendeurId).update({
-        'profile.businessLatitude': latitude,
-        'profile.businessLongitude': longitude,
+        'profile.vendeurProfile.businessLatitude': latitude,
+        'profile.vendeurProfile.businessLongitude': longitude,
         'updatedAt': FieldValue.serverTimestamp(),
       });
 

@@ -1,4 +1,4 @@
-// ===== lib/screens/vendeur/product_management.dart =====
+﻿// ===== lib/screens/vendeur/product_management.dart =====
 // Écran de gestion des produits pour vendeurs - SOCIAL BUSINESS Pro
 
 import 'dart:async';
@@ -59,6 +59,15 @@ class _ProductManagementState extends State<ProductManagement> {
         _loadProducts();
       }
     });
+  }
+
+  // Helper pour convertir l'ID de catégorie en nom
+  String _getCategoryName(String categoryId) {
+    final category = ProductCategories.allCategories.firstWhere(
+      (cat) => cat.id == categoryId,
+      orElse: () => ProductCategories.allCategories.first,
+    );
+    return category.name;
   }
 
   Future<void> _loadProducts() async {
@@ -346,11 +355,8 @@ class _ProductManagementState extends State<ProductManagement> {
       // Récupérer authProvider avant les appels async
       final authProvider = context.read<AuthProvider>();
 
-      // TODO: Supprimer de Firestore
-      // await ProductService().deleteProduct(productId);
-
-      // Simuler pour le moment
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Supprimer de Firestore
+      await ProductService().deleteProduct(productId);
 
       // Logger la suppression du produit
       if (authProvider.user != null) {
@@ -410,6 +416,17 @@ class _ProductManagementState extends State<ProductManagement> {
     return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/vendeur-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Mes Produits'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -635,7 +652,7 @@ class _ProductManagementState extends State<ProductManagement> {
 
                     // Catégorie
                     Text(
-                      product.category,
+                      _getCategoryName(product.category),
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.grey[600],

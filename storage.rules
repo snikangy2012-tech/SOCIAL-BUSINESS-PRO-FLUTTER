@@ -20,11 +20,18 @@ service firebase.storage {
       allow delete: if isAuthenticated(); // Any authenticated user can delete their images
     }
 
-    // User profile images
+    // User profile images (new path)
     match /users/{userId}/profile/{imageId} {
       allow read: if true;
       allow write: if isAuthenticated() && isOwner(userId);
       allow delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    // User profile photos (direct path - for backward compatibility)
+    match /profile_photos/{fileName} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+      allow delete: if isAuthenticated();
     }
 
     // Shop/Boutique images

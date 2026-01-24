@@ -1,5 +1,6 @@
-// ===== lib/screens/admin/activity_log_screen.dart =====
+﻿// ===== lib/screens/admin/activity_log_screen.dart =====
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:social_business_pro/config/constants.dart';
 import 'package:intl/intl.dart';
@@ -26,6 +27,17 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Journal des activités'),
         backgroundColor: AppColors.info,
         foregroundColor: Colors.white,
@@ -93,13 +105,21 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
   }
 
   Stream<QuerySnapshot> _getActivityStream() {
-    Query query = FirebaseFirestore.instance
-        .collection('activity_logs')
-        .orderBy('timestamp', descending: true)
-        .limit(100);
+    Query query;
 
     if (_selectedFilter != 'all') {
-      query = query.where('type', isEqualTo: _selectedFilter);
+      // Utiliser l'index composite: type + timestamp
+      query = FirebaseFirestore.instance
+          .collection('activity_logs')
+          .where('type', isEqualTo: _selectedFilter)
+          .orderBy('timestamp', descending: true)
+          .limit(100);
+    } else {
+      // Sans filtre, simple orderBy
+      query = FirebaseFirestore.instance
+          .collection('activity_logs')
+          .orderBy('timestamp', descending: true)
+          .limit(100);
     }
 
     return query.snapshots();
@@ -201,3 +221,4 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
     }
   }
 }
+

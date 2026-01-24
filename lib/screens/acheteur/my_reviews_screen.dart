@@ -1,4 +1,4 @@
-// ===== lib/screens/acheteur/my_reviews_screen.dart =====
+﻿// ===== lib/screens/acheteur/my_reviews_screen.dart =====
 // Écran des avis laissés par l'acheteur - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
@@ -87,7 +87,20 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> with SingleTickerProv
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/acheteur-home');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Mes avis'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
@@ -470,3 +483,4 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> with SingleTickerProv
     };
   }
 }
+

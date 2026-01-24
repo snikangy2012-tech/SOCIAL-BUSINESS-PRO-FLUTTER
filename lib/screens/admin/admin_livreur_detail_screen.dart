@@ -1,7 +1,8 @@
-// ===== lib/screens/admin/admin_livreur_detail_screen.dart =====
+﻿// ===== lib/screens/admin/admin_livreur_detail_screen.dart =====
 // Détails d'un livreur avec visualisation des documents - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../config/constants.dart';
 import '../../models/user_model.dart';
@@ -154,7 +155,18 @@ class _AdminLivreurDetailScreenState extends State<AdminLivreurDetailScreen> {
     if (_isLoading) {
       return SystemUIScaffold(
         appBar: AppBar(
-          title: const Text('Détails Livreur'),
+          leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
+        title: const Text('Détails Livreur'),
           backgroundColor: AppColors.primary,
         ),
         body: const Center(child: CircularProgressIndicator()),
@@ -164,7 +176,18 @@ class _AdminLivreurDetailScreenState extends State<AdminLivreurDetailScreen> {
     if (_livreur == null) {
       return SystemUIScaffold(
         appBar: AppBar(
-          title: const Text('Détails Livreur'),
+          leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
+        title: const Text('Détails Livreur'),
           backgroundColor: AppColors.primary,
         ),
         body: const Center(
@@ -179,6 +202,17 @@ class _AdminLivreurDetailScreenState extends State<AdminLivreurDetailScreen> {
 
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Détails Livreur'),
         backgroundColor: AppColors.primary,
         actions: [
@@ -682,3 +716,4 @@ class _AdminLivreurDetailScreenState extends State<AdminLivreurDetailScreen> {
     );
   }
 }
+

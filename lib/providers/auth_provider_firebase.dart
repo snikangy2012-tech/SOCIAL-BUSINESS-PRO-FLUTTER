@@ -79,10 +79,14 @@ class AuthProvider extends ChangeNotifier {
       if (userData == null) {
         // ❌ NE PAS créer automatiquement - risque d'écraser le vrai document
         debugPrint('⚠️ Document utilisateur non trouvé pour UID: $uid');
-        debugPrint('⚠️ Cela peut être dû à un timeout Firestore');
+        final currentUser = firebase_auth.FirebaseAuth.instance.currentUser;
+        debugPrint('⚠️ Email de l\'utilisateur connecté: ${currentUser?.email}');
+        debugPrint('⚠️ Cela peut être dû à un timeout Firestore ou une permission denied');
         debugPrint('⚠️ Utilisateur temporairement non chargé');
 
+        _errorMessage = 'Données utilisateur introuvables. Vérifiez votre connexion.';
         // Ne rien faire - l'utilisateur restera null
+        notifyListeners();
         return;
       }
 
@@ -91,7 +95,7 @@ class AuthProvider extends ChangeNotifier {
         id: uid,
         email: userData['email'] ?? '',
         displayName: userData['displayName'] ?? 'Utilisateur', // ✅ Mapper name → displayName
-        phoneNumber: userData['phone'],
+        phoneNumber: userData['phoneNumber'] ?? userData['phone'],  // ✅ Support both 'phoneNumber' and 'phone' keys
         userType: UserType.values.firstWhere(
           (type) => type.toString().split('.').last == userData['userType'],
           orElse: () => UserType.acheteur,
@@ -589,7 +593,7 @@ class AuthProvider extends ChangeNotifier {
       case UserType.vendeur:
         return VendeurProfile(
           businessName: '',
-          businessCategory: '',
+          businessCategories: ['Alimentation'], // Default category
           paymentInfo: PaymentInfo(),
           stats: BusinessStats(),
           deliverySettings: DeliverySettings(),

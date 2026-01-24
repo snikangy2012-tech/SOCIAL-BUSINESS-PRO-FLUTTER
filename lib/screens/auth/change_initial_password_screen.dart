@@ -112,6 +112,8 @@ class _ChangeInitialPasswordScreenState extends State<ChangeInitialPasswordScree
     return SystemUIScaffold(
       appBar: AppBar(
         title: const Text('Changement de mot de passe obligatoire'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         automaticallyImplyLeading: false, // Empêcher le retour
       ),
       body: SingleChildScrollView(

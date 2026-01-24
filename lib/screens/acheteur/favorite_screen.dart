@@ -1,4 +1,4 @@
-// ===== lib/screens/acheteur/favorite_screen.dart =====
+﻿// ===== lib/screens/acheteur/favorite_screen.dart =====
 // Écran des favoris avec onglets Produits et Vendeurs - SOCIAL BUSINESS Pro
 
 import 'dart:async';
@@ -64,7 +64,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> with SingleTickerProvid
     final favoriteProvider = context.read<FavoriteProvider>();
 
     // Charger les produits favoris
-    setState(() => _isLoadingProducts = true);
+    if (mounted) setState(() => _isLoadingProducts = true);
     try {
       final allProducts = await _productService.getProducts();
       _favoriteProducts = allProducts.where((p) => favoriteProvider.isFavorite(p.id)).toList();
@@ -75,7 +75,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> with SingleTickerProvid
     }
 
     // Charger les vendeurs favoris
-    setState(() => _isLoadingVendors = true);
+    if (mounted) setState(() => _isLoadingVendors = true);
     try {
       final vendorsList = <UserModel>[];
       for (final vendorId in favoriteProvider.favoriteVendorIds) {
@@ -104,8 +104,20 @@ class _FavoriteScreenState extends State<FavoriteScreen> with SingleTickerProvid
 
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/acheteur-home');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Mes Favoris'),
         backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         elevation: 0,
         bottom: TabBar(
           controller: _tabController,
@@ -349,17 +361,32 @@ class _FavoriteScreenState extends State<FavoriteScreen> with SingleTickerProvid
   Widget _buildVendorCard(UserModel vendor, FavoriteProvider favoriteProvider) {
     // Extraire les données du profil vendeur depuis le Map
     final profileData = vendor.profile;
-    if (profileData.isEmpty) return const SizedBox.shrink();
 
-    // Récupérer les données du profil vendeur
-    final vendeurProfileData = profileData['vendeurProfile'] as Map<String, dynamic>?;
-    if (vendeurProfileData == null) return const SizedBox.shrink();
+    // Le businessName peut être soit directement dans profile, soit dans vendeurProfile (legacy)
+    String businessName = vendor.displayName.isNotEmpty ? vendor.displayName : 'Vendeur';
+    String businessCategory = 'Commerce';
+    double averageRating = 0.0;
+    int totalProducts = 0;
 
-    final businessName = vendeurProfileData['businessName'] as String? ?? vendor.displayName;
-    final businessCategory = vendeurProfileData['businessCategory'] as String? ?? 'Commerce';
-    final stats = vendeurProfileData['stats'] as Map<String, dynamic>? ?? {};
-    final averageRating = (stats['averageRating'] as num?)?.toDouble() ?? 0.0;
-    final totalProducts = stats['totalProducts'] as int? ?? 0;
+    // Essayer d'abord la structure directe (nouvelle)
+    if (profileData.containsKey('businessName')) {
+      businessName = profileData['businessName'] as String? ?? businessName;
+      businessCategory = profileData['businessCategory'] as String? ?? businessCategory;
+      final stats = profileData['stats'] as Map<String, dynamic>? ?? {};
+      averageRating = (stats['averageRating'] as num?)?.toDouble() ?? 0.0;
+      totalProducts = stats['totalProducts'] as int? ?? 0;
+    }
+    // Sinon essayer la structure legacy (vendeurProfile)
+    else if (profileData.containsKey('vendeurProfile')) {
+      final vendeurProfileData = profileData['vendeurProfile'] as Map<String, dynamic>?;
+      if (vendeurProfileData != null) {
+        businessName = vendeurProfileData['businessName'] as String? ?? businessName;
+        businessCategory = vendeurProfileData['businessCategory'] as String? ?? businessCategory;
+        final stats = vendeurProfileData['stats'] as Map<String, dynamic>? ?? {};
+        averageRating = (stats['averageRating'] as num?)?.toDouble() ?? 0.0;
+        totalProducts = stats['totalProducts'] as int? ?? 0;
+      }
+    }
 
     // Protection contre businessName vide
     final initial = businessName.isEmpty ? '?' : businessName.substring(0, 1).toUpperCase();

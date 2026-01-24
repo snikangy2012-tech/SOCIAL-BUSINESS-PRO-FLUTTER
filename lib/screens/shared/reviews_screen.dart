@@ -1,5 +1,6 @@
-// ===== lib/screens/shared/reviews_screen.dart =====
+﻿// ===== lib/screens/shared/reviews_screen.dart =====
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../models/review_model.dart';
 import '../../services/review_service.dart';
@@ -379,6 +380,17 @@ class _ReviewsScreenState extends State<ReviewsScreen> with SingleTickerProvider
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: Text(
           widget.targetType == 'product'
               ? 'Avis produit'
@@ -386,6 +398,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> with SingleTickerProvider
                   ? 'Avis vendeur'
                   : 'Avis livreur',
         ),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -444,3 +458,4 @@ class _ReviewsScreenState extends State<ReviewsScreen> with SingleTickerProvider
     );
   }
 }
+

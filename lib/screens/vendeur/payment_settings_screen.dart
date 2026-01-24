@@ -1,7 +1,8 @@
-// ===== lib/screens/vendeur/payment_settings_screen.dart =====
+﻿// ===== lib/screens/vendeur/payment_settings_screen.dart =====
 // Configuration des moyens de paiement acceptés par le vendeur
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../config/constants.dart';
@@ -378,6 +379,17 @@ class _VendeurPaymentSettingsScreenState extends State<VendeurPaymentSettingsScr
     if (_isLoading) {
       return SystemUIScaffold(
         appBar: AppBar(
+          leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/vendeur-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
           title: const Text('Moyens de paiement'),
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
@@ -388,6 +400,17 @@ class _VendeurPaymentSettingsScreenState extends State<VendeurPaymentSettingsScr
 
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/vendeur-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Moyens de paiement'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,

@@ -1,5 +1,6 @@
-// ===== lib/screens/admin/vendor_management_screen.dart =====
+﻿// ===== lib/screens/admin/vendor_management_screen.dart =====
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../models/user_model.dart';
@@ -454,7 +455,20 @@ class _VendorManagementScreenState extends State<VendorManagementScreen>
 
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Gestion Vendeurs'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.sort),
@@ -926,3 +940,4 @@ class _VendorDetailsSheetState extends State<_VendorDetailsSheet> {
     );
   }
 }
+

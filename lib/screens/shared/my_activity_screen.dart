@@ -1,7 +1,8 @@
-// ===== lib/screens/shared/my_activity_screen.dart =====
+﻿// ===== lib/screens/shared/my_activity_screen.dart =====
 // Écran Mon Activité (pour tous les utilisateurs)
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../config/constants.dart';
@@ -202,6 +203,17 @@ class _MyActivityScreenState extends State<MyActivityScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Rapport d\'Activité'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -883,3 +895,4 @@ class _MyActivityScreenState extends State<MyActivityScreen> {
     }
   }
 }
+

@@ -1,7 +1,8 @@
-// ===== lib/screens/livreur/payment_deposit_screen.dart =====
+﻿// ===== lib/screens/livreur/payment_deposit_screen.dart =====
 // Écran de dépôt des paiements collectés - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -239,8 +240,20 @@ class _PaymentDepositScreenState extends State<PaymentDepositScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/livreur');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Dépôt des collectes'),
         backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -681,3 +694,4 @@ class _PaymentDepositScreenState extends State<PaymentDepositScreen> {
     return '${date.day}/${date.month}/${date.year}';
   }
 }
+

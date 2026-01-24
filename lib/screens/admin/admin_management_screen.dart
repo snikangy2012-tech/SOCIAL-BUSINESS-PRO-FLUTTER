@@ -1,7 +1,8 @@
-// ===== lib/screens/admin/admin_management_screen.dart =====
+﻿// ===== lib/screens/admin/admin_management_screen.dart =====
 // Écran de gestion des administrateurs (SUPER ADMIN ONLY)
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -67,6 +68,17 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Gestion des Administrateurs'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -923,3 +935,4 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
     );
   }
 }
+

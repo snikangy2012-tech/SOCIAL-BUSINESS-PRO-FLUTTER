@@ -36,8 +36,8 @@ class DefaultFirebaseOptions {
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: "AIzaSyA-rTjMA0ZsE1n9nOeGlxq3swmbkrtg49o",
     authDomain: "social-media-business-pro.firebaseapp.com",
-    projectId: "social-business-pro",
-    storageBucket: "social-business-pro.firebasestorage.app",
+    projectId: "social-media-business-pro",
+    storageBucket: "social-media-business-pro.firebasestorage.app",
     messagingSenderId: "162267219364",
     appId: "1:162267219364:web:58b3606f6c55669043ad31",
     measurementId: "G-ZTVBD3X1RE"

@@ -263,15 +263,30 @@ class OrderService {
           vendeurName = data?['displayName'];
 
           // Récupérer les infos de la boutique depuis le profil vendeur
+          // Structure: profile.vendeurProfile.businessName (comme dans shop_setup_screen)
           final profile = data?['profile'] as Map<String, dynamic>?;
           if (profile != null) {
-            vendeurShopName = profile['businessName'];
-            vendeurPhone = profile['businessPhone'];
-            vendeurLocation = profile['businessAddress'];
+            // ✅ Chercher dans vendeurProfile (structure correcte)
+            final vendeurProfile = profile['vendeurProfile'] as Map<String, dynamic>?;
+            if (vendeurProfile != null) {
+              vendeurShopName = vendeurProfile['businessName'];
+              vendeurPhone = vendeurProfile['businessPhone'];
+              vendeurLocation = vendeurProfile['businessAddress'];
+              debugPrint('📦 Infos trouvées dans vendeurProfile: shop=$vendeurShopName, phone=$vendeurPhone');
+            }
+
+            // Fallback sur profile direct
+            vendeurShopName ??= profile['businessName'] ?? profile['shopName'];
+            vendeurPhone ??= profile['businessPhone'] ?? profile['phone'];
+            vendeurLocation ??= profile['businessAddress'] ?? profile['address'];
           }
+
+          // Fallback sur champs de premier niveau
+          vendeurShopName ??= data?['shopName'] ?? data?['businessName'] ?? vendeurName;
+          vendeurPhone ??= data?['phoneNumber'] ?? data?['phone'];
         }
 
-        debugPrint('✅ Infos vendeur récupérées - Boutique: $vendeurShopName, Tél: $vendeurPhone');
+        debugPrint('✅ Infos vendeur récupérées - Boutique: $vendeurShopName, Tél: $vendeurPhone, Adresse: $vendeurLocation');
       } catch (e) {
         debugPrint('⚠️ Erreur récupération infos vendeur: $e');
       }

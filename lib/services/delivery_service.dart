@@ -12,6 +12,7 @@ import 'package:social_business_pro/config/constants.dart';
 import '../models/delivery_model.dart';
 import '../models/order_model.dart';
 import '../models/platform_transaction_model.dart';
+import '../models/livreur_trust_level.dart';
 import 'kyc_verification_service.dart';
 import 'kyc_adaptive_service.dart';
 import 'platform_transaction_service.dart';
@@ -197,32 +198,31 @@ class DeliveryService {
       final deliveryRef = db.collection(FirebaseCollections.deliveries).doc();
 
       // Extraire les coordonnées depuis la commande
+      // ✅ Point de récupération = boutique du vendeur
       final pickupAddress = {
-        'street': orderData['deliveryAddress'] ?? '',
-        'coordinates': {
-          'latitude': orderData['pickupLatitude'] ?? 0.0,
-          'longitude': orderData['pickupLongitude'] ?? 0.0,
-        },
+        'shopName': orderData['vendeurShopName'] ?? 'Boutique',
+        'phone': orderData['vendeurPhone'] ?? '',
+        'street': orderData['vendeurLocation'] ?? '',
+        'address': orderData['vendeurLocation'] ?? '',
+        'latitude': orderData['pickupLatitude'] ?? 0.0,
+        'longitude': orderData['pickupLongitude'] ?? 0.0,
       };
 
+      // ✅ Point de livraison = adresse du client
       final deliveryAddress = {
         'street': orderData['deliveryAddress'] ?? '',
+        'address': orderData['deliveryAddress'] ?? '',
         'phone': orderData['buyerPhone'] ?? '',
-        'coordinates': {
-          'latitude': orderData['deliveryLatitude'] ?? 0.0,
-          'longitude': orderData['deliveryLongitude'] ?? 0.0,
-        },
+        'latitude': orderData['deliveryLatitude'] ?? 0.0,
+        'longitude': orderData['deliveryLongitude'] ?? 0.0,
       };
 
       // Calculer la distance
       double distance = 0.0;
       if (orderData['pickupLatitude'] != null && orderData['deliveryLatitude'] != null) {
-        final pickupCoords = pickupAddress['coordinates'] as Map<String, dynamic>;
-        final deliveryCoords = deliveryAddress['coordinates'] as Map<String, dynamic>;
-
         distance = DeliveryService()._calculateDistance(
-          pickupCoords,
-          deliveryCoords,
+          pickupAddress,
+          deliveryAddress,
         );
       }
 
@@ -392,6 +392,51 @@ class DeliveryService {
       }
 
       debugPrint('✅ Vérification KYC passée - Tier: ${permission.currentTier?.name}');
+
+      // ✨ ÉTAPE 1b: Vérifier les limites de livraisons simultanées (système de confiance)
+      // La limite dépend du niveau de confiance du livreur:
+      // - Débutant: 1 livraison, Confirmé: 2, Expert: 3, VIP: 5
+      final trustConfig = await LivreurTrustService.getLivreurTrustConfig(livreurId);
+      final maxActive = trustConfig.maxActiveDeliveries;
+
+      debugPrint('📊 Niveau de confiance: ${trustConfig.displayName} ${trustConfig.badgeIcon}');
+      debugPrint('   Limite de livraisons simultanées: $maxActive');
+
+      final activeDeliveries = await _db
+          .collection(FirebaseCollections.deliveries)
+          .where('livreurId', isEqualTo: livreurId)
+          .where('status', whereIn: ['assigned', 'picked_up', 'in_transit'])
+          .get();
+
+      final activeCount = activeDeliveries.docs.length;
+
+      if (!trustConfig.canAcceptMoreDeliveries(activeCount)) {
+        debugPrint('❌ Limite atteinte: $activeCount/$maxActive livraison(s) active(s)');
+
+        // Construire les détails des livraisons actives
+        final activeDetails = activeDeliveries.docs.map((doc) {
+          final status = doc.data()['status'];
+          return status == 'assigned' ? 'assignée'
+               : status == 'picked_up' ? 'récupérée'
+               : status == 'in_transit' ? 'en livraison' : status;
+        }).toList();
+
+        return {
+          'success': false,
+          'error': 'active_delivery_limit_reached',
+          'message': 'Vous avez atteint votre limite de $maxActive livraison(s) simultanée(s).\n'
+                     'Niveau: ${trustConfig.displayName} ${trustConfig.badgeIcon}\n'
+                     'Livraisons actives: ${activeDetails.join(', ')}\n\n'
+                     'Terminez une livraison pour en accepter une nouvelle.'
+                     '${trustConfig.level != LivreurTrustLevel.vip ? '\n\n💡 Montez de niveau pour augmenter cette limite!' : ''}',
+          'activeCount': activeCount,
+          'maxActive': maxActive,
+          'trustLevel': trustConfig.displayName,
+        };
+      }
+
+      final remainingSlots = trustConfig.getRemainingDeliverySlots(activeCount);
+      debugPrint('✅ Places disponibles: $remainingSlots ($activeCount/$maxActive utilisées)');
 
       // ✨ ÉTAPE 2: Assigner la livraison (transaction atomique)
       await _db.runTransaction((transaction) async {
@@ -853,10 +898,23 @@ class DeliveryService {
             .where('status', whereIn: ['assigned', 'picked_up', 'in_transit'])
             .get();
 
+        // ✅ SYSTÈME DE CONFIANCE: Vérifier si le livreur peut accepter plus de livraisons
+        // La limite dépend du niveau de confiance:
+        // - Débutant: 1 livraison, Confirmé: 2, Expert: 3, VIP: 5
+        final trustConfig = await LivreurTrustService.getLivreurTrustConfig(livreurId);
+        final activeCount = ongoingDeliveries.docs.length;
+        final maxActive = trustConfig.maxActiveDeliveries;
+
+        if (!trustConfig.canAcceptMoreDeliveries(activeCount)) {
+          debugPrint('  ⏭️ Livreur ${livreurData['displayName']} (${trustConfig.displayName}) exclu: '
+                     '$activeCount/$maxActive livraison(s) active(s)');
+          continue; // Skip ce livreur
+        }
+
         // Score de charge de travail (max 5 points)
-        final workloadScore = ongoingDeliveries.docs.isEmpty ? 5.0 :
-                               ongoingDeliveries.docs.length == 1 ? 3.0 :
-                               ongoingDeliveries.docs.length == 2 ? 1.0 : 0.0;
+        // Plus le livreur a de places disponibles, meilleur est son score
+        final remainingSlots = trustConfig.getRemainingDeliverySlots(activeCount);
+        final workloadScore = (remainingSlots / maxActive) * 5.0;
 
         // Score de note moyenne (max 5 points)
         final rating = (livreurData['averageRating'] ?? 4.0) as num;
@@ -872,12 +930,15 @@ class DeliveryService {
           'distanceScore': distanceScore,
           'workloadScore': workloadScore,
           'ratingScore': ratingScore,
-          'ongoingDeliveries': ongoingDeliveries.docs.length,
+          'ongoingDeliveries': activeCount,
+          'maxDeliveries': maxActive,
+          'trustLevel': trustConfig.displayName,
         });
 
-        debugPrint('  Livreur ${livreurData['displayName']}: Score=$totalScore '
-                   '(distance=$distanceScore, charge=$workloadScore, note=$ratingScore, '
-                   'livraisons=${ongoingDeliveries.docs.length})');
+        debugPrint('  Livreur ${livreurData['displayName']} (${trustConfig.displayName} ${trustConfig.badgeIcon}): '
+                   'Score=${totalScore.toStringAsFixed(1)} '
+                   '(distance=${distanceScore.toStringAsFixed(1)}, charge=${workloadScore.toStringAsFixed(1)}, '
+                   'note=${ratingScore.toStringAsFixed(1)}, livraisons=$activeCount/$maxActive)');
       }
 
       // Trier par score décroissant

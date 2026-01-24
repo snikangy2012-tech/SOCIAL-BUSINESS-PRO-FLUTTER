@@ -1,7 +1,8 @@
-// ===== lib/screens/vendeur/refund_management_screen.dart =====
+﻿// ===== lib/screens/vendeur/refund_management_screen.dart =====
 // Écran de gestion des remboursements - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
@@ -61,7 +62,20 @@ class _RefundManagementScreenState extends State<RefundManagementScreen> {
 
     return SystemUIScaffold(
       appBar: AppBar(
-        title: const Text('Gestion des retours'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/vendeur-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
+    title: const Text('Gestion des retours'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         centerTitle: true,
       ),
       body: Column(
@@ -718,3 +732,4 @@ class _RefundManagementScreenState extends State<RefundManagementScreen> {
     }
   }
 }
+

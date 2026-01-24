@@ -1,4 +1,4 @@
-// ===== lib/screens/acheteur/product_detail_screen.dart =====
+﻿// ===== lib/screens/acheteur/product_detail_screen.dart =====
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -257,9 +257,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       pinned: true,
       backgroundColor: AppColors.primary,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () => context.pop(),
-      ),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/acheteur');
+            }
+          },
+          tooltip: 'Retour',
+        ),
       actions: [
         IconButton(
           icon: const Icon(Icons.share, color: Colors.white),

@@ -245,7 +245,7 @@ class VendeurProfile {
   final String businessName;
   final String businessType; // 'individual', 'company'
   final String? businessDescription;
-  final String businessCategory;
+  final List<String> businessCategories; // Multiple categories support
   final String? businessAddress;
   final String? businessPhone;     // 📞 Téléphone de la boutique
   final double? businessLatitude;  // 📍 Coordonnées GPS de la boutique
@@ -268,7 +268,7 @@ class VendeurProfile {
     required this.businessName,
     this.businessType = 'individual',
     this.businessDescription,
-    required this.businessCategory,
+    this.businessCategories = const ['Alimentation'], // Default category
     this.businessAddress,
     this.businessPhone,
     this.businessLatitude,
@@ -289,11 +289,20 @@ class VendeurProfile {
   });
 
   factory VendeurProfile.fromMap(Map<String, dynamic> data) {
+    // Parse businessCategories with fallback to old businessCategory field if exists
+    List<String> categories = _parseStringList(data['businessCategories']);
+    if (categories.isEmpty && data['businessCategory'] != null) {
+      categories = [data['businessCategory'] as String];
+    }
+    if (categories.isEmpty) {
+      categories = ['Alimentation']; // Default fallback
+    }
+
     return VendeurProfile(
       businessName: data['businessName'] ?? '',
       businessType: data['businessType'] ?? 'individual',
       businessDescription: data['businessDescription'],
-      businessCategory: data['businessCategory'] ?? '',
+      businessCategories: categories,
       businessAddress: data['businessAddress'],
       businessPhone: data['businessPhone'],
       businessLatitude: data['businessLatitude']?.toDouble(),
@@ -319,7 +328,7 @@ class VendeurProfile {
       'businessName': businessName,
       'businessType': businessType,
       'businessDescription': businessDescription,
-      'businessCategory': businessCategory,
+      'businessCategories': businessCategories, // Only save new field
       'businessAddress': businessAddress,
       'businessPhone': businessPhone,
       'businessLatitude': businessLatitude,

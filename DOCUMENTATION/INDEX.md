@@ -1,0 +1,296 @@
+# SOCIAL BUSINESS Pro - Documentation Index
+
+**Projet:** Application e-commerce Flutter pour vendeurs informels en Côte d'Ivoire
+**Dernière mise à jour:** Janvier 2025
+**Total fichiers:** 138 documents organisés en 7 catégories
+
+---
+
+## Structure de la Documentation
+
+| Dossier | Description | Fichiers |
+|---------|-------------|----------|
+| [01_GUIDES](#-01_guides---guides-et-tutoriels) | Guides d'utilisation et tutoriels | 23 |
+| [02_ARCHITECTURE](#-02_architecture---architecture-et-conception) | Architecture, analyses et conception | 30 |
+| [03_CORRECTIONS](#-03_corrections---corrections-et-fixes) | Corrections de bugs et résolutions | 36 |
+| [04_SESSIONS](#-04_sessions---historique-des-sessions) | Résumés et logs de sessions | 12 |
+| [05_CONFIGURATION](#-05_configuration---configuration) | Configuration Firebase, Android, etc. | 7 |
+| [06_FEATURES](#-06_features---fonctionnalités) | Documentation des fonctionnalités | 23 |
+| [07_ROADMAP](#-07_roadmap---roadmap-et-planification) | Roadmap et prochaines étapes | 6 |
+
+---
+
+## 01_GUIDES - Guides et Tutoriels
+
+Guides pratiques pour utiliser et configurer l'application.
+
+### Démarrage
+- [DEMARRAGE_RAPIDE.md](01_GUIDES/DEMARRAGE_RAPIDE.md) - Guide de démarrage rapide
+- [GUIDE_VSCODE_FLUTTER.md](01_GUIDES/GUIDE_VSCODE_FLUTTER.md) - Configuration VSCode pour Flutter
+
+### Tests
+- [GUIDE_TEST_COMPLET.md](01_GUIDES/GUIDE_TEST_COMPLET.md) - Guide de test complet
+- [GUIDE_TEST_CLICK_COLLECT.md](01_GUIDES/GUIDE_TEST_CLICK_COLLECT.md) - Tests Click & Collect
+- [TESTS_COMPLET.md](01_GUIDES/TESTS_COMPLET.md) - Documentation complète des tests
+- [KYC_TESTING_GUIDE.md](01_GUIDES/KYC_TESTING_GUIDE.md) - Guide de test KYC
+
+### Configuration & Intégration
+- [GUIDE_APPAREIL_ANDROID.md](01_GUIDES/GUIDE_APPAREIL_ANDROID.md) - Configuration appareil Android
+- [GUIDE_CONNEXION_TELEPHONE.md](01_GUIDES/GUIDE_CONNEXION_TELEPHONE.md) - Connexion téléphone
+- [GUIDE_GOOGLE_SIGNIN.md](01_GUIDES/GUIDE_GOOGLE_SIGNIN.md) - Configuration Google Sign-In
+- [GUIDE_INDEX_FIRESTORE.md](01_GUIDES/GUIDE_INDEX_FIRESTORE.md) - Index Firestore
+- [GUIDE_JWT_MOBILE_MONEY.md](01_GUIDES/GUIDE_JWT_MOBILE_MONEY.md) - JWT pour Mobile Money
+- [INTEGRATION_GUIDE.md](01_GUIDES/INTEGRATION_GUIDE.md) - Guide d'intégration général
+
+### Administration
+- [CREATION_ADMINS_GUIDE.md](01_GUIDES/CREATION_ADMINS_GUIDE.md) - Création d'administrateurs
+- [CATEGORIES_MANAGEMENT_GUIDE.md](01_GUIDES/CATEGORIES_MANAGEMENT_GUIDE.md) - Gestion des catégories
+- [CATEGORIES_DEBUG_GUIDE.md](01_GUIDES/CATEGORIES_DEBUG_GUIDE.md) - Debug des catégories
+- [GUIDE_JOURNAL_ACTIVITES.md](01_GUIDES/GUIDE_JOURNAL_ACTIVITES.md) - Journal d'activités
+
+### Fonctionnalités
+- [GUIDE_BOUTON_RETOUR.md](01_GUIDES/GUIDE_BOUTON_RETOUR.md) - Bouton retour
+- [GUIDE_ZONES_SYSTEME.md](01_GUIDES/GUIDE_ZONES_SYSTEME.md) - Zones système
+- [CARTE_PLEIN_ECRAN_GUIDE.md](01_GUIDES/CARTE_PLEIN_ECRAN_GUIDE.md) - Carte plein écran
+- [QUICK_START_ANTI_FRAUD_KYC.md](01_GUIDES/QUICK_START_ANTI_FRAUD_KYC.md) - Anti-fraude et KYC
+
+### Optimisation
+- [GUIDE_OPTIMISATION_RAM.md](01_GUIDES/GUIDE_OPTIMISATION_RAM.md) - Optimisation RAM
+- [README_OPTIMISATION.md](01_GUIDES/README_OPTIMISATION.md) - README Optimisation
+- [SUBSCRIPTION_QUICK_START.md](01_GUIDES/SUBSCRIPTION_QUICK_START.md) - Quick start abonnements
+
+---
+
+## 02_ARCHITECTURE - Architecture et Conception
+
+Documentation technique, analyses et conception du système.
+
+### Modèle Économique
+- [BUSINESS_MODEL.md](02_ARCHITECTURE/BUSINESS_MODEL.md) - Modèle économique complet
+- [SUBSCRIPTION_SYSTEM.md](02_ARCHITECTURE/SUBSCRIPTION_SYSTEM.md) - Système d'abonnements
+- [ARCHITECTURE_SOUSCRIPTION.md](02_ARCHITECTURE/ARCHITECTURE_SOUSCRIPTION.md) - Architecture des souscriptions
+- [ANALYSE_ABONNEMENT_LIVREUR.md](02_ARCHITECTURE/ANALYSE_ABONNEMENT_LIVREUR.md) - Analyse abonnement livreur
+
+### Paiements
+- [PAYMENT_METHODS_FEATURE.md](02_ARCHITECTURE/PAYMENT_METHODS_FEATURE.md) - Fonctionnalité paiements
+- [PAYMENT_MODELS_COMPARISON.md](02_ARCHITECTURE/PAYMENT_MODELS_COMPARISON.md) - Comparaison modèles de paiement
+- [ANALYSE_SYSTEME_PAIEMENT_COTE_IVOIRE.md](02_ARCHITECTURE/ANALYSE_SYSTEME_PAIEMENT_COTE_IVOIRE.md) - Analyse paiement Côte d'Ivoire
+- [SOLUTION_BOOTSTRAPPED_MOBILE_MONEY.md](02_ARCHITECTURE/SOLUTION_BOOTSTRAPPED_MOBILE_MONEY.md) - Solution Mobile Money
+- [SYSTEME_COMMISSIONS_ET_PAIEMENTS.md](02_ARCHITECTURE/SYSTEME_COMMISSIONS_ET_PAIEMENTS.md) - Commissions et paiements
+
+### Sécurité & Finance
+- [ARCHITECTURE_FINANCE_SUPER_ADMIN.md](02_ARCHITECTURE/ARCHITECTURE_FINANCE_SUPER_ADMIN.md) - Architecture finance super admin
+- [GESTION_ADMINISTRATEURS_RBAC.md](02_ARCHITECTURE/GESTION_ADMINISTRATEURS_RBAC.md) - Gestion admin RBAC
+- [SYSTEME_AUDIT_RAPPORTS.md](02_ARCHITECTURE/SYSTEME_AUDIT_RAPPORTS.md) - Système d'audit
+- [ANALYSE_SECURITE_FINANCIERE_LIVREURS.md](02_ARCHITECTURE/ANALYSE_SECURITE_FINANCIERE_LIVREURS.md) - Sécurité financière livreurs
+- [ADVANCED_KYC_ANTI_FRAUD_SYSTEM.md](02_ARCHITECTURE/ADVANCED_KYC_ANTI_FRAUD_SYSTEM.md) - Système anti-fraude KYC
+- [SYSTEME_VERIFICATION_KYC.md](02_ARCHITECTURE/SYSTEME_VERIFICATION_KYC.md) - Vérification KYC
+- [SYSTEME_REMBOURSEMENT.md](02_ARCHITECTURE/SYSTEME_REMBOURSEMENT.md) - Système de remboursement
+
+### Livraison & Logistique
+- [ANALYSE_WORKFLOW_MEILLEURE_APPROCHE_COTE_IVOIRE.md](02_ARCHITECTURE/ANALYSE_WORKFLOW_MEILLEURE_APPROCHE_COTE_IVOIRE.md) - Workflow optimal Côte d'Ivoire
+- [ANALYSE_CONFIGURATION_ACTUELLE_AUTO_LIVRAISON8VENDEUR.md](02_ARCHITECTURE/ANALYSE_CONFIGURATION_ACTUELLE_AUTO_LIVRAISON8VENDEUR.md) - Auto-livraison vendeur
+- [PROPOSITIONS_INNOVANTES_AUTO_LIVRAISON.md](02_ARCHITECTURE/PROPOSITIONS_INNOVANTES_AUTO_LIVRAISON.md) - Innovations auto-livraison
+- [ITINERAIRE_LIVREUR_OPTIMISE.md](02_ARCHITECTURE/ITINERAIRE_LIVREUR_OPTIMISE.md) - Itinéraire livreur optimisé
+- [ITINERAIRE_PICKUP_DELIVERY_OPTIMISE.md](02_ARCHITECTURE/ITINERAIRE_PICKUP_DELIVERY_OPTIMISE.md) - Pickup/delivery optimisé
+- [WORKFLOW_NOTIFICATIONS_CLICK_COLLECT.md](02_ARCHITECTURE/WORKFLOW_NOTIFICATIONS_CLICK_COLLECT.md) - Workflow notifications Click & Collect
+- [AUDIT_PROFOND_WORKFLOW_COMMANDES_8DEC2025.md](02_ARCHITECTURE/AUDIT_PROFOND_WORKFLOW_COMMANDES_8DEC2025.md) - Audit workflow commandes
+
+### GPS & Navigation
+- [APPROCHE_HYBRIDE_GPS.md](02_ARCHITECTURE/APPROCHE_HYBRIDE_GPS.md) - Approche hybride GPS
+- [AUDIT_ZONES_SYSTEME.md](02_ARCHITECTURE/AUDIT_ZONES_SYSTEME.md) - Audit zones système
+
+### Catégories & Produits
+- [CATEGORIES_SYSTEM_ANALYSIS.md](02_ARCHITECTURE/CATEGORIES_SYSTEM_ANALYSIS.md) - Analyse système catégories
+- [FAISABILITE_VIDEO_PRODUITS.md](02_ARCHITECTURE/FAISABILITE_VIDEO_PRODUITS.md) - Faisabilité vidéo produits
+
+### Technique
+- [ROUTES_DOCUMENTATION.md](02_ARCHITECTURE/ROUTES_DOCUMENTATION.md) - Documentation des routes
+- [SYSTEME_AUTO_REFRESH.md](02_ARCHITECTURE/SYSTEME_AUTO_REFRESH.md) - Système auto-refresh
+- [ANALYSE_DEBUG_LOG2.md](02_ARCHITECTURE/ANALYSE_DEBUG_LOG2.md) - Analyse debug logs
+
+---
+
+## 03_CORRECTIONS - Corrections et Fixes
+
+Historique des corrections de bugs et résolutions de problèmes.
+
+### Corrections par Rôle
+- [CORRECTIONS_ADMIN_COMPLETE.md](03_CORRECTIONS/CORRECTIONS_ADMIN_COMPLETE.md) - Corrections admin
+- [CORRECTIONS_VENDEUR_COMPLETE.md](03_CORRECTIONS/CORRECTIONS_VENDEUR_COMPLETE.md) - Corrections vendeur
+- [CORRECTIONS_LIVREUR_COMPLETE.md](03_CORRECTIONS/CORRECTIONS_LIVREUR_COMPLETE.md) - Corrections livreur
+- [CORRECTIONS_TESTS_ACHETEUR.md](03_CORRECTIONS/CORRECTIONS_TESTS_ACHETEUR.md) - Corrections tests acheteur
+- [CORRECTIONS_TESTS_ACHETEUR_26NOV2025.md](03_CORRECTIONS/CORRECTIONS_TESTS_ACHETEUR_26NOV2025.md) - Corrections acheteur Nov 2025
+- [CORRECTIONS_TESTS_VENDEUR.md](03_CORRECTIONS/CORRECTIONS_TESTS_VENDEUR.md) - Corrections tests vendeur
+
+### UI/UX
+- [APPBAR_UNIFORMIZATION_REPORT.md](03_CORRECTIONS/APPBAR_UNIFORMIZATION_REPORT.md) - Uniformisation AppBar
+- [CORRECTION_BOUTONS_RETOUR.md](03_CORRECTIONS/CORRECTION_BOUTONS_RETOUR.md) - Boutons retour
+- [CORRECTIONS_BOUTON_RETOUR.md](03_CORRECTIONS/CORRECTIONS_BOUTON_RETOUR.md) - Corrections bouton retour
+- [SYSTEM_BACK_BUTTON_IMPLEMENTATION.md](03_CORRECTIONS/SYSTEM_BACK_BUTTON_IMPLEMENTATION.md) - Implémentation bouton retour système
+- [DRAWERS_BUTTONS_FIX_REPORT.md](03_CORRECTIONS/DRAWERS_BUTTONS_FIX_REPORT.md) - Fix drawers et boutons
+
+### GPS & Navigation
+- [CORRECTION_GPS_LIVRAISON.md](03_CORRECTIONS/CORRECTION_GPS_LIVRAISON.md) - GPS livraison
+- [CORRECTION_BOUTON_ITINERAIRE.md](03_CORRECTIONS/CORRECTION_BOUTON_ITINERAIRE.md) - Bouton itinéraire
+- [CORRECTIONS_CARTE_NAVIGATION.md](03_CORRECTIONS/CORRECTIONS_CARTE_NAVIGATION.md) - Carte navigation
+- [CORRECTIONS_COMMANDES_GPS.md](03_CORRECTIONS/CORRECTIONS_COMMANDES_GPS.md) - Commandes GPS
+- [PROBLEME_DISTANCE_4KM_RESOLU.md](03_CORRECTIONS/PROBLEME_DISTANCE_4KM_RESOLU.md) - Problème distance 4km résolu
+- [SHOP_SETUP_NAVIGATION_FIX.md](03_CORRECTIONS/SHOP_SETUP_NAVIGATION_FIX.md) - Fix navigation shop setup
+
+### Abonnements & Profil
+- [CORRECTION_ABONNEMENT_LIVREUR.md](03_CORRECTIONS/CORRECTION_ABONNEMENT_LIVREUR.md) - Abonnement livreur
+- [CORRECTION_PROFIL_LIVREUR_LOADING.md](03_CORRECTIONS/CORRECTION_PROFIL_LIVREUR_LOADING.md) - Profil livreur loading
+- [SOLUTION_FINALE_ABONNEMENT_LIVREUR.md](03_CORRECTIONS/SOLUTION_FINALE_ABONNEMENT_LIVREUR.md) - Solution finale abonnement
+
+### Authentification
+- [CORRECTION_ERREUR_VENDEUR_LOGIN.md](03_CORRECTIONS/CORRECTION_ERREUR_VENDEUR_LOGIN.md) - Erreur login vendeur
+- [CORRECTIFS_ANDROID_AUTHENTIFICATION.md](03_CORRECTIONS/CORRECTIFS_ANDROID_AUTHENTIFICATION.md) - Authentification Android
+
+### Catégories
+- [CATEGORIES_MULTI_SELECTION_FIX.md](03_CORRECTIONS/CATEGORIES_MULTI_SELECTION_FIX.md) - Multi-sélection catégories
+- [MULTI_CATEGORIES_FIX_FINAL.md](03_CORRECTIONS/MULTI_CATEGORIES_FIX_FINAL.md) - Fix final multi-catégories
+
+### Produits & Stock
+- [CORRECTIONS_PRODUITS.md](03_CORRECTIONS/CORRECTIONS_PRODUITS.md) - Corrections produits
+- [CORRECTIONS_STOCK_ET_ADRESSES.md](03_CORRECTIONS/CORRECTIONS_STOCK_ET_ADRESSES.md) - Stock et adresses
+- [PROBLEME_IMAGES_RESOLU.md](03_CORRECTIONS/PROBLEME_IMAGES_RESOLU.md) - Problème images résolu
+
+### Boutique
+- [CORRECTION_MY_SHOP_SCREEN.md](03_CORRECTIONS/CORRECTION_MY_SHOP_SCREEN.md) - Écran ma boutique
+
+### Général
+- [CORRECTIONS_EFFECTUEES.md](03_CORRECTIONS/CORRECTIONS_EFFECTUEES.md) - Corrections effectuées
+- [CORRECTIONS_FINALES_SESSION.md](03_CORRECTIONS/CORRECTIONS_FINALES_SESSION.md) - Corrections finales session
+- [CORRECTIONS_NON_CRITIQUES.md](03_CORRECTIONS/CORRECTIONS_NON_CRITIQUES.md) - Corrections non critiques
+- [DEBUG_GOOGLE_MAPS.md](03_CORRECTIONS/DEBUG_GOOGLE_MAPS.md) - Debug Google Maps
+- [FIXES_APPLIED.md](03_CORRECTIONS/FIXES_APPLIED.md) - Fixes appliqués
+- [FIX_SAMSUNG_USB.md](03_CORRECTIONS/FIX_SAMSUNG_USB.md) - Fix Samsung USB
+- [SOLUTION_FINALE.md](03_CORRECTIONS/SOLUTION_FINALE.md) - Solution finale
+- [SOLUTION_PRODUCTION.md](03_CORRECTIONS/SOLUTION_PRODUCTION.md) - Solution production
+
+---
+
+## 04_SESSIONS - Historique des Sessions
+
+Résumés et logs des sessions de développement.
+
+- [LAST_SESSION_CLAUDE.md](04_SESSIONS/LAST_SESSION_CLAUDE.md) - Dernière session Claude
+- [RESUME_LAST_CONVERSATION.md](04_SESSIONS/RESUME_LAST_CONVERSATION.md) - Résumé dernière conversation
+- [RESUME_SESSION.md](04_SESSIONS/RESUME_SESSION.md) - Résumé de session
+- [RESUME_CORRECTION_VENDEUR.md](04_SESSIONS/RESUME_CORRECTION_VENDEUR.md) - Résumé correction vendeur
+- [RESUME_DES_TESTS.md](04_SESSIONS/RESUME_DES_TESTS.md) - Résumé des tests
+- [RECAP_SESSION_COMPLETE.md](04_SESSIONS/RECAP_SESSION_COMPLETE.md) - Récap session complète
+- [SESSION_DASHBOARD_COMPLETE.md](04_SESSIONS/SESSION_DASHBOARD_COMPLETE.md) - Session dashboard complète
+- [MODIFICATIONS_DASHBOARD_VENDEUR_LIVREUR.md](04_SESSIONS/MODIFICATIONS_DASHBOARD_VENDEUR_LIVREUR.md) - Modifications dashboard
+- [SAUVEGARDE_COMPLETE_21NOV2025.md](04_SESSIONS/SAUVEGARDE_COMPLETE_21NOV2025.md) - Sauvegarde complète Nov 2025
+- [APRES_REDEMARRAGE.md](04_SESSIONS/APRES_REDEMARRAGE.md) - Après redémarrage
+- [build_debuglog.md](04_SESSIONS/build_debuglog.md) - Build debug log
+- [log_de_test.md](04_SESSIONS/log_de_test.md) - Log de test
+
+---
+
+## 05_CONFIGURATION - Configuration
+
+Configuration technique du projet.
+
+### Firebase
+- [CONFIGURATION_FIREBASE_STORAGE.md](05_CONFIGURATION/CONFIGURATION_FIREBASE_STORAGE.md) - Firebase Storage
+- [FIREBASE_CONFIG_STATUS.md](05_CONFIGURATION/FIREBASE_CONFIG_STATUS.md) - Statut config Firebase
+- [FIREBASE_STORAGE_PRET.md](05_CONFIGURATION/FIREBASE_STORAGE_PRET.md) - Firebase Storage prêt
+- [FIRESTORE_INDEXES_DEPLOY.md](05_CONFIGURATION/FIRESTORE_INDEXES_DEPLOY.md) - Déploiement index Firestore
+
+### Android
+- [CONFIGURATION_ANDROID.md](05_CONFIGURATION/CONFIGURATION_ANDROID.md) - Configuration Android
+
+### Authentification
+- [CONFIGURATION_SMS_OTP_WEB.md](05_CONFIGURATION/CONFIGURATION_SMS_OTP_WEB.md) - SMS OTP Web
+
+### Logging
+- [INTEGRATION_LOGGING.md](05_CONFIGURATION/INTEGRATION_LOGGING.md) - Intégration logging
+
+---
+
+## 06_FEATURES - Fonctionnalités
+
+Documentation des fonctionnalités implémentées.
+
+### Audit & Sécurité
+- [IMPLEMENTATION_AUDIT_PHASE1.md](06_FEATURES/IMPLEMENTATION_AUDIT_PHASE1.md) - Audit Phase 1
+- [IMPLEMENTATION_AUDIT_PHASE2.md](06_FEATURES/IMPLEMENTATION_AUDIT_PHASE2.md) - Audit Phase 2
+- [IMPLEMENTATION_AUDIT_PHASE3.md](06_FEATURES/IMPLEMENTATION_AUDIT_PHASE3.md) - Audit Phase 3
+- [IMPLEMENTATION_EXPORT_UTILISATEUR.md](06_FEATURES/IMPLEMENTATION_EXPORT_UTILISATEUR.md) - Export utilisateur
+- [KYC_PROGRESSIVE_INTEGRATION.md](06_FEATURES/KYC_PROGRESSIVE_INTEGRATION.md) - Intégration KYC progressive
+
+### Paiements & Commissions
+- [IMPLEMENTATION_PAYMENT_COMMISSION_ENFORCEMENT.md](06_FEATURES/IMPLEMENTATION_PAYMENT_COMMISSION_ENFORCEMENT.md) - Enforcement commissions
+- [IMPLEMENTATION_PAYMENT_COMMISSION_ENFORCEMENT_COMPLETE.md](06_FEATURES/IMPLEMENTATION_PAYMENT_COMMISSION_ENFORCEMENT_COMPLETE.md) - Commissions complète
+
+### Click & Collect
+- [IMPLEMENTATION_CLICK_COLLECT_TRUST_LEVELS.md](06_FEATURES/IMPLEMENTATION_CLICK_COLLECT_TRUST_LEVELS.md) - Click & Collect trust levels
+
+### GPS & Livraison
+- [SHOP_SETUP_GPS_IMPLEMENTATION.md](06_FEATURES/SHOP_SETUP_GPS_IMPLEMENTATION.md) - GPS shop setup
+- [MODIFICATIONS_SHOP_SETUP_GPS.md](06_FEATURES/MODIFICATIONS_SHOP_SETUP_GPS.md) - Modifications GPS
+- [MIGRATION_GPS_DELIVERIES.md](06_FEATURES/MIGRATION_GPS_DELIVERIES.md) - Migration GPS livraisons
+- [INNOVATIONS_DESASSIGNATION REASSIGNATION LIVRAISONS.md](06_FEATURES/INNOVATIONS_DESASSIGNATION%20REASSIGNATION%20LIVRAISONS.md) - Désassignation/réassignation
+
+### Catégories
+- [CATEGORIES_SYSTEM_COMPLETE.md](06_FEATURES/CATEGORIES_SYSTEM_COMPLETE.md) - Système catégories complet
+- [MULTI_CATEGORIES_MIGRATION.md](06_FEATURES/MULTI_CATEGORIES_MIGRATION.md) - Migration multi-catégories
+
+### UI/Thème
+- [SMARTERVISION_THEME_IMPLEMENTATION.md](06_FEATURES/SMARTERVISION_THEME_IMPLEMENTATION.md) - Implémentation thème SmarterVision
+- [SCREENS_CREATED.md](06_FEATURES/SCREENS_CREATED.md) - Écrans créés
+
+### Recherche
+- [IMPLEMENTATION_RECHERCHE.md](06_FEATURES/IMPLEMENTATION_RECHERCHE.md) - Implémentation recherche
+
+### Social
+- [SOCIAL_FEATURES_STATUS.md](06_FEATURES/SOCIAL_FEATURES_STATUS.md) - Statut fonctionnalités sociales
+
+### Migration
+- [MIGRATION_IMAGES_PRODUITS.md](06_FEATURES/MIGRATION_IMAGES_PRODUITS.md) - Migration images produits
+
+### Général
+- [IMPLEMENTATION.md](06_FEATURES/IMPLEMENTATION.md) - Implémentation générale
+- [IMPLEMENTATION_COMPLETE_RECAP.md](06_FEATURES/IMPLEMENTATION_COMPLETE_RECAP.md) - Récap implémentation
+- [IMPLEMENTATION_PROGRESS.md](06_FEATURES/IMPLEMENTATION_PROGRESS.md) - Progression implémentation
+- [COMPOSANTS_MANQUANTS.md](06_FEATURES/COMPOSANTS_MANQUANTS.md) - Composants manquants
+
+---
+
+## 07_ROADMAP - Roadmap et Planification
+
+Planification et prochaines étapes du projet.
+
+- [PROCHAINES_ETAPES.md](07_ROADMAP/PROCHAINES_ETAPES.md) - **Prochaines étapes** (priorité)
+- [ROADMAP_INNOVATIONS_SOCIAL.md](07_ROADMAP/ROADMAP_INNOVATIONS_SOCIAL.md) - Roadmap innovations sociales
+- [TODO_EXPANSION_NATIONALE.md](07_ROADMAP/TODO_EXPANSION_NATIONALE.md) - TODO expansion nationale
+- [PLAN_IMPLEMENTATION_PRIORITAIRE.md](07_ROADMAP/PLAN_IMPLEMENTATION_PRIORITAIRE.md) - Plan d'implémentation prioritaire
+- [SITUATION_BUILD.md](07_ROADMAP/SITUATION_BUILD.md) - Situation du build
+- [TODOS_RESTANTS.md](07_ROADMAP/TODOS_RESTANTS.md) - TODOs restants
+
+---
+
+## Fichiers Importants à la Racine
+
+- **[../CLAUDE.md](../CLAUDE.md)** - Instructions pour Claude Code (configuration projet)
+
+---
+
+## Navigation Rapide
+
+### Par Priorité
+1. [Prochaines Étapes](07_ROADMAP/PROCHAINES_ETAPES.md) - Ce qu'il faut faire maintenant
+2. [Business Model](02_ARCHITECTURE/BUSINESS_MODEL.md) - Comprendre le modèle économique
+3. [Guide de Démarrage](01_GUIDES/DEMARRAGE_RAPIDE.md) - Commencer rapidement
+
+### Par Rôle
+- **Développeur:** [Routes](02_ARCHITECTURE/ROUTES_DOCUMENTATION.md), [Architecture Souscription](02_ARCHITECTURE/ARCHITECTURE_SOUSCRIPTION.md)
+- **Admin:** [Guide Admin](01_GUIDES/CREATION_ADMINS_GUIDE.md), [RBAC](02_ARCHITECTURE/GESTION_ADMINISTRATEURS_RBAC.md)
+- **Test:** [Tests Complets](01_GUIDES/TESTS_COMPLET.md), [KYC Testing](01_GUIDES/KYC_TESTING_GUIDE.md)
+
+---
+
+*Documentation générée automatiquement - SOCIAL BUSINESS Pro*

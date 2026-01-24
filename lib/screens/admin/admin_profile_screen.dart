@@ -1,11 +1,15 @@
-// lib/screens/admin/admin_profile_screen.dart
+﻿// lib/screens/admin/admin_profile_screen.dart
 // Écran de profil pour les administrateurs - SOCIAL BUSINESS Pro
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../../providers/auth_provider_firebase.dart';
+import '../../services/firebase_service.dart';
 import 'package:social_business_pro/config/constants.dart';
 import '../shared/my_activity_screen.dart';
 import '../../widgets/system_ui_scaffold.dart';
@@ -19,6 +23,7 @@ class AdminProfileScreen extends StatefulWidget {
 
 class _AdminProfileScreenState extends State<AdminProfileScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _imagePicker = ImagePicker();
   bool _isEditing = false;
   bool _isLoading = false;
 
@@ -42,6 +47,88 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     _emailController.dispose();
     _phoneController.dispose();
     super.dispose();
+  }
+
+  /// Upload de la photo de profil vers Firebase Storage
+  Future<void> _updateProfilePhoto() async {
+    try {
+      // Sélectionner une image depuis la galerie
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+
+      if (image == null) return;
+
+      final authProvider = context.read<AuthProvider>();
+      final userId = authProvider.user?.id;
+
+      if (userId == null) throw Exception('Utilisateur non connecté');
+
+      // Afficher un indicateur de chargement
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+
+      // Upload vers Firebase Storage
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profile_photos')
+          .child('$userId.jpg');
+
+      File imageFile = File(image.path);
+      await storageRef.putFile(imageFile);
+      final imageUrl = await storageRef.getDownloadURL();
+
+      // Mettre à jour Firestore avec la nouvelle URL
+      await FirebaseService.updateDocument(
+        collection: FirebaseCollections.users,
+        docId: userId,
+        data: {
+          'profile.photoURL': imageUrl,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+      );
+
+      if (mounted) {
+        Navigator.pop(context); // Fermer le dialog de chargement
+
+        // Recharger le profil utilisateur depuis Firestore
+        final authProvider = context.read<AuthProvider>();
+        await authProvider.refreshUser();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Photo de profil mise à jour avec succès'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+
+          // Recharger le profil pour afficher la nouvelle photo
+          setState(() {});
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur upload photo: $e');
+      if (mounted) {
+        Navigator.pop(context); // Fermer le dialog de chargement
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Erreur lors de la mise à jour de la photo: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _saveProfile() async {
@@ -124,7 +211,22 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
 
     if (user == null || user.userType != UserType.admin) {
       return SystemUIScaffold(
-        appBar: AppBar(title: const Text('Profil Admin')),
+        appBar: AppBar(
+          leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
+        title: const Text('Profil Admin'),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+        ),
         body: const Center(
           child: Text('Accès administrateur requis'),
         ),
@@ -133,6 +235,17 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
 
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('🔐 Profil Administrateur'),
         centerTitle: true,
         backgroundColor: AppColors.error,
@@ -179,34 +292,54 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                                 child: CircleAvatar(
                                   radius: 47,
                                   backgroundColor: AppColors.error,
-                                  child: Text(
-                                    user.displayName.isNotEmpty
-                                        ? user.displayName[0].toUpperCase()
-                                        : 'A',
-                                    style: const TextStyle(
-                                      fontSize: 40,
-                                      fontWeight: FontWeight.bold,
+                                  backgroundImage: user.profile['photoURL'] != null
+                                      ? NetworkImage(user.profile['photoURL'])
+                                      : null,
+                                  child: user.profile['photoURL'] == null
+                                      ? Text(
+                                          user.displayName.isNotEmpty
+                                              ? user.displayName[0].toUpperCase()
+                                              : 'A',
+                                          style: const TextStyle(
+                                            fontSize: 40,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                              ),
+                              if (_isEditing)
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: CircleAvatar(
+                                    backgroundColor: Colors.white,
+                                    radius: 18,
+                                    child: IconButton(
+                                      icon: const Icon(Icons.camera_alt, size: 18),
+                                      color: AppColors.error,
+                                      onPressed: _updateProfilePhoto,
+                                    ),
+                                  ),
+                                )
+                              else
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: const BoxDecoration(
                                       color: Colors.white,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.shield,
+                                      color: AppColors.error,
+                                      size: 20,
                                     ),
                                   ),
                                 ),
-                              ),
-                              Positioned(
-                                bottom: 0,
-                                right: 0,
-                                child: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.shield,
-                                    color: AppColors.error,
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
                             ],
                           ),
                           const SizedBox(height: 12),
@@ -518,3 +651,4 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     );
   }
 }
+

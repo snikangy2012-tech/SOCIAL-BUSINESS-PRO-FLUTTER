@@ -69,7 +69,7 @@ class OrderStatusHelper {
 
       case 'en_cours':
       case 'in_delivery':
-        return AppColors.primary; // Orange (en livraison)
+        return AppColors.warning; // Orange (en livraison)
 
       case 'livree':
       case 'delivered':

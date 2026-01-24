@@ -1,6 +1,7 @@
-// ===== lib/screens/acheteur/address_management_screen.dart =====
+﻿// ===== lib/screens/acheteur/address_management_screen.dart =====
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
@@ -301,7 +302,20 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/acheteur-home');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Mes adresses'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -1849,3 +1863,4 @@ class _FullScreenMapPickerState extends State<FullScreenMapPicker> {
     );
   }
 }
+

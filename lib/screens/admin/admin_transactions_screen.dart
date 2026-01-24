@@ -1,8 +1,10 @@
-// ===== lib/screens/admin/admin_transactions_screen.dart =====
+﻿// ===== lib/screens/admin/admin_transactions_screen.dart =====
 // Écran administrateur pour gérer les transactions et commissions de la plateforme
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:social_business_pro/config/constants.dart';
 import '../../models/platform_transaction_model.dart';
 import '../../services/platform_transaction_service.dart';
 import '../../widgets/system_ui_scaffold.dart';
@@ -80,7 +82,20 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen>
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Gestion des Transactions'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -527,3 +542,4 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen>
     }
   }
 }
+

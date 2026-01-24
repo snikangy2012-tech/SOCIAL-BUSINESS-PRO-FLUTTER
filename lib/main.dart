@@ -7,9 +7,13 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:flex_color_scheme/flex_color_scheme.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'config/constants.dart';
 import 'config/firebase_options.dart';
+import 'services/stock_management_service.dart';
 import 'providers/auth_provider_firebase.dart';
 import 'providers/cart_provider.dart';
 import 'providers/favorite_provider.dart';
@@ -123,7 +127,20 @@ void main() async {
       debugPrint('⚠️ Erreur configuration Firestore: $e');
       debugPrint('   ⚡ Application continuera en mode offline');
     }
-    
+
+    // ✅ CORRECTION STOCK: Réinitialiser le stock réservé corrompu au démarrage
+    // Cela corrige le problème de "stock insuffisant" causé par des commandes abandonnées
+    if (kDebugMode) {
+      debugPrint('🔧 Vérification et correction du stock réservé...');
+      StockManagementService.resetAllReservedStock().then((result) {
+        if (result['success'] == true) {
+          debugPrint('✅ Stock réservé vérifié: ${result['updatedCount']}/${result['totalProducts']} produits corrigés');
+        }
+      }).catchError((e) {
+        debugPrint('⚠️ Impossible de vérifier le stock: $e');
+      });
+    }
+
     // Lancer l'application
     runApp(const SocialBusinessProApp());
     
@@ -197,24 +214,53 @@ class SocialBusinessProApp extends StatelessWidget {
           return MaterialApp.router(
             // ✅ APPELER createRouter avec le provider
             routerConfig: AppRouter.createRouter(authProvider),
-            
+
             debugShowCheckedModeBanner: false,
             title: 'SOCIAL BUSINESS Pro',
-            
-            // Thème
-            theme: ThemeData(
-              useMaterial3: true,
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: AppColors.primary,
-                brightness: Brightness.light,
+
+            // ✅ LOCALISATION - Français (nécessaire pour DatePicker, NumberFormat, etc.)
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('fr', 'FR'), // Français (Côte d'Ivoire)
+              Locale('en', 'US'), // Anglais (fallback)
+            ],
+            locale: const Locale('fr', 'FR'),
+
+            // 🎨 NOUVEAU THÈME - Vert Émeraude (Money Green) + Police Poppins
+            // Identité ivoirienne forte, différencié de Jumia
+            theme: FlexThemeData.light(
+              scheme: FlexScheme.money,
+              surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold,
+              blendLevel: 7,
+              subThemesData: const FlexSubThemesData(
+                blendOnLevel: 10,
+                blendOnColors: false,
+                useTextTheme: true,
+                useM2StyleDividerInM3: true,
+                alignedDropdown: true,
+                useInputDecoratorThemeInDialogs: true,
               ),
-              scaffoldBackgroundColor: AppColors.background,
+              visualDensity: FlexColorScheme.comfortablePlatformDensity,
+              useMaterial3: true,
+              swapLegacyOnMaterial3: true,
+              // Configuration AppBar
+              appBarStyle: FlexAppBarStyle.primary,
+              appBarElevation: 0,
+              // ✅ POLICE MODERNE - Poppins
+              fontFamily: GoogleFonts.poppins().fontFamily,
+            ).copyWith(
+              // ✅ Application de Poppins au textTheme
+              textTheme: GoogleFonts.poppinsTextTheme(),
+              // Personnalisations supplémentaires
+              scaffoldBackgroundColor: const Color(0xFFffffff),
               appBarTheme: const AppBarTheme(
                 centerTitle: true,
                 elevation: 0,
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                // ✅ CRITIQUE: Configuration globale pour TOUTES les AppBar
+                // ✅ Configuration globale pour TOUTES les AppBar
                 systemOverlayStyle: SystemUiOverlayStyle(
                   // Status bar (en haut) - Transparente, icônes blanches pour AppBar colorée
                   statusBarColor: Colors.transparent,
@@ -227,11 +273,29 @@ class SocialBusinessProApp extends StatelessWidget {
                   systemNavigationBarContrastEnforced: true, // Force le contraste
                 ),
               ),
-              bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-                selectedItemColor: AppColors.primary,
-                unselectedItemColor: AppColors.textSecondary,
-              ),
             ),
+
+            // Mode sombre (optionnel - si vous voulez l'activer plus tard)
+            darkTheme: FlexThemeData.dark(
+              scheme: FlexScheme.money,
+              surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold,
+              blendLevel: 13,
+              subThemesData: const FlexSubThemesData(
+                blendOnLevel: 20,
+                useTextTheme: true,
+                useM2StyleDividerInM3: true,
+                alignedDropdown: true,
+                useInputDecoratorThemeInDialogs: true,
+              ),
+              visualDensity: FlexColorScheme.comfortablePlatformDensity,
+              useMaterial3: true,
+              swapLegacyOnMaterial3: true,
+              appBarStyle: FlexAppBarStyle.background,
+              appBarElevation: 0,
+            ),
+
+            // Par défaut en mode clair
+            themeMode: ThemeMode.light,
           );
         },
       ),

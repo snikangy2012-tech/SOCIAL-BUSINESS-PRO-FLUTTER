@@ -1,4 +1,4 @@
-// ===== lib/screens/vendeur/my_shop_screen.dart =====
+﻿// ===== lib/screens/vendeur/my_shop_screen.dart =====
 // Écran pour visualiser et gérer sa propre boutique (vendeur)
 
 import 'dart:io';
@@ -14,6 +14,7 @@ import '../../providers/auth_provider_firebase.dart';
 import '../../models/user_model.dart';
 import '../../utils/number_formatter.dart';
 import '../../widgets/system_ui_scaffold.dart';
+import '../../config/product_categories.dart';
 
 class MyShopScreen extends StatefulWidget {
   const MyShopScreen({super.key});
@@ -69,6 +70,38 @@ class _MyShopScreenState extends State<MyShopScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  // Helper pour convertir les catégories (IDs ou noms) en noms valides uniquement
+  String _getFormattedCategories(List<String> categories) {
+    final validCategoryNames = <String>{};
+
+    for (final category in categories) {
+      // Vérifier si c'est un ID valide
+      final matchingCategory = ProductCategories.allCategories.firstWhere(
+        (cat) => cat.id == category,
+        orElse: () => ProductCategories.allCategories.first,
+      );
+
+      // Si trouvé par ID, ajouter le nom
+      if (matchingCategory.id == category) {
+        validCategoryNames.add(matchingCategory.name);
+      } else {
+        // Sinon vérifier si c'est déjà un nom valide
+        final isValidName = ProductCategories.allCategories.any(
+          (cat) => cat.name == category,
+        );
+
+        // Ajouter uniquement si c'est un nom valide et actuel
+        if (isValidName && category != 'Mode & Vêtements') {
+          validCategoryNames.add(category);
+        }
+      }
+    }
+
+    return validCategoryNames.isEmpty
+        ? 'Aucune catégorie'
+        : validCategoryNames.join(', ');
   }
 
   Future<void> _updateShopImage() async {
@@ -206,6 +239,17 @@ class _MyShopScreenState extends State<MyShopScreen> {
     if (_isLoading) {
       return SystemUIScaffold(
         appBar: AppBar(
+          leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/vendeur-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
           title: const Text('Ma Boutique'),
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
@@ -217,6 +261,17 @@ class _MyShopScreenState extends State<MyShopScreen> {
     if (_error != null) {
       return SystemUIScaffold(
         appBar: AppBar(
+          leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/vendeur-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
           title: const Text('Ma Boutique'),
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
@@ -247,6 +302,17 @@ class _MyShopScreenState extends State<MyShopScreen> {
 
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/vendeur-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Ma Boutique'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -278,8 +344,8 @@ class _MyShopScreenState extends State<MyShopScreen> {
                   ),
                   _buildInfoTile(
                     icon: Icons.category,
-                    label: 'Catégorie',
-                    value: _vendeurProfile!.businessCategory,
+                    label: 'Catégories',
+                    value: _getFormattedCategories(_vendeurProfile!.businessCategories),
                   ),
                   _buildInfoTile(
                     icon: Icons.business,
@@ -576,3 +642,4 @@ class _MyShopScreenState extends State<MyShopScreen> {
     );
   }
 }
+

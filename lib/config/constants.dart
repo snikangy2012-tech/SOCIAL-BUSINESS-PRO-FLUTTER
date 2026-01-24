@@ -21,23 +21,25 @@ class AppConstants {
 }
 
 // ===== COULEURS DU THÈME =====
-// Équivalent de votre APP_CONFIG.COLORS
+// 🎨 NOUVEAU THÈME - Vert Émeraude "Money Green"
+// Identité ivoirienne forte (couleurs du drapeau CI)
+// Différenciation complète de Jumia (orange)
 class AppColors {
-  // Couleurs principales
-  static const Color primary = Color(0xFFf97316); // Orange principal
-  static const Color primaryDark = Color(0xFFea580c);
-  static const Color primaryLight = Color(0xFFfed7aa);
-  
-  // Couleurs secondaires
-  static const Color secondary = Color(0xFF059669); // Vert secondaire
-  static const Color secondaryDark = Color(0xFF047857);
-  static const Color secondaryLight = Color(0xFFa7f3d0);
-  
+  // Couleurs principales - VERT ÉMERAUDE (Money Green)
+  static const Color primary = Color(0xFF4CAF50); // Vert principal Money
+  static const Color primaryDark = Color(0xFF2E7D32); // Vert foncé
+  static const Color primaryLight = Color(0xFF81C784); // Vert clair
+
+  // Couleurs secondaires - Accent doré (rappel drapeau CI + argent)
+  static const Color secondary = Color(0xFFFFB300); // Doré/Ambre
+  static const Color secondaryDark = Color(0xFFFF8F00); // Orange doré
+  static const Color secondaryLight = Color(0xFFFFD54F); // Jaune doré clair
+
   // États
-  static const Color success = Color(0xFF10b981);
-  static const Color error = Color(0xFFef4444);
-  static const Color warning = Color(0xFFf59e0b);
-  static const Color info = Color(0xFF3b82f6);
+  static const Color success = Color(0xFF66BB6A); // Vert succès
+  static const Color error = Color(0xFFef4444); // Rouge erreur (inchangé)
+  static const Color warning = Color(0xFFFFB300); // Ambre warning
+  static const Color info = Color(0xFF29B6F6); // Bleu cyan info
   
   // Textes
   static const Color textPrimary = Color(0xFF1f2937);

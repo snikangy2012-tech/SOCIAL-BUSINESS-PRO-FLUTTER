@@ -1,5 +1,6 @@
-// ===== lib/screens/vendeur/payment_history_screen.dart =====
+﻿// ===== lib/screens/vendeur/payment_history_screen.dart =====
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -33,6 +34,17 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
 
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/vendeur-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Historique des Paiements'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -487,3 +499,4 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     }
   }
 }
+

@@ -1,7 +1,8 @@
-// ===== lib/screens/admin/kyc_validation_screen.dart =====
+﻿// ===== lib/screens/admin/kyc_validation_screen.dart =====
 // Dashboard admin pour validation des documents KYC
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../config/constants.dart';
@@ -62,8 +63,20 @@ class _KYCValidationScreenState extends State<KYCValidationScreen> {
     if (currentUser?.userType != UserType.admin) {
       return SystemUIScaffold(
         appBar: AppBar(
-          title: const Text('Accès refusé'),
+          leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
+        title: const Text('Accès refusé'),
           backgroundColor: AppColors.error,
+          foregroundColor: Colors.white,
         ),
         body: const Center(
           child: Text('Accès réservé aux administrateurs'),
@@ -74,6 +87,17 @@ class _KYCValidationScreenState extends State<KYCValidationScreen> {
     return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Validations KYC'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -625,3 +649,4 @@ class _KYCValidationScreenState extends State<KYCValidationScreen> {
     }
   }
 }
+

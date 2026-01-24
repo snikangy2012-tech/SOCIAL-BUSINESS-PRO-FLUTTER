@@ -1,4 +1,4 @@
-// ===== lib/screens/acheteur/nearby_vendors_screen.dart =====
+﻿// ===== lib/screens/acheteur/nearby_vendors_screen.dart =====
 // Liste des vendeurs à proximité avec calcul de distance GPS
 
 import 'package:flutter/material.dart';
@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../config/constants.dart';
 import '../../widgets/custom_widgets.dart';
+import '../../widgets/system_ui_scaffold.dart';
 import '../../services/geolocation_service.dart';
 
 class NearbyVendorsScreen extends StatefulWidget {
@@ -118,9 +119,22 @@ class _NearbyVendorsScreenState extends State<NearbyVendorsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/acheteur-home');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Vendeurs à proximité'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         actions: [
           // Filtre de distance
           PopupMenuButton<double>(
@@ -416,3 +430,4 @@ class VendorWithDistance {
     required this.distance,
   });
 }
+

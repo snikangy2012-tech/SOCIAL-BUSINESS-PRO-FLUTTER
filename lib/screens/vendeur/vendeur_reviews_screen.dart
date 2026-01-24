@@ -1,7 +1,8 @@
-// ===== lib/screens/vendeur/vendeur_reviews_screen.dart =====
+﻿// ===== lib/screens/vendeur/vendeur_reviews_screen.dart =====
 // Écran de gestion des avis pour les vendeurs
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../config/constants.dart';
@@ -231,6 +232,17 @@ class _VendeurReviewsScreenState extends State<VendeurReviewsScreen>
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/vendeur-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Avis clients'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,

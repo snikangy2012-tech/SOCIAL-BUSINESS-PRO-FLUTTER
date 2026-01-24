@@ -7,7 +7,7 @@ class PaymentMethodsConfig {
     'orange_money': 'assets/Mobile Money LOGO/Orange-Money-logo-1024x687.png',
     'mtn_money': 'assets/Mobile Money LOGO/mtn-momo-mobile-money.png',
     'moov_money': 'assets/Mobile Money LOGO/moov money logo.png',
-    'wave': 'assets/Mobile Money LOGO/logo_wave.png',
+    'wave': 'assets/Mobile Money LOGO/logo wave.png', // ✅ Corrigé: espace au lieu de underscore
   };
 
   // Obtenir le logo pour une méthode

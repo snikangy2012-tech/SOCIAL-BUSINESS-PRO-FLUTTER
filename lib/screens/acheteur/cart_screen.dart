@@ -1,4 +1,4 @@
-// ===== lib/screens/acheteur/cart_screen.dart =====
+﻿// ===== lib/screens/acheteur/cart_screen.dart =====
 // Écran du panier - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
@@ -36,7 +36,20 @@ class _CartScreenState extends State<CartScreen> {
 
         return SystemUIScaffold(
           appBar: AppBar(
-            title: const Text('Mon Panier'),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () {
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                } else {
+                  context.go('/acheteur-home');
+                }
+              },
+              tooltip: 'Retour',
+            ),
+        title: const Text('Mon Panier'),
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
             actions: [
               if (!isEmpty)
                 TextButton(
@@ -495,3 +508,4 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 }
+

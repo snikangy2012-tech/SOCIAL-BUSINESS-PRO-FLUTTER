@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'package:social_business_pro/config/constants.dart';
-import '../providers/auth_provider_firebase.dart';
 import '../providers/cart_provider.dart';
 import 'acheteur/acheteur_home.dart';
 import 'acheteur/categories_screen.dart';
@@ -89,7 +88,6 @@ class _MainScaffoldState extends State<MainScaffold> {
           statusBarBrightness: Brightness.light, // Pour iOS
         ),
         child: Scaffold(
-          extendBody: false, // ✅ CRITIQUE: Empêche le contenu de passer sous la barre de navigation
           body: SafeArea(
             top: false, // AppBar gère le top
             bottom: true, // ✅ FORCE le respect de la barre système en bas
@@ -98,49 +96,158 @@ class _MainScaffoldState extends State<MainScaffold> {
               children: _screens,
             ),
           ),
-          bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textSecondary,
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
-        elevation: 8,
-        items: [
-          // 0: Accueil
-          BottomNavigationBarItem(
-            icon: Icon(_currentIndex == 0 ? Icons.home : Icons.home_outlined),
-            label: 'Accueil',
-          ),
-          
-          // 1: Catégories
-          BottomNavigationBarItem(
-            icon: Icon(_currentIndex == 1 ? Icons.grid_view : Icons.grid_view_outlined),
-            label: 'Catégories',
-          ),
+          // ✅ BOTTOM NAVIGATION BAR SANS ENCOCHE
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              child: SizedBox(
+                height: 60,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    // 1: Catégories
+                    _buildNavItem(
+                      index: 1,
+                      icon: Icons.apps_rounded,
+                      activeIcon: Icons.apps,
+                      label: 'Catégories',
+                    ),
 
-          // 2: Favoris ✅
-          BottomNavigationBarItem(
-            icon: Icon(_currentIndex == 2 ? Icons.favorite : Icons.favorite_outline),
-            label: 'Favoris',
+                    // 2: Favoris
+                    _buildNavItem(
+                      index: 2,
+                      icon: Icons.favorite_outline_rounded,
+                      activeIcon: Icons.favorite_rounded,
+                      label: 'Favoris',
+                    ),
+
+                    // 0: ACCUEIL (au milieu avec cercle quand actif)
+                    _buildHomeNavItem(),
+
+                    // 3: Panier avec badge
+                    _buildNavItemWithBadge(),
+
+                    // 4: Business Pro
+                    _buildNavItem(
+                      index: 4,
+                      icon: Icons.storefront_outlined,
+                      activeIcon: Icons.storefront_rounded,
+                      label: 'Business',
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-          
-          // 3: Panier avec badge ✅
-          BottomNavigationBarItem(
-            icon: Consumer<CartProvider>(
-              builder: (context, cart, child) {
-                final itemCount = cart.totalQuantity;
-                return Stack(
+        ),
+      ),
+    );
+  }
+
+  // ✅ WIDGET POUR ACCUEIL (au milieu avec cercle quand actif)
+  Widget _buildHomeNavItem() {
+    final isActive = _currentIndex == 0;
+    return Expanded(
+      child: InkWell(
+        onTap: () => _onTabTapped(0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: isActive ? AppColors.primary : Colors.transparent,
+                shape: BoxShape.circle,
+                border: isActive ? null : Border.all(
+                  color: AppColors.textSecondary.withValues(alpha: 0.3),
+                  width: 1.5,
+                ),
+              ),
+              child: Icon(
+                isActive ? Icons.home_rounded : Icons.home_outlined,
+                color: isActive ? Colors.white : AppColors.textSecondary,
+                size: 24,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ✅ WIDGET POUR ITEM DE NAVIGATION
+  Widget _buildNavItem({
+    required int index,
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+  }) {
+    final isActive = _currentIndex == index;
+    return Expanded(
+      child: InkWell(
+        onTap: () => _onTabTapped(index),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isActive ? activeIcon : icon,
+              color: isActive ? AppColors.primary : AppColors.textSecondary,
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: isActive ? AppColors.primary : AppColors.textSecondary,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ✅ WIDGET POUR PANIER AVEC BADGE
+  Widget _buildNavItemWithBadge() {
+    final isActive = _currentIndex == 3;
+    return Expanded(
+      child: InkWell(
+        onTap: () => _onTabTapped(3),
+        child: Consumer<CartProvider>(
+          builder: (context, cart, child) {
+            final itemCount = cart.totalQuantity;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    Icon(_currentIndex == 3 ? Icons.shopping_cart : Icons.shopping_cart_outlined),
+                    Icon(
+                      isActive ? Icons.shopping_cart : Icons.shopping_cart_outlined,
+                      color: isActive ? AppColors.primary : AppColors.textSecondary,
+                      size: 24,
+                    ),
                     if (itemCount > 0)
                       Positioned(
-                        right: -6,
-                        top: -6,
+                        right: -8,
+                        top: -4,
                         child: Container(
-                          padding: const EdgeInsets.all(2),
+                          padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
                             color: Colors.red,
                             borderRadius: BorderRadius.circular(10),
@@ -153,7 +260,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                             itemCount > 99 ? '99+' : '$itemCount',
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 10,
+                              fontSize: 9,
                               fontWeight: FontWeight.bold,
                             ),
                             textAlign: TextAlign.center,
@@ -161,44 +268,19 @@ class _MainScaffoldState extends State<MainScaffold> {
                         ),
                       ),
                   ],
-                );
-              },
-            ),
-            label: 'Panier',
-          ),
-          
-          // 4: Business Pro ✅
-          BottomNavigationBarItem(
-            icon: Consumer<AuthProvider>(
-              builder: (context, auth, child) {
-                return Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Icon(_currentIndex == 4
-                        ? Icons.business_center
-                        : Icons.business_center_outlined),
-                    if (auth.isAuthenticated)
-                      Positioned(
-                        right: -2,
-                        top: -2,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: AppColors.success,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 1),
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-            label: 'Business Pro',
-          ),
-        ],
-          ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Panier',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isActive ? AppColors.primary : AppColors.textSecondary,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

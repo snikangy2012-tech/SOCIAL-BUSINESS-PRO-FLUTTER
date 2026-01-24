@@ -1,4 +1,4 @@
-// lib/screens/auth/change_password_screen.dart
+﻿// lib/screens/auth/change_password_screen.dart
 // Écran de modification de mot de passe - SOCIAL BUSINESS Pro
 // Transversal : utilisable par tous les types d'utilisateurs
 
@@ -169,6 +169,17 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: Text(widget.isRequired
           ? 'Changement de mot de passe obligatoire'
           : 'Modifier le mot de passe'),
@@ -491,3 +502,4 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     );
   }
 }
+

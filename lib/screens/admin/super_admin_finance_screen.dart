@@ -1,7 +1,8 @@
-// ===== lib/screens/admin/super_admin_finance_screen.dart =====
+﻿// ===== lib/screens/admin/super_admin_finance_screen.dart =====
 // Écran de gestion financière pour le super administrateur
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../../config/constants.dart';
@@ -102,6 +103,17 @@ class _SuperAdminFinanceScreenState extends State<SuperAdminFinanceScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Gestion Financière'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -543,3 +555,4 @@ class _SuperAdminFinanceScreenState extends State<SuperAdminFinanceScreen> {
     );
   }
 }
+

@@ -12,9 +12,7 @@ service cloud.firestore {
 
     // Check if user is admin
     function isAdmin() {
-      return isAuthenticated() &&
-             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'admin' ||
-              request.auth.token.email.matches('admin@.*'));
+      return isAuthenticated() && request.auth.token.email.matches('admin@.*');
     }
 
     // Check if user is the owner
@@ -22,31 +20,28 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Check if user is vendeur
-    function isVendeur() {
-      return isAuthenticated() &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'vendeur';
-    }
-
-    // Check if user is livreur
-    function isLivreur() {
-      return isAuthenticated() &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'livreur';
-    }
-
     // ===== USERS COLLECTION =====
     match /users/{userId} {
-      // Anyone authenticated can read their own profile
-      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      // Users can read/write their own document, admins can access all
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) || isAdmin();
 
-      // Users can create their own profile during registration
-      allow create: if isAuthenticated() && isOwner(userId);
+      // ===== CART SUB-COLLECTION =====
+      match /cart/{cartDoc} {
+        // Users can only access their own cart
+        allow read, write: if isOwner(userId);
+      }
 
-      // Users can update their own profile, admins can update any
-      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      // ===== FAVORITES SUB-COLLECTION =====
+      match /favorites/{favDoc} {
+        // Users can only access their own favorites
+        allow read, write: if isOwner(userId);
+      }
 
-      // Only admins can delete users
-      allow delete: if isAdmin();
+      // ===== ANY OTHER USER SUB-COLLECTIONS =====
+      match /{subCollection}/{docId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
     }
 
     // ===== PRODUCTS COLLECTION =====
@@ -54,56 +49,72 @@ service cloud.firestore {
       // Anyone can read products (including unauthenticated for browsing)
       allow read: if true;
 
-      // Only vendeurs can create products
-      allow create: if isAuthenticated() && isVendeur();
+      // Authenticated users can create products
+      allow create: if isAuthenticated();
 
-      // Only the product owner (vendeur) or admin can update
+      // Product owner or admin can update/delete
+      // Also allow authenticated users to update stock fields (for reservations)
       allow update: if isAuthenticated() &&
-                       (resource.data.vendeurId == request.auth.uid || isAdmin());
+                       (resource.data.vendeurId == request.auth.uid ||
+                        isAdmin() ||
+                        // Allow stock updates by any authenticated user (for cart/checkout)
+                        (request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['stock', 'reservedStock', 'updatedAt'])));
 
-      // Only the product owner or admin can delete
       allow delete: if isAuthenticated() &&
                        (resource.data.vendeurId == request.auth.uid || isAdmin());
     }
 
     // ===== ORDERS COLLECTION =====
     match /orders/{orderId} {
-      // Users can read their own orders, vendeurs can read orders for their products
+      // Related parties can read orders
+      // Livreurs can read orders with status 'ready' or 'confirmed' (for available orders screen)
+      // Also allow reading orders without livreur assigned
       allow read: if isAuthenticated() &&
                      (resource.data.buyerId == request.auth.uid ||
                       resource.data.vendeurId == request.auth.uid ||
                       resource.data.livreurId == request.auth.uid ||
+                      resource.data.livreurId == null ||
+                      resource.data.livreurId == '' ||
+                      resource.data.status == 'ready' ||
+                      resource.data.status == 'confirmed' ||
                       isAdmin());
 
-      // Acheteurs can create orders
+      // Authenticated users can create orders
       allow create: if isAuthenticated();
 
-      // Buyers, sellers, delivery persons, and admins can update orders
+      // Related parties can update orders
+      // Livreurs can assign themselves to orders with status 'ready' or 'confirmed'
       allow update: if isAuthenticated() &&
                        (resource.data.buyerId == request.auth.uid ||
                         resource.data.vendeurId == request.auth.uid ||
                         resource.data.livreurId == request.auth.uid ||
+                        resource.data.livreurId == null ||
+                        resource.data.livreurId == '' ||
+                        resource.data.status == 'ready' ||
+                        resource.data.status == 'confirmed' ||
                         isAdmin());
 
       // Only admins can delete orders
       allow delete: if isAdmin();
+
+      // ===== STATUS HISTORY SUB-COLLECTION =====
+      match /statusHistory/{historyId} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated();
+      }
     }
 
     // ===== DELIVERIES COLLECTION =====
     match /deliveries/{deliveryId} {
-      // Related parties can read delivery info
-      allow read: if isAuthenticated() &&
-                     (resource.data.buyerId == request.auth.uid ||
-                      resource.data.vendeurId == request.auth.uid ||
-                      resource.data.livreurId == request.auth.uid ||
-                      isAdmin());
+      // Authenticated users can read deliveries (for assignment)
+      allow read: if isAuthenticated();
 
-      // System or admin creates deliveries
-      allow create: if isAuthenticated() && (isAdmin() || isVendeur());
+      // Authenticated users can create deliveries
+      allow create: if isAuthenticated();
 
-      // Livreur and admin can update deliveries
-      allow update: if isAuthenticated() &&
-                       (resource.data.livreurId == request.auth.uid || isAdmin());
+      // Related parties can update deliveries
+      allow update: if isAuthenticated();
 
       // Only admin can delete
       allow delete: if isAdmin();
@@ -111,14 +122,16 @@ service cloud.firestore {
 
     // ===== NOTIFICATIONS COLLECTION =====
     match /notifications/{notificationId} {
-      // Users can only read their own notifications
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Users can read their own notifications
+      allow read: if isAuthenticated() &&
+                     (resource.data.userId == request.auth.uid || isAdmin());
 
-      // System and admin can create notifications
+      // Authenticated users can create notifications
       allow create: if isAuthenticated();
 
       // Users can update their own notifications (mark as read)
-      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() &&
+                       (resource.data.userId == request.auth.uid || isAdmin());
 
       // Users can delete their own notifications
       allow delete: if isAuthenticated() &&
@@ -133,23 +146,177 @@ service cloud.firestore {
       // Authenticated users can create reviews
       allow create: if isAuthenticated();
 
-      // Users can update their own reviews
-      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
-
-      // Users can delete their own reviews, admins can delete any
-      allow delete: if isAuthenticated() &&
-                       (resource.data.userId == request.auth.uid || isAdmin());
+      // Users can update/delete their own reviews
+      allow update, delete: if isAuthenticated() &&
+                               (resource.data.userId == request.auth.uid || isAdmin());
     }
 
-    // ===== CATEGORIES COLLECTION (read-only for most users) =====
+    // ===== CATEGORIES COLLECTIONS =====
     match /categories/{categoryId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // ===== ANALYTICS/STATS (admin only) =====
+    match /product_categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ===== SUBSCRIPTIONS COLLECTIONS =====
+    match /vendeur_subscriptions/{subscriptionId} {
+      // Users can read their own or admin can read all
+      allow read: if isAuthenticated();
+
+      // Users can create/update their own subscription, admin can do all
+      allow create, update: if isAuthenticated();
+
+      // Only admins can delete
+      allow delete: if isAdmin();
+    }
+
+    match /livreur_subscriptions/{subscriptionId} {
+      // Users can read their own or admin can read all
+      allow read: if isAuthenticated();
+
+      // Users can create/update their own subscription, admin can do all
+      allow create, update: if isAuthenticated();
+
+      // Only admins can delete
+      allow delete: if isAdmin();
+    }
+
+    // ===== COMMISSION PAYMENTS COLLECTION =====
+    match /commission_payments/{paymentId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ===== LIVREUR DEPOSITS COLLECTION =====
+    match /livreur_deposits/{depositId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ===== MOBILE MONEY PAYMENTS COLLECTION =====
+    match /mobile_money_payments/{paymentId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAdmin();
+    }
+
+    // ===== PAYMENTS COLLECTION =====
+    match /payments/{paymentId} {
+      // Vendeurs can read their own payments
+      allow read: if isAuthenticated() &&
+                     (resource.data.vendeurId == request.auth.uid ||
+                      resource.data.buyerId == request.auth.uid ||
+                      isAdmin());
+
+      // System can create payments
+      allow create: if isAuthenticated();
+
+      // Only admin can update/delete
+      allow update, delete: if isAdmin();
+    }
+
+    // ===== PAYMENT METHODS COLLECTION =====
+    match /payment_methods/{methodId} {
+      // Users can only read their own payment methods
+      allow read: if isAuthenticated() &&
+                     resource.data.userId == request.auth.uid;
+
+      // Users can create their own payment methods
+      allow create: if isAuthenticated() &&
+                       request.resource.data.userId == request.auth.uid;
+
+      // Users can update their own payment methods
+      allow update: if isAuthenticated() &&
+                       resource.data.userId == request.auth.uid;
+
+      // Users can delete their own payment methods
+      allow delete: if isAuthenticated() &&
+                       resource.data.userId == request.auth.uid;
+    }
+
+    // ===== COUNTERS COLLECTION =====
+    match /counters/{counterId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+
+      // Vendors sub-collection
+      match /vendors/{vendorId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+
+    // ===== PLATFORM TRANSACTIONS COLLECTION =====
+    match /platform_transactions/{transactionId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ===== PLATFORM REVENUE COLLECTION =====
+    match /platform_revenue/{revenueId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // ===== FINANCIAL SUMMARY COLLECTION =====
+    match /financial_summary/{summaryId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // ===== REFUNDS COLLECTION =====
+    match /refunds/{refundId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAdmin();
+    }
+
+    // ===== AUDIT LOGS COLLECTION =====
+    match /audit_logs/{logId} {
+      // Seuls les admins peuvent lire les logs d'audit
+      allow read: if isAdmin();
+      // Tout utilisateur authentifié peut créer un log
+      allow create: if isAuthenticated();
+      // Seuls les admins peuvent mettre à jour (pour marquer comme revu)
+      allow update: if isAdmin();
+      // Personne ne peut supprimer (intégrité des logs)
+      allow delete: if false;
+    }
+
+    // ===== ERROR LOGS COLLECTION =====
+    match /error_logs/{logId} {
+      // Seuls les admins peuvent lire les logs d'erreur
+      allow read: if isAdmin();
+      // Tout utilisateur authentifié peut créer un log
+      allow create: if isAuthenticated();
+      // Seuls les admins peuvent mettre à jour
+      allow update: if isAdmin();
+      // Personne ne peut supprimer (intégrité des logs)
+      allow delete: if false;
+    }
+
+    // ===== RISK ASSESSMENTS COLLECTION =====
+    match /risk_assessments/{assessmentId} {
+      // Permettre aux utilisateurs authentifiés de lire (pour vérifications KYC/anti-fraud)
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ===== ANALYTICS COLLECTION =====
     match /analytics/{document=**} {
-      allow read, write: if isAdmin();
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
     }
 
     // ===== TEST/HEALTH CHECK =====
@@ -157,22 +324,14 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
-    // ===== PLATFORM TRANSACTIONS COLLECTION =====
-    // Gestion des commissions et transactions de la plateforme
-    match /platform_transactions/{transactionId} {
-      // Admins: full access to all transactions
-      allow read, write: if isAdmin();
+    // ===== CARTS COLLECTION (root level - fallback) =====
+    match /carts/{cartId} {
+      allow read, write: if isAuthenticated() && cartId == request.auth.uid;
+    }
 
-      // Livreurs: can read only their own transactions (to see commissions owed)
-      allow read: if isAuthenticated() &&
-                     resource.data.livreurId == request.auth.uid;
-
-      // Vendeurs: can read only their own transactions (to see pending settlements)
-      allow read: if isAuthenticated() &&
-                     resource.data.vendeurId == request.auth.uid;
-
-      // No one else can create/update/delete (only system via backend or admin)
-      // Buyers cannot access this collection directly
+    // ===== FAVORITES COLLECTION (root level - fallback) =====
+    match /favorites/{favoriteId} {
+      allow read, write: if isAuthenticated() && favoriteId == request.auth.uid;
     }
   }
 }

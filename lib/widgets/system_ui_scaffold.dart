@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'system_back_button_handler.dart';
 
 /// Wrapper Scaffold qui configure automatiquement les barres système Android
 ///
@@ -43,6 +44,12 @@ class SystemUIScaffold extends StatelessWidget {
   /// Si null, utilise la configuration par défaut (blanc opaque, icônes noires)
   final SystemUiOverlayStyle? customSystemUI;
 
+  /// Active la gestion automatique du bouton retour système Android (défaut: true)
+  final bool enableSystemBackButton;
+
+  /// Callback personnalisé pour le bouton retour (optionnel)
+  final VoidCallback? onBackPressed;
+
   const SystemUIScaffold({
     super.key,
     this.appBar,
@@ -60,6 +67,8 @@ class SystemUIScaffold extends StatelessWidget {
     this.safeAreaBottom = true,
     this.safeAreaMinimum = EdgeInsets.zero,
     this.customSystemUI,
+    this.enableSystemBackButton = true,
+    this.onBackPressed,
   });
 
   @override
@@ -78,29 +87,42 @@ class SystemUIScaffold extends StatelessWidget {
       statusBarBrightness: Brightness.light, // Pour iOS
     );
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: systemUIStyle,
-      child: Scaffold(
-        appBar: appBar,
-        backgroundColor: backgroundColor,
-        resizeToAvoidBottomInset: resizeToAvoidBottomInset,
-        extendBody: extendBody,
-        extendBodyBehindAppBar: extendBodyBehindAppBar,
-        drawer: drawer,
-        endDrawer: endDrawer,
-        floatingActionButton: floatingActionButton,
-        floatingActionButtonLocation: floatingActionButtonLocation,
-        bottomNavigationBar: bottomNavigationBar,
-        body: body != null
-            ? SafeArea(
-                top: safeAreaTop,
-                bottom: safeAreaBottom,
-                minimum: safeAreaMinimum,
-                child: body!,
-              )
-            : null,
-      ),
+    final scaffold = Scaffold(
+      appBar: appBar,
+      backgroundColor: backgroundColor,
+      resizeToAvoidBottomInset: resizeToAvoidBottomInset,
+      extendBody: extendBody,
+      extendBodyBehindAppBar: extendBodyBehindAppBar,
+      drawer: drawer,
+      endDrawer: endDrawer,
+      floatingActionButton: floatingActionButton,
+      floatingActionButtonLocation: floatingActionButtonLocation,
+      bottomNavigationBar: bottomNavigationBar,
+      body: body != null
+          ? SafeArea(
+              top: safeAreaTop,
+              bottom: safeAreaBottom,
+              minimum: safeAreaMinimum,
+              child: body!,
+            )
+          : null,
     );
+
+    // Envelopper avec AnnotatedRegion pour les barres système
+    final annotatedScaffold = AnnotatedRegion<SystemUiOverlayStyle>(
+      value: systemUIStyle,
+      child: scaffold,
+    );
+
+    // Si la gestion du bouton retour est activée, envelopper avec SystemBackButtonHandler
+    if (enableSystemBackButton) {
+      return SystemBackButtonHandler(
+        onBackPressed: onBackPressed,
+        child: annotatedScaffold,
+      );
+    }
+
+    return annotatedScaffold;
   }
 }
 

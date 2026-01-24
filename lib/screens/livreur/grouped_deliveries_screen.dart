@@ -1,4 +1,4 @@
-// ===== lib/screens/livreur/grouped_deliveries_screen.dart =====
+﻿// ===== lib/screens/livreur/grouped_deliveries_screen.dart =====
 // Écran pour gérer les livraisons groupées par vendeur
 
 import 'package:flutter/material.dart';
@@ -34,6 +34,17 @@ class GroupedDeliveriesScreen extends StatelessWidget {
 
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/livreur');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Tournée Groupée'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -262,7 +273,46 @@ class GroupedDeliveriesScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Adresse
+                // Point de récupération (boutique)
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.store,
+                      size: 18,
+                      color: AppColors.warning,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Récupération:',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          Text(
+                            delivery.pickupAddress['shopName'] as String? ??
+                                delivery.pickupAddress['address'] as String? ??
+                                'Boutique',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: AppSpacing.sm),
+
+                // Adresse de livraison
                 Row(
                   children: [
                     const Icon(
@@ -272,16 +322,28 @@ class GroupedDeliveriesScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
-                      child: Text(
-                        delivery.deliveryAddress['address'] as String? ??
-                            delivery.deliveryAddress['city'] as String? ??
-                            'Adresse non disponible',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Livraison:',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          Text(
+                            delivery.deliveryAddress['address'] as String? ??
+                                delivery.deliveryAddress['city'] as String? ??
+                                'Adresse non disponible',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -413,3 +475,4 @@ class GroupedDeliveriesScreen extends StatelessWidget {
     }
   }
 }
+

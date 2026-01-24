@@ -1,4 +1,4 @@
-// ===== lib/screens/vendeur/qr_scanner_screen.dart =====
+﻿// ===== lib/screens/vendeur/qr_scanner_screen.dart =====
 // Écran de scan QR pour le retrait Click & Collect - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
@@ -417,8 +417,20 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/vendeur-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Scanner QR Code'),
         backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: Icon(
@@ -540,3 +552,4 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     );
   }
 }
+

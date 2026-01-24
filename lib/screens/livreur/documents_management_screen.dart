@@ -1,7 +1,8 @@
-// ===== lib/screens/livreur/documents_management_screen.dart =====
+﻿// ===== lib/screens/livreur/documents_management_screen.dart =====
 // Écran de gestion des documents pour livreurs
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -334,7 +335,22 @@ class _DocumentsManagementScreenState extends State<DocumentsManagementScreen> {
 
     if (user == null || user.userType != UserType.livreur) {
       return SystemUIScaffold(
-        appBar: AppBar(title: const Text('Documents')),
+        appBar: AppBar(
+          leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/livreur');
+            }
+          },
+          tooltip: 'Retour',
+        ),
+        title: const Text('Documents'),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+        ),
         body: const Center(
           child: Text('Accès réservé aux livreurs'),
         ),
@@ -347,6 +363,17 @@ class _DocumentsManagementScreenState extends State<DocumentsManagementScreen> {
 
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/livreur');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Mes Documents'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -494,3 +521,4 @@ class _DocumentsManagementScreenState extends State<DocumentsManagementScreen> {
     );
   }
 }
+

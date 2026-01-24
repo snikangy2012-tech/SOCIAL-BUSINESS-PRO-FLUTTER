@@ -1,4 +1,4 @@
-// ===== lib/screens/acheteur/category_products_screen.dart =====
+﻿// ===== lib/screens/acheteur/category_products_screen.dart =====
 // Page de produits d'une catégorie - Design SmarterVision - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
@@ -34,7 +34,6 @@ class CategoryProductsScreen extends StatefulWidget {
 }
 
 class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final ProductService _productService = ProductService();
 
   String? _selectedSubcategory;
@@ -80,8 +79,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
   }
 
   ProductCategory get _category {
-    return ProductCategories.allCategories
-        .firstWhere((cat) => cat.id == widget.categoryId);
+    return ProductCategories.allCategories.firstWhere((cat) => cat.id == widget.categoryId);
   }
 
   @override
@@ -91,7 +89,6 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
         .toList();
 
     return SystemUIPopScaffold(
-      key: _scaffoldKey,
       endDrawer: const FilterDrawer(),
       canPop: true,
       body: CustomScrollView(
@@ -103,7 +100,14 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
             backgroundColor: CategoryBannerConfig.getGradient(widget.categoryId).first,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => context.pop(),
+              onPressed: () {
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                } else {
+                  context.go('/acheteur-home');
+                }
+              },
+              tooltip: 'Retour',
             ),
             actions: [
               // Panier avec badge
@@ -243,9 +247,13 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                     hintText: 'Search',
                     hintStyle: TextStyle(color: Colors.grey[400]),
                     prefixIcon: Icon(Icons.search_rounded, color: Colors.grey[400]),
-                    suffixIcon: IconButton(
-                      icon: Icon(Icons.tune_rounded, color: Colors.grey[600]),
-                      onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+                    suffixIcon: Builder(
+                      builder: (BuildContext scaffoldContext) {
+                        return IconButton(
+                          icon: Icon(Icons.tune_rounded, color: Colors.grey[600]),
+                          onPressed: () => Scaffold.of(scaffoldContext).openEndDrawer(),
+                        );
+                      },
                     ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -638,14 +646,11 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    isFavorite
-                                        ? 'Retiré des favoris'
-                                        : 'Ajouté aux favoris',
+                                    isFavorite ? 'Retiré des favoris' : 'Ajouté aux favoris',
                                   ),
                                   duration: const Duration(seconds: 1),
-                                  backgroundColor: isFavorite
-                                      ? AppColors.textSecondary
-                                      : AppColors.success,
+                                  backgroundColor:
+                                      isFavorite ? AppColors.textSecondary : AppColors.success,
                                 ),
                               );
                             }

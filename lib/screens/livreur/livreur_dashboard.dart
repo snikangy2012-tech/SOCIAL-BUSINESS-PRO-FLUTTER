@@ -1,4 +1,4 @@
-// ===== lib/screens/livreur/livreur_dashboard.dart =====
+﻿// ===== lib/screens/livreur/livreur_dashboard.dart =====
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -9,9 +9,11 @@ import '../../providers/auth_provider_firebase.dart' as auth;
 import '../../providers/notification_provider.dart';
 import '../../services/livreur_stats_service.dart';
 import '../../services/review_service.dart';
+import '../../services/subscription_service.dart';
 import '../../utils/number_formatter.dart';
 import '../../widgets/system_ui_scaffold.dart';
 import '../../widgets/kyc_tier_banner.dart';
+import '../../widgets/livreur_drawer.dart';
 
 class DeliveryDashboard extends StatefulWidget {
   const DeliveryDashboard({super.key});
@@ -30,10 +32,16 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
   Map<String, dynamic> _stats = {
     'todayDeliveries': 0,
     'todayEarnings': 0.0,
+    'monthEarnings': 0.0,
     'avgRating': 0.0,
     'totalDeliveries': 0,
     'totalDistance': 0.0,
   };
+
+  // Commission et revenu net
+  double _commissionRate = 0.25; // Taux par défaut (25%)
+  double _monthCommission = 0.0;
+  double _monthNetRevenue = 0.0;
 
   // Livraisons récentes (chargées depuis Firestore)
   List<RecentDeliveryData> _recentDeliveries = [];
@@ -100,17 +108,39 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
         debugPrint('⚠️ Erreur chargement note: $e');
       }
 
+      // ✅ Charger le taux de commission
+      final subscriptionService = SubscriptionService();
+      double commissionRate = 0.25; // Valeur par défaut 25%
+      try {
+        commissionRate = await subscriptionService.getLivreurCommissionRate(user.id);
+        debugPrint('💰 Taux de commission: ${(commissionRate * 100).toStringAsFixed(1)}%');
+      } catch (e) {
+        debugPrint('⚠️ Erreur chargement commission: $e');
+      }
+
+      // ✅ Calculer la commission et le revenu net mensuel
+      final monthCommission = livreurStats.monthEarnings * commissionRate;
+      final monthNetRevenue = livreurStats.monthEarnings - monthCommission;
+
+      debugPrint('💵 Revenu brut mensuel: ${livreurStats.monthEarnings} FCFA');
+      debugPrint('💸 Commission mensuelle: $monthCommission FCFA');
+      debugPrint('✅ Revenu net mensuel: $monthNetRevenue FCFA');
+
       // ✅ Mettre à jour l'état avec les vraies données
       if (mounted) {
         setState(() {
           _stats = {
             'todayDeliveries': livreurStats.deliveredDeliveries,
             'todayEarnings': livreurStats.todayEarnings,
+            'monthEarnings': livreurStats.monthEarnings,
             'avgRating': avgRating,
             'totalDeliveries': livreurStats.totalDeliveries,
             'totalDistance': 0.0, // TODO: Calculer distance totale
           };
           _recentDeliveries = recentDeliveries;
+          _commissionRate = commissionRate;
+          _monthCommission = monthCommission.toDouble();
+          _monthNetRevenue = monthNetRevenue.toDouble();
         });
       }
 
@@ -145,7 +175,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           debugPrint('❌ Accès refusé - Redirection vers /');
-          context.go('/');
+          context.go('/livreur');
         }
       });
 
@@ -180,9 +210,41 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
     }
 
     return SystemUIScaffold(
+      drawer: const LivreurDrawer(),
       appBar: AppBar(
-        title: const Text('Dashboard Livreur'),
+        title: Consumer<auth.AuthProvider>(
+          builder: (context, authProvider, _) {
+            final userName = authProvider.user?.displayName ?? 'Livreur';
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Dashboard Livreur',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  'Bienvenue, $userName ! 👋',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
         backgroundColor: AppColors.primary,
+        leading: Builder(
+          builder: (BuildContext scaffoldContext) {
+            return IconButton(
+              icon: const Icon(Icons.dehaze_rounded, color: Colors.white, size: 28),
+              onPressed: () => Scaffold.of(scaffoldContext).openDrawer(),
+              tooltip: 'Menu',
+              splashRadius: 24,
+            );
+          },
+        ),
         actions: [
           // ✅ Bouton Accueil
           IconButton(
@@ -190,7 +252,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
             tooltip: 'Accueil',
             onPressed: () {
               // Retour à l'accueil acheteur
-              context.go('/');
+              context.go('/livreur');
             },
           ),
 
@@ -234,6 +296,37 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                 ],
               );
             },
+          ),
+          // Badge photo de profil
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Consumer<auth.AuthProvider>(
+              builder: (context, authProvider, child) {
+                final user = authProvider.user;
+                return GestureDetector(
+                  onTap: () => context.push('/livreur/profile'),
+                  child: CircleAvatar(
+                    radius: 18,
+                    backgroundColor: Colors.white,
+                    backgroundImage: (user?.profile['photoURL'] != null || user?.profile['photoUrl'] != null)
+                        ? NetworkImage((user!.profile['photoURL'] ?? user.profile['photoUrl']) as String)
+                        : null,
+                    child: (user?.profile['photoURL'] == null && user?.profile['photoUrl'] == null)
+                        ? Text(
+                            user?.displayName.isNotEmpty == true
+                                ? user!.displayName[0].toUpperCase()
+                                : 'L',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          )
+                        : null,
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -410,6 +503,148 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
               ),
             ),
 
+            const SizedBox(height: 24),
+
+            // Revenus du mois
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.success,
+                    AppColors.success.withValues(alpha: 0.8),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.success.withValues(alpha: 0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Revenus du mois',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              formatPriceWithCurrency(_stats['monthEarnings'], currency: 'FCFA'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.trending_up,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Séparateur
+                  Divider(color: Colors.white.withValues(alpha: 0.3), thickness: 1),
+                  const SizedBox(height: 12),
+                  // Détails commission et revenu net
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Commission (${(_commissionRate * 100).toStringAsFixed(0)}%)',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '- ${formatPriceWithCurrency(_monthCommission, currency: 'FCFA')}',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.95),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Revenu net',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              formatPriceWithCurrency(_monthNetRevenue, currency: 'FCFA'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Statistiques du jour
+            const Text(
+              'Aujourd\'hui',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
             const SizedBox(height: 12),
 
             GridView.count(
@@ -572,12 +807,16 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                               size: 20,
                             ),
                             const SizedBox(width: 8),
-                            Text(
-                              'Restez disponible pour recevoir des commandes',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.info,
-                                fontWeight: FontWeight.w500,
+                            Flexible(
+                              child: Text(
+                                'Restez disponible pour recevoir des commandes',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.info,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -588,8 +827,10 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                 ),
               )
             else
-              ..._recentDeliveries.map((delivery) {
-                return _buildRecentDeliveryCard(delivery);
+              ..._recentDeliveries.asMap().entries.map((entry) {
+                final index = entry.key;
+                final delivery = entry.value;
+                return _buildRecentDeliveryCard(delivery, index + 1);
               }),
           ],
         ),
@@ -644,13 +885,23 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
   }
 
   // Carte de livraison récente
-  Widget _buildRecentDeliveryCard(RecentDeliveryData delivery) {
+  Widget _buildRecentDeliveryCard(RecentDeliveryData delivery, int displayNumber) {
     // Déterminer la couleur selon le statut
     Color statusColor;
     IconData statusIcon;
     String statusText;
 
     switch (delivery.status.toLowerCase()) {
+      case 'available':
+        statusColor = AppColors.info;
+        statusIcon = Icons.new_releases;
+        statusText = 'Disponible';
+        break;
+      case 'assigned':
+        statusColor = AppColors.warning;
+        statusIcon = Icons.assignment_turned_in;
+        statusText = 'Assignée';
+        break;
       case 'pending':
         statusColor = AppColors.warning;
         statusIcon = Icons.hourglass_empty;
@@ -659,22 +910,25 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
       case 'picked_up':
         statusColor = AppColors.info;
         statusIcon = Icons.inventory;
-        statusText = 'Récupéré';
+        statusText = 'Récupérée';
         break;
+      case 'in_transit':
       case 'in_progress':
-        statusColor = AppColors.primary;
+        statusColor = const Color.fromARGB(255, 249, 128, 7);
         statusIcon = Icons.local_shipping;
         statusText = 'En cours';
         break;
       case 'delivered':
+      case 'livree':
         statusColor = AppColors.success;
         statusIcon = Icons.check_circle;
-        statusText = 'Livré';
+        statusText = 'Livrée';
         break;
       case 'cancelled':
+      case 'annulee':
         statusColor = AppColors.error;
         statusIcon = Icons.cancel;
-        statusText = 'Annulé';
+        statusText = 'Annulée';
         break;
       default:
         statusColor = Colors.grey;
@@ -723,7 +977,7 @@ class _DeliveryDashboardState extends State<DeliveryDashboard> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                formatDeliveryNumber(delivery.id),
+                                'LIV-${displayNumber.toString().padLeft(3, '0')}',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,

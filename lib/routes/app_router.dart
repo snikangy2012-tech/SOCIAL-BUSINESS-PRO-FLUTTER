@@ -4,6 +4,7 @@ import 'package:social_business_pro/screens/acheteur/checkout_screen.dart';
 import 'package:social_business_pro/screens/acheteur/address_management_screen.dart';
 import 'package:social_business_pro/screens/acheteur/payment_methods_screen.dart';
 import 'package:social_business_pro/screens/acheteur/categories_screen.dart';
+import 'package:social_business_pro/screens/acheteur/category_products_screen.dart';
 import 'package:social_business_pro/screens/acheteur/favorite_screen.dart';
 import 'package:social_business_pro/screens/acheteur/product_search_screen.dart';
 import 'package:social_business_pro/screens/acheteur/my_reviews_screen.dart';
@@ -11,7 +12,12 @@ import 'package:social_business_pro/screens/acheteur/nearby_vendors_screen.dart'
 import 'package:social_business_pro/screens/admin/admin_livreur_management_screen.dart';
 import 'package:social_business_pro/screens/admin/admin_livreur_detail_screen.dart';
 import 'package:social_business_pro/screens/admin/global_statistics_screen.dart';
+import 'package:social_business_pro/screens/admin/global_reports_screen.dart';
 import 'package:social_business_pro/screens/admin/migration_tools_screen.dart';
+import 'package:social_business_pro/screens/admin/admin_profile_screen.dart';
+import 'package:social_business_pro/screens/admin/user_management_screen.dart';
+import 'package:social_business_pro/screens/admin/audit_logs_screen.dart';
+import 'package:social_business_pro/screens/admin/super_admin_finance_screen.dart';
 import 'package:social_business_pro/screens/livreur/delivery_detail_screen.dart';
 import 'package:social_business_pro/screens/livreur/livreur_main_screen.dart';
 import 'package:social_business_pro/screens/livreur/delivery_list_screen.dart';
@@ -29,15 +35,19 @@ import 'package:social_business_pro/screens/admin/vendor_management_screen.dart'
 import 'package:social_business_pro/screens/admin/admin_product_management_screen.dart';
 import 'package:social_business_pro/screens/admin/admin_order_management_screen.dart';
 import 'package:social_business_pro/screens/admin/suspended_users_screen.dart';
+import 'package:social_business_pro/screens/admin/debug_categories_screen.dart';
+import 'package:social_business_pro/screens/admin/categories_management_screen.dart';
 
 import 'package:social_business_pro/screens/vendeur/vendeur_main_screen.dart';
 import 'package:social_business_pro/screens/vendeur/add_product.dart';
 import 'package:social_business_pro/screens/vendeur/vendeur_statistics.dart';
 import 'package:social_business_pro/screens/vendeur/product_management.dart';
 import 'package:social_business_pro/screens/vendeur/refund_management_screen.dart';
+import 'package:social_business_pro/screens/acheteur/vendors_list_screen.dart';
 
 // Nouveaux imports
 import 'package:social_business_pro/screens/vendeur/vendeur_profile_screen.dart';
+import 'package:social_business_pro/screens/vendeur/order_management.dart';
 import 'package:social_business_pro/screens/vendeur/vendeur_finance_screen.dart';
 import 'package:social_business_pro/screens/vendeur/sale_detail_screen.dart';
 import 'package:social_business_pro/screens/vendeur/payment_settings_screen.dart';
@@ -46,6 +56,7 @@ import 'package:social_business_pro/screens/vendeur/shop_setup_screen.dart';
 import 'package:social_business_pro/screens/vendeur/my_shop_screen.dart';
 import 'package:social_business_pro/screens/vendeur/payment_history_screen.dart';
 import 'package:social_business_pro/screens/vendeur/commission_payment_screen.dart';
+import 'package:social_business_pro/screens/vendeur/qr_scanner_screen.dart';
 import 'package:social_business_pro/screens/livreur/payment_deposit_screen.dart';
 import 'package:social_business_pro/screens/subscription/subscription_dashboard_screen.dart';
 import 'package:social_business_pro/screens/subscription/subscription_plans_screen.dart';
@@ -70,6 +81,7 @@ import '../screens/acheteur/order_history_screen.dart';
 import '../screens/acheteur/order_detail_screen.dart';
 import '../screens/acheteur/cart_screen.dart';
 import '../screens/acheteur/delivery_tracking_screen.dart';
+import '../screens/acheteur/pickup_qr_screen.dart';
 import 'package:social_business_pro/config/constants.dart';
 import '../screens/subscription/subscription_subscribe_screen.dart';
 import '../screens/subscription/limit_reached_screen.dart';
@@ -197,6 +209,7 @@ class AppRouter {
 
         // VENDEUR
         GoRoute(path: '/vendeur-dashboard', builder: (context, state) => const VendeurMainScreen()),
+        GoRoute(path: '/vendeur/order-management', builder: (context, state) => const OrderManagement()),
         GoRoute(path: '/vendeur/add-product', builder: (context, state) => const AddProduct()),
         GoRoute(path: '/vendeur/edit-product/:productId', builder: (context, state) => EditProduct(productId: state.pathParameters['productId']!)),
         GoRoute(path: '/vendeur/order-detail/:id', builder: (context, state) => OrderDetail(orderId: state.pathParameters['id']!)),
@@ -213,6 +226,7 @@ class AppRouter {
         GoRoute(path: '/vendeur/products', builder: (context, state) => ProductManagement(storeId: authProvider.user?.id ?? '')),
         GoRoute(path: '/vendeur/refunds', builder: (context, state) => const RefundManagementScreen()),
         GoRoute(path: '/vendeur/commission-payment', builder: (context, state) => const CommissionPaymentScreen()),
+        GoRoute(path: '/vendeur/qr-scanner', builder: (context, state) => const QRScannerScreen()),
 
         // ABONNEMENTS (Transversal: vendeurs et livreurs)
         GoRoute(
@@ -268,12 +282,30 @@ class AppRouter {
             orderId: state.pathParameters['orderId']!,
           ),
         ),
+        GoRoute(
+          path: '/acheteur/order/:orderId/pickup-qr',
+          builder: (context, state) => PickupQRScreen(
+            orderId: state.pathParameters['orderId']!,
+          ),
+        ),
         GoRoute(path: '/acheteur/profile', builder: (context, state) => const AcheteurProfileScreen()),
         GoRoute(path: '/acheteur/addresses', builder: (context, state) => const AddressManagementScreen()),
         GoRoute(path: '/acheteur/payment-methods', builder: (context, state) => const PaymentMethodsScreen()),
         GoRoute(path: '/acheteur/my-reviews', builder: (context, state) => const MyReviewsScreen()),
         GoRoute(path: '/acheteur/search', builder: (context, state) => const ProductSearchScreen()),
         GoRoute(path: '/acheteur/nearby-vendors', builder: (context, state) => const NearbyVendorsScreen()),
+        GoRoute(path: '/acheteur/vendor-list', builder: (context, state) => const VendorsListScreen()),
+        GoRoute(
+          path: '/acheteur/products',
+          builder: (context, state) {
+            final categoryId = state.uri.queryParameters['category'] ?? '';
+            final subcategory = state.uri.queryParameters['subcategory'];
+            return CategoryProductsScreen(
+              categoryId: categoryId,
+              subcategory: subcategory,
+            );
+          },
+        ),
         GoRoute(path: '/product/:id', builder: (context, state) => ProductDetailScreen(productId: state.pathParameters['id']!)),
 
         // Routes communes acheteur (accessibles sans /acheteur)
@@ -303,18 +335,41 @@ class AppRouter {
           path: '/admin-dashboard',
           builder: (context, state) => const AdminMainScreen()
         ),
+        GoRoute(path: '/admin/profile', builder: (context, state) => const AdminProfileScreen()),
         GoRoute(path: '/admin/settings', builder: (context, state) => const SettingsScreen()),
-        GoRoute(path: '/admin/activities', builder: (context, state) => const ActivityLogScreen()),
-        GoRoute (path: '/admin/global-statistics', builder: (context, state) => const GlobalStatisticsScreen()),
-        GoRoute(path: '/admin/subscription-management', builder: (context, state) => const AdminSubscriptionManagementScreen()),
-        GoRoute(path: '/admin/migration-tools', builder: (context, state) => const MigrationToolsScreen()),
-        GoRoute(path: '/admin/vendors', builder: (context, state) => const VendorManagementScreen()),
-        GoRoute(path: '/admin/livreurs', builder: (context, state) => const AdminLivreurManagementScreen()),
+
+        // Gestion utilisateurs
+        GoRoute(path: '/admin/user-management', builder: (context, state) => const UserManagementScreen()),
+        GoRoute(path: '/admin/vendor-management', builder: (context, state) => const VendorManagementScreen()),
+        GoRoute(path: '/admin/vendors', builder: (context, state) => const VendorManagementScreen()), // Alias
+        GoRoute(path: '/admin/livreur-management', builder: (context, state) => const AdminLivreurManagementScreen()),
+        GoRoute(path: '/admin/livreurs', builder: (context, state) => const AdminLivreurManagementScreen()), // Alias
         GoRoute(path: '/admin/livreur-detail/:id', builder: (context, state) => AdminLivreurDetailScreen(livreurId: state.pathParameters['id']!)),
-        GoRoute(path: '/admin/kyc-validation', builder: (context, state) => const KYCValidationScreen()),
-        GoRoute(path: '/admin/product-management', builder: (context, state) => const AdminProductManagementScreen()),
-        GoRoute(path: '/admin/order-management', builder: (context, state) => const AdminOrderManagementScreen()),
         GoRoute(path: '/admin/suspended-users', builder: (context, state) => const SuspendedUsersScreen()),
+
+        // KYC
+        GoRoute(path: '/admin/kyc-verification', builder: (context, state) => const KYCValidationScreen()),
+        GoRoute(path: '/admin/kyc-validation', builder: (context, state) => const KYCValidationScreen()), // Alias
+
+        // Commandes et produits
+        GoRoute(path: '/admin/order-management', builder: (context, state) => const AdminOrderManagementScreen()),
+        GoRoute(path: '/admin/product-management', builder: (context, state) => const AdminProductManagementScreen()),
+        GoRoute(path: '/admin/categories-management', builder: (context, state) => const CategoriesManagementScreen()),
+        GoRoute(path: '/admin/debug-categories', builder: (context, state) => const DebugCategoriesScreen()),
+
+        // Abonnements et finances
+        GoRoute(path: '/admin/subscription-management', builder: (context, state) => const AdminSubscriptionManagementScreen()),
+        GoRoute(path: '/admin/finance', builder: (context, state) => const SuperAdminFinanceScreen()),
+
+        // Statistiques et rapports
+        GoRoute(path: '/admin/statistics', builder: (context, state) => const GlobalStatisticsScreen()),
+        GoRoute(path: '/admin/global-statistics', builder: (context, state) => const GlobalStatisticsScreen()), // Alias
+        GoRoute(path: '/admin/reports', builder: (context, state) => const GlobalReportsScreen()),
+        GoRoute(path: '/admin/audit-logs', builder: (context, state) => const AuditLogsScreen()),
+        GoRoute(path: '/admin/activities', builder: (context, state) => const ActivityLogScreen()), // Alias
+
+        // Outils
+        GoRoute(path: '/admin/migration-tools', builder: (context, state) => const MigrationToolsScreen()),
 
         // PARAMÈTRES UTILISATEUR (commun à tous)
         GoRoute(path: '/user-settings', builder: (context, state) => const UserSettingsScreen()),

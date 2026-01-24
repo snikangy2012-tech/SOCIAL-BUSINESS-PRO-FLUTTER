@@ -1,4 +1,4 @@
-// ===== lib/screens/acheteur/business_pro_screen.dart =====
+﻿// ===== lib/screens/acheteur/business_pro_screen.dart =====
 // Écran Mon Business Pro - Connexion/Profil - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
@@ -9,6 +9,8 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:social_business_pro/config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../services/analytics_service.dart';
+import '../../services/order_service.dart';
+import '../../models/order_model.dart';
 import '../../widgets/system_ui_scaffold.dart';
 
 class BusinessProScreen extends StatefulWidget {
@@ -22,10 +24,45 @@ class _BusinessProScreenState extends State<BusinessProScreen> {
   final AnalyticsService _analytics = AnalyticsService();
   final firebase_auth.FirebaseAuth _auth = firebase_auth.FirebaseAuth.instance;
 
+  // Compteurs de commandes
+  Map<String, int> _orderCounts = {};
+  bool _isLoadingOrders = false;
+
   @override
   void initState() {
     super.initState();
     _analytics.logScreenView('BusinessProScreen');
+    _loadOrderCounts();
+  }
+
+  /// Charger le nombre de commandes par statut
+  Future<void> _loadOrderCounts() async {
+    final authProvider = context.read<AuthProvider>();
+    if (!authProvider.isAuthenticated || authProvider.user == null) return;
+
+    setState(() => _isLoadingOrders = true);
+
+    try {
+      final orders = await OrderService.getOrdersByBuyer(authProvider.user!.id);
+
+      // Compter par statut
+      final counts = <String, int>{};
+      for (final order in orders) {
+        counts[order.status] = (counts[order.status] ?? 0) + 1;
+      }
+
+      if (mounted) {
+        setState(() {
+          _orderCounts = counts;
+          _isLoadingOrders = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur chargement commandes: $e');
+      if (mounted) {
+        setState(() => _isLoadingOrders = false);
+      }
+    }
   }
 
   @override
@@ -54,7 +91,20 @@ class _BusinessProScreenState extends State<BusinessProScreen> {
         }
         return SystemUIScaffold(
           appBar: AppBar(
-            title: const Text('Mon Business Pro'),
+            leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/acheteur-home');
+            }
+          },
+          tooltip: 'Retour',
+        ),
+        title: const Text('Mon Business Pro'),
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
           ),
           body: auth.isAuthenticated ? _buildAuthenticatedView(auth) : _buildGuestView(),
         );
@@ -212,98 +262,167 @@ class _BusinessProScreenState extends State<BusinessProScreen> {
 
   // Vue pour utilisateur CONNECTÉ
   Widget _buildAuthenticatedView(AuthProvider auth) {
-    // ✅ CORRIGÉ : Utiliser user au lieu de userData
     final user = auth.user;
     final userName = user?.displayName ?? user?.email.split('@')[0] ?? 'Utilisateur';
     final userEmail = user?.email ?? '';
-    final String userType = auth.userType?.toString() ?? 'acheteur'; // ✅ OK
+    final photoURL = user?.profile['photoURL'] as String?;
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           children: [
-            const SizedBox(height: AppSpacing.lg),
-
-            // Avatar
-            CircleAvatar(
-              radius: 50,
-              backgroundColor: AppColors.primary,
-              child: Text(
-                userName.toString()[0].toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 40,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-
             const SizedBox(height: AppSpacing.md),
 
-            // Nom
-            Text(
-              userName,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+            // En-tête avec photo et nom
+            Row(
+              children: [
+                // Avatar avec photo ou initiale du prénom
+                CircleAvatar(
+                  radius: 40,
+                  backgroundColor: AppColors.primary,
+                  backgroundImage: photoURL != null ? NetworkImage(photoURL) : null,
+                  child: photoURL == null
+                      ? Text(
+                          userName.toString()[0].toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 32,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: AppSpacing.md),
+                // Nom et email
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        userName,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        userEmail,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
 
-            const SizedBox(height: AppSpacing.xs),
+            const SizedBox(height: AppSpacing.lg),
 
-            // Email
-            Text(
-              userEmail,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-              ),
+            // Boutons actions rapides (Wish List, Following, Messages)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildQuickActionButton(
+                  icon: Icons.favorite_outline,
+                  label: 'Favoris',
+                  onTap: () => context.push('/favorites'),
+                ),
+                _buildQuickActionButton(
+                  icon: Icons.store_outlined,
+                  label: 'Vendeurs',
+                  onTap: () => context.push('/acheteur/vendor-list'),
+                ),
+                _buildQuickActionButton(
+                  icon: Icons.rate_review_outlined,
+                  label: 'Mes avis',
+                  onTap: () => context.push('/acheteur/my-reviews'),
+                ),
+              ],
             ),
 
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: AppSpacing.lg),
 
-            // Badge type de compte
+            // ✅ SECTION MES COMMANDES AVEC RÉSUMÉ PAR STATUT
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 6,
-              ),
+              padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: _getColorForUserType(userType),
-                borderRadius: BorderRadius.circular(20),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              child: Column(
                 children: [
-                  Icon(
-                    _getIconForUserType(userType),
-                    size: 16,
-                    color: Colors.white,
+                  // Titre et bouton "Voir tout"
+                  Row(
+                    children: [
+                      const Icon(Icons.shopping_bag_outlined,
+                        color: AppColors.primary,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Mes Commandes',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () => context.push('/acheteur/orders'),
+                        child: const Text('Voir tout'),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    _getLabelForUserType(userType),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  const SizedBox(height: AppSpacing.md),
+
+                  // Liste des statuts avec compteurs
+                  if (_isLoadingOrders)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(AppSpacing.lg),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else ...[
+                    _buildOrderStatusRow('En attente', ['en_attente', 'pending'], Icons.schedule),
+                    const Divider(height: 1),
+                    _buildOrderStatusRow('En préparation', ['preparing', 'confirmed', 'ready'], Icons.kitchen_outlined),
+                    const Divider(height: 1),
+                    _buildOrderStatusRow('En cours de livraison', ['en_cours', 'in_delivery'], Icons.delivery_dining),
+                    const Divider(height: 1),
+                    _buildOrderStatusRow('Livrée', ['livree', 'delivered', 'completed'], Icons.check_circle),
+                  ],
                 ],
               ),
             ),
 
-            const SizedBox(height: AppSpacing.xxl),
+            const SizedBox(height: AppSpacing.lg),
 
             // Section: Mon Activité
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                'Mon Activité',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Text(
+                  'Mon Activité',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
             ),
@@ -316,48 +435,33 @@ class _BusinessProScreenState extends State<BusinessProScreen> {
             ),
 
             _buildMenuItem(
-              icon: Icons.shopping_bag_outlined,
-              title: 'Mes commandes',
-              subtitle: 'Historique et suivi de vos achats',
-              onTap: () => context.push('/acheteur/orders'),
+              icon: Icons.location_on_outlined,
+              title: 'Mes adresses',
+              subtitle: 'Gérer vos adresses de livraison',
+              onTap: () => context.push('/acheteur/addresses'),
             ),
 
             _buildMenuItem(
-              icon: Icons.favorite_outline,
-              title: 'Mes favoris',
-              subtitle: 'Produits que vous aimez',
-              onTap: () => context.push('/favorites'),
-            ),
-
-            _buildMenuItem(
-              icon: Icons.history,
-              title: 'Historique de navigation',
-              subtitle: 'Produits récemment consultés',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Fonctionnalité à venir')),
-                );
-              },
-            ),
-
-            _buildMenuItem(
-              icon: Icons.rate_review_outlined,
-              title: 'Mes avis',
-              subtitle: 'Évaluations et commentaires',
-              onTap: () => context.push('/acheteur/my-reviews'),
+              icon: Icons.payment_outlined,
+              title: 'Moyens de paiement',
+              subtitle: 'Gérer vos méthodes de paiement',
+              onTap: () => context.push('/acheteur/payment-methods'),
             ),
 
             const SizedBox(height: AppSpacing.md),
 
             // Section: Business
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                'Business',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Text(
+                  'Business',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
             ),
@@ -389,7 +493,6 @@ class _BusinessProScreenState extends State<BusinessProScreen> {
               title: 'Devenir vendeur',
               subtitle: 'Vendre sur la plateforme',
               onTap: () {
-                // Navigation vers la page d'enregistrement avec profil vendeur présélectionné
                 context.push('/register?userType=vendeur');
               },
             ),
@@ -399,7 +502,6 @@ class _BusinessProScreenState extends State<BusinessProScreen> {
               title: 'Devenir livreur',
               subtitle: 'Gagner en livrant',
               onTap: () {
-                // Navigation vers la page d'enregistrement avec profil livreur présélectionné
                 context.push('/register?userType=livreur');
               },
             ),
@@ -407,8 +509,10 @@ class _BusinessProScreenState extends State<BusinessProScreen> {
             const SizedBox(height: AppSpacing.lg),
 
             // Bouton déconnexion
-            OutlinedButton.icon(
-              onPressed: () async {
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () async {
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
@@ -431,13 +535,10 @@ class _BusinessProScreenState extends State<BusinessProScreen> {
                 );
 
                 if (confirm == true && mounted) {
-                  // ✅ CORRIGÉ : Gestion de déconnexion
                   try {
                     await _auth.signOut();
                     if (mounted) {
-                      // Redirection immédiate
-                      context.go('/');
-
+                      context.go('/acheteur-home');
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Déconnexion réussie'),
@@ -457,12 +558,97 @@ class _BusinessProScreenState extends State<BusinessProScreen> {
                   }
                 }
               },
-              icon: const Icon(Icons.logout),
-              label: const Text('Se déconnecter'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.error,
-                side: const BorderSide(color: AppColors.error),
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                icon: const Icon(Icons.logout, color: Colors.red),
+                label: const Text(
+                  'Se déconnecter',
+                  style: TextStyle(color: Colors.red),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.red),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: AppSpacing.lg),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Bouton action rapide
+  Widget _buildQuickActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 12,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 28, color: AppColors.primary),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Ligne de statut de commande avec compteur
+  Widget _buildOrderStatusRow(String label, List<String> statusKeys, IconData icon) {
+    // Compter tous les statuts possibles (ex: 'pending' + 'en_attente')
+    int count = 0;
+    for (final key in statusKeys) {
+      count += _orderCounts[key] ?? 0;
+    }
+
+    return InkWell(
+      onTap: () => context.push('/acheteur/orders'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: AppColors.textSecondary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: count > 0
+                  ? AppColors.primary.withValues(alpha: 0.1)
+                  : AppColors.backgroundSecondary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                count.toString(),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: count > 0 ? AppColors.primary : AppColors.textSecondary,
+                ),
               ),
             ),
           ],
@@ -571,38 +757,5 @@ class _BusinessProScreenState extends State<BusinessProScreen> {
       ),
     );
   }
-
-  // Helpers
-  Color _getColorForUserType(String type) {
-    switch (type) {
-      case 'vendeur':
-        return AppColors.primary;
-      case 'livreur':
-        return AppColors.warning;
-      default:
-        return AppColors.secondary;
-    }
-  }
-
-  IconData _getIconForUserType(String type) {
-    switch (type) {
-      case 'vendeur':
-        return Icons.store;
-      case 'livreur':
-        return Icons.delivery_dining;
-      default:
-        return Icons.shopping_cart;
-    }
-  }
-
-  String _getLabelForUserType(String type) {
-    switch (type) {
-      case 'vendeur':
-        return 'Vendeur';
-      case 'livreur':
-        return 'Livreur';
-      default:
-        return 'Acheteur';
-    }
-  }
 }
+

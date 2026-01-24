@@ -1,8 +1,9 @@
-// ===== lib/screens/acheteur/request_refund_screen.dart =====
+﻿// ===== lib/screens/acheteur/request_refund_screen.dart =====
 // Écran de demande de retour/remboursement - SOCIAL BUSINESS Pro
 
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:provider/provider.dart';
@@ -184,7 +185,20 @@ class _RequestRefundScreenState extends State<RequestRefundScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/acheteur');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Demander un retour'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         centerTitle: true,
       ),
       body: _isLoading
@@ -446,3 +460,4 @@ class _RequestRefundScreenState extends State<RequestRefundScreen> {
     );
   }
 }
+

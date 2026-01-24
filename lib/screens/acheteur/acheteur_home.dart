@@ -40,7 +40,6 @@ class AcheteurHome extends StatefulWidget {
 }
 
 class _AcheteurHomeState extends State<AcheteurHome> {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _searchController = TextEditingController();
   final ProductService _productService = ProductService();
   final AnalyticsService _analytics = AnalyticsService();
@@ -186,7 +185,6 @@ class _AcheteurHomeState extends State<AcheteurHome> {
   @override
   Widget build(BuildContext context) {
     return SystemUIScaffold(
-      key: _scaffoldKey,
       drawer: const MainDrawer(),
       endDrawer: const FilterDrawer(),
       body: RefreshIndicator(
@@ -203,25 +201,17 @@ class _AcheteurHomeState extends State<AcheteurHome> {
               elevation: 0,
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
-              leading: IconButton(
-                icon: const Icon(Icons.menu_rounded, color: Colors.white),
-                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+              leading: Builder(
+                builder: (BuildContext scaffoldContext) {
+                  return IconButton(
+                    icon: const Icon(Icons.dehaze_rounded, color: Colors.white, size: 28),
+                    onPressed: () => Scaffold.of(scaffoldContext).openDrawer(),
+                    tooltip: 'Menu',
+                    splashRadius: 24,
+                  );
+                },
               ),
-              title: const Row(
-                children: [
-                  Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 32),
-                  SizedBox(width: 8),
-                  Text(
-                    'SOCIAL BUSINESS',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
+            
               centerTitle: false,
               actions: [
                 // Badge notification
@@ -233,12 +223,7 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                          onPressed: () {
-                            // TODO: Navigation vers page notifications
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Notifications')),
-                            );
-                          },
+                          onPressed: () => context.push('/notifications'),
                           tooltip: 'Notifications',
                         ),
                         if (unreadCount > 0)
@@ -376,7 +361,7 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'SOCIAL BUSINESS',
+                                      'SOCIAL BUSINESS Pro',
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 22,
@@ -436,12 +421,16 @@ class _AcheteurHomeState extends State<AcheteurHome> {
                     decoration: InputDecoration(
                       hintText: 'Rechercher un produit...',
                       prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.tune_rounded, color: AppColors.primary),
-                        onPressed: () {
-                          _scaffoldKey.currentState?.openEndDrawer();
+                      suffixIcon: Builder(
+                        builder: (BuildContext scaffoldContext) {
+                          return IconButton(
+                            icon: const Icon(Icons.tune_rounded, color: AppColors.primary),
+                            onPressed: () {
+                              Scaffold.of(scaffoldContext).openEndDrawer();
+                            },
+                            tooltip: 'Filtres',
+                          );
                         },
-                        tooltip: 'Filtres',
                       ),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(

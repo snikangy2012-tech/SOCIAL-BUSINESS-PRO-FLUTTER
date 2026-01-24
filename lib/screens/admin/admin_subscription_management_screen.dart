@@ -1,7 +1,8 @@
-// ===== lib/screens/admin/admin_subscription_management_screen.dart =====
+﻿// ===== lib/screens/admin/admin_subscription_management_screen.dart =====
 // Gestion des abonnements vendeurs et livreurs - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../config/constants.dart';
 import '../../models/subscription_model.dart';
@@ -782,8 +783,20 @@ class _AdminSubscriptionManagementScreenState extends State<AdminSubscriptionMan
 
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Gestion des Abonnements'),
         backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
@@ -906,3 +919,4 @@ class _AdminSubscriptionManagementScreenState extends State<AdminSubscriptionMan
     super.dispose();
   }
 }
+

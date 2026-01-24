@@ -24,11 +24,11 @@ class FirebaseService {
     }
     try {
       await _firestore.enableNetwork();
-      
-      // Test de connexion simple
-      await _firestore.collection('health_check').doc('test').get()
+
+      // Test de connexion simple sur _connection_test (autorisé dans les règles)
+      await _firestore.collection('_connection_test').doc('test').get()
           .timeout(const Duration(seconds: 10));
-      
+
       debugPrint('✅ Firestore connecté');
       return true;
     } catch (e) {
@@ -525,7 +525,11 @@ class FirebaseService {
 
       return data;
     } catch (e) {
-      debugPrint('❌ Erreur récupération document: $e');
+      debugPrint('❌ Erreur récupération document $collection/$docId: $e');
+      debugPrint('❌ Type erreur: ${e.runtimeType}');
+      if (e.toString().contains('permission')) {
+        debugPrint('❌ PERMISSION DENIED - Vérifiez les règles Firestore');
+      }
       return null;
     }
   }

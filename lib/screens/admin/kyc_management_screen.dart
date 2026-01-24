@@ -1,8 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 import '../../config/constants.dart';
+import '../../widgets/system_ui_scaffold.dart';
 import '../../services/kyc_adaptive_service.dart';
 import '../../services/blacklist_service.dart';
 import '../../models/blacklist_entry_model.dart';
@@ -35,9 +37,22 @@ class _KYCManagementScreenState extends State<KYCManagementScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Gestion KYC Adaptative'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -1056,3 +1071,4 @@ class _KYCManagementScreenState extends State<KYCManagementScreen>
     }
   }
 }
+

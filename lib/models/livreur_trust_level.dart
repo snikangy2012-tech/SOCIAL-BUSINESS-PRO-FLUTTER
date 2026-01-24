@@ -14,6 +14,7 @@ class LivreurTrustConfig {
   final double maxOrderAmount;       // Montant max par commande (FCFA)
   final double maxUnpaidBalance;     // Total max non reversé (FCFA)
   final int reversementDelayHours;   // Délai de reversement (heures)
+  final int maxActiveDeliveries;     // Nombre max de livraisons simultanées
   final String displayName;          // Nom d'affichage
   final String badgeIcon;            // Icône du badge
 
@@ -23,6 +24,7 @@ class LivreurTrustConfig {
     required this.maxOrderAmount,
     required this.maxUnpaidBalance,
     required this.reversementDelayHours,
+    required this.maxActiveDeliveries,
     required this.displayName,
     required this.badgeIcon,
   });
@@ -43,6 +45,7 @@ class LivreurTrustConfig {
         maxOrderAmount: 300000,
         maxUnpaidBalance: 500000,
         reversementDelayHours: 168, // 7 jours
+        maxActiveDeliveries: 5, // Maximum confiance
         displayName: 'VIP',
         badgeIcon: '🌟',
       );
@@ -56,6 +59,7 @@ class LivreurTrustConfig {
         maxOrderAmount: 150000,
         maxUnpaidBalance: 300000,
         reversementDelayHours: 72, // 3 jours
+        maxActiveDeliveries: 3, // Très fiable
         displayName: 'Expert',
         badgeIcon: '⚡',
       );
@@ -69,6 +73,7 @@ class LivreurTrustConfig {
         maxOrderAmount: 100000,
         maxUnpaidBalance: 200000,
         reversementDelayHours: 48, // 2 jours
+        maxActiveDeliveries: 2, // A prouvé sa fiabilité
         displayName: 'Confirmé',
         badgeIcon: '✓',
       );
@@ -81,6 +86,7 @@ class LivreurTrustConfig {
       maxOrderAmount: 30000,
       maxUnpaidBalance: 50000,
       reversementDelayHours: 24, // 1 jour
+      maxActiveDeliveries: 1, // Strict: une livraison à la fois
       displayName: 'Débutant',
       badgeIcon: '🔰',
     );
@@ -96,6 +102,7 @@ class LivreurTrustConfig {
           maxOrderAmount: 300000,
           maxUnpaidBalance: 500000,
           reversementDelayHours: 168,
+          maxActiveDeliveries: 5,
           displayName: 'VIP',
           badgeIcon: '🌟',
         );
@@ -106,6 +113,7 @@ class LivreurTrustConfig {
           maxOrderAmount: 150000,
           maxUnpaidBalance: 300000,
           reversementDelayHours: 72,
+          maxActiveDeliveries: 3,
           displayName: 'Expert',
           badgeIcon: '⚡',
         );
@@ -116,6 +124,7 @@ class LivreurTrustConfig {
           maxOrderAmount: 100000,
           maxUnpaidBalance: 200000,
           reversementDelayHours: 48,
+          maxActiveDeliveries: 2,
           displayName: 'Confirmé',
           badgeIcon: '✓',
         );
@@ -126,6 +135,7 @@ class LivreurTrustConfig {
           maxOrderAmount: 30000,
           maxUnpaidBalance: 50000,
           reversementDelayHours: 24,
+          maxActiveDeliveries: 1,
           displayName: 'Débutant',
           badgeIcon: '🔰',
         );
@@ -226,9 +236,20 @@ class LivreurTrustConfig {
     return 'Pour atteindre $nextLevel : ${messages.join(', ')}';
   }
 
-  /// Vérifier si un livreur peut accepter une commande
+  /// Vérifier si un livreur peut accepter une commande (montant)
   bool canAcceptOrder(double orderAmount) {
     return orderAmount <= maxOrderAmount;
+  }
+
+  /// Vérifier si un livreur peut accepter plus de livraisons (limite simultanée)
+  bool canAcceptMoreDeliveries(int currentActiveDeliveries) {
+    return currentActiveDeliveries < maxActiveDeliveries;
+  }
+
+  /// Obtenir le nombre de livraisons restantes que le livreur peut accepter
+  int getRemainingDeliverySlots(int currentActiveDeliveries) {
+    final remaining = maxActiveDeliveries - currentActiveDeliveries;
+    return remaining > 0 ? remaining : 0;
   }
 
   /// Vérifier si le solde non reversé dépasse la limite

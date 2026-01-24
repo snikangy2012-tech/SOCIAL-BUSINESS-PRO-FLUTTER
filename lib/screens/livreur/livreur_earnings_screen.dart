@@ -1,4 +1,4 @@
-// lib/screens/livreur/livreur_earnings_screen.dart
+﻿// lib/screens/livreur/livreur_earnings_screen.dart
 // Écran de gestion des gains pour les livreurs - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
@@ -128,6 +128,17 @@ class _LivreurEarningsScreenState extends State<LivreurEarningsScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/livreur');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('💰 Mes Gains'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -498,3 +509,4 @@ class _LivreurEarningsScreenState extends State<LivreurEarningsScreen> {
     );
   }
 }
+

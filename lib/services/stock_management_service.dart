@@ -302,4 +302,103 @@ class StockManagementService {
       return false;
     }
   }
+
+  /// 🔧 ADMIN: Réinitialiser le stock réservé d'un produit spécifique
+  static Future<void> resetReservedStock(String productId) async {
+    try {
+      debugPrint('🔄 Réinitialisation reservedStock pour: $productId');
+
+      await _firestore
+          .collection(FirebaseCollections.products)
+          .doc(productId)
+          .update({
+        'reservedStock': 0,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      debugPrint('✅ reservedStock réinitialisé à 0');
+    } catch (e) {
+      debugPrint('❌ Erreur réinitialisation reservedStock: $e');
+    }
+  }
+
+  /// 🔧 ADMIN: Réinitialiser le stock réservé de TOUS les produits
+  /// Utile pour corriger les données corrompues
+  static Future<Map<String, dynamic>> resetAllReservedStock() async {
+    try {
+      debugPrint('🔄 Réinitialisation de tous les reservedStock...');
+
+      final snapshot = await _firestore
+          .collection(FirebaseCollections.products)
+          .get();
+
+      int updatedCount = 0;
+      int totalProducts = snapshot.docs.length;
+
+      final batch = _firestore.batch();
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final currentReserved = data['reservedStock'] as int? ?? 0;
+
+        if (currentReserved > 0) {
+          batch.update(doc.reference, {
+            'reservedStock': 0,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+          updatedCount++;
+          debugPrint('  📦 ${data['name']}: $currentReserved → 0');
+        }
+      }
+
+      if (updatedCount > 0) {
+        await batch.commit();
+      }
+
+      debugPrint('✅ Réinitialisation terminée: $updatedCount/$totalProducts produits mis à jour');
+
+      return {
+        'success': true,
+        'totalProducts': totalProducts,
+        'updatedCount': updatedCount,
+      };
+    } catch (e) {
+      debugPrint('❌ Erreur réinitialisation globale: $e');
+      return {
+        'success': false,
+        'error': e.toString(),
+      };
+    }
+  }
+
+  /// 🔍 DEBUG: Afficher l'état du stock de tous les produits
+  static Future<void> debugPrintAllStockStatus() async {
+    try {
+      debugPrint('\n📊 === ÉTAT DU STOCK DE TOUS LES PRODUITS ===\n');
+
+      final snapshot = await _firestore
+          .collection(FirebaseCollections.products)
+          .get();
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final name = data['name'] ?? 'Sans nom';
+        final stock = data['stock'] as int? ?? 0;
+        final reserved = data['reservedStock'] as int? ?? 0;
+        final available = stock - reserved;
+
+        final status = available <= 0
+            ? '❌ INDISPONIBLE'
+            : available <= 5
+                ? '⚠️ Stock faible'
+                : '✅ OK';
+
+        debugPrint('$status $name: stock=$stock, reserved=$reserved, available=$available');
+      }
+
+      debugPrint('\n===========================================\n');
+    } catch (e) {
+      debugPrint('❌ Erreur debug stock: $e');
+    }
+  }
 }

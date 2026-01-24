@@ -5,10 +5,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/order_model.dart';
+import '../models/livreur_trust_level.dart';
 import '../config/constants.dart';
 import 'geolocation_service.dart';
 import 'delivery_service.dart';
 import 'notification_service.dart';
+import 'livreur_trust_service.dart';
 
 /// Service pour assigner les commandes aux livreurs par distance
 class OrderAssignmentService {
@@ -194,33 +196,70 @@ class OrderAssignmentService {
     try {
       debugPrint('🚚 Assignation commande $orderId au livreur $livreurId...');
 
-      // Vérifier que le livreur n'a pas déjà une livraison EN COURS (in_progress)
-      // Note: On autorise plusieurs livraisons assignées (assigned), mais une seule en cours
-      final inProgressDeliveries = await _firestore
+      // ✅ SYSTÈME DE CONFIANCE: Récupérer la configuration du livreur
+      // La limite de livraisons simultanées dépend du niveau de confiance:
+      // - Débutant: 1 livraison (strict)
+      // - Confirmé: 2 livraisons
+      // - Expert: 3 livraisons
+      // - VIP: 5 livraisons
+      final trustConfig = await LivreurTrustService.getLivreurTrustConfig(livreurId);
+      final maxActiveDeliveries = trustConfig.maxActiveDeliveries;
+
+      debugPrint('📊 Niveau de confiance: ${trustConfig.displayName} ${trustConfig.badgeIcon}');
+      debugPrint('   Limite de livraisons simultanées: $maxActiveDeliveries');
+
+      // Récupérer toutes les livraisons du livreur
+      final allDeliveries = await _firestore
           .collection(FirebaseCollections.deliveries)
           .where('livreurId', isEqualTo: livreurId)
-          .where('status', isEqualTo: 'in_progress')
           .get();
 
-      if (inProgressDeliveries.docs.isNotEmpty) {
-        debugPrint('❌ Le livreur a déjà une livraison en cours de transport');
-        throw Exception('Ce livreur a déjà une livraison en cours de transport. Il doit la terminer avant d\'en accepter une autre.');
+      // Filtrer les livraisons actives (assigned, picked_up, in_transit)
+      final activeStatuses = ['assigned', 'picked_up', 'in_transit'];
+      final activeDeliveries = allDeliveries.docs
+          .where((doc) => activeStatuses.contains(doc.data()['status']))
+          .toList();
+
+      final activeCount = activeDeliveries.length;
+
+      // ✅ Vérifier si le livreur peut accepter plus de livraisons
+      if (!trustConfig.canAcceptMoreDeliveries(activeCount)) {
+        debugPrint('❌ Le livreur a atteint sa limite: $activeCount/$maxActiveDeliveries livraison(s) active(s)');
+
+        // Construire le message d'erreur détaillé
+        final statusMessages = <String>[];
+        for (final delivery in activeDeliveries) {
+          final data = delivery.data();
+          final status = data['status'];
+          String statusLabel;
+          switch (status) {
+            case 'assigned':
+              statusLabel = 'assignée';
+              break;
+            case 'picked_up':
+              statusLabel = 'récupérée';
+              break;
+            case 'in_transit':
+              statusLabel = 'en livraison';
+              break;
+            default:
+              statusLabel = status;
+          }
+          statusMessages.add('• 1 livraison $statusLabel');
+        }
+
+        final remainingSlots = trustConfig.getRemainingDeliverySlots(activeCount);
+        throw Exception(
+          'Vous avez atteint votre limite de $maxActiveDeliveries livraison(s) simultanée(s).\n'
+          'Niveau: ${trustConfig.displayName} ${trustConfig.badgeIcon}\n\n'
+          'Livraisons en cours:\n${statusMessages.join('\n')}\n\n'
+          'Terminez une livraison pour en accepter une nouvelle.'
+          '${trustConfig.level != LivreurTrustLevel.vip ? '\n\n💡 Astuce: Montez de niveau pour augmenter cette limite!' : ''}'
+        );
       }
 
-      // Vérifier le nombre de livraisons assignées (limite: 5 maximum)
-      final assignedDeliveries = await _firestore
-          .collection(FirebaseCollections.deliveries)
-          .where('livreurId', isEqualTo: livreurId)
-          .where('status', isEqualTo: 'assigned')
-          .get();
-
-      const maxAssignedDeliveries = 5;
-      if (assignedDeliveries.docs.length >= maxAssignedDeliveries) {
-        debugPrint('❌ Le livreur a déjà $maxAssignedDeliveries livraisons assignées');
-        throw Exception('Ce livreur a atteint la limite de $maxAssignedDeliveries livraisons assignées simultanément.');
-      }
-
-      debugPrint('✅ Livreur éligible: ${assignedDeliveries.docs.length} assignées, 0 en cours');
+      final remainingSlots = trustConfig.getRemainingDeliverySlots(activeCount);
+      debugPrint('✅ Livreur éligible: $activeCount/$maxActiveDeliveries livraisons actives ($remainingSlots places restantes)');
 
       // Vérifier que la commande est toujours disponible
       final orderDoc = await _firestore
@@ -431,7 +470,8 @@ class OrderAssignmentService {
   }
 
   /// Assigner plusieurs commandes du même vendeur à un livreur
-  /// Vérifie que les commandes sont du même vendeur et dans la même zone
+  /// ✅ La limite dépend du niveau de confiance du livreur:
+  /// - Débutant: 1 livraison, Confirmé: 2, Expert: 3, VIP: 5
   static Future<Map<String, dynamic>> assignMultipleOrdersToLivreur({
     required List<String> orderIds,
     required String livreurId,
@@ -443,29 +483,36 @@ class OrderAssignmentService {
       final successList = <String>[];
       final failedList = <Map<String, String>>[];
 
-      // Vérifier que le livreur peut prendre ces commandes
-      final inProgressCount = await _firestore
+      // ✅ SYSTÈME DE CONFIANCE: Récupérer la configuration du livreur
+      final trustConfig = await LivreurTrustService.getLivreurTrustConfig(livreurId);
+      final maxActiveDeliveries = trustConfig.maxActiveDeliveries;
+
+      debugPrint('📊 Niveau de confiance: ${trustConfig.displayName} ${trustConfig.badgeIcon}');
+      debugPrint('   Limite de livraisons simultanées: $maxActiveDeliveries');
+
+      // Récupérer toutes les livraisons actives du livreur
+      final allDeliveries = await _firestore
           .collection(FirebaseCollections.deliveries)
           .where('livreurId', isEqualTo: livreurId)
-          .where('status', isEqualTo: 'in_progress')
-          .count()
           .get();
 
-      if (inProgressCount.count! > 0) {
-        throw Exception('Le livreur a déjà une livraison en cours');
+      final activeStatuses = ['assigned', 'picked_up', 'in_transit'];
+      final activeCount = allDeliveries.docs
+          .where((doc) => activeStatuses.contains(doc.data()['status']))
+          .length;
+
+      // ✅ Vérifier si le livreur peut accepter plus de livraisons
+      if (!trustConfig.canAcceptMoreDeliveries(activeCount)) {
+        throw Exception(
+          'Vous avez atteint votre limite de $maxActiveDeliveries livraison(s) simultanée(s).\n'
+          'Niveau: ${trustConfig.displayName} ${trustConfig.badgeIcon}\n'
+          'Terminez vos livraisons en cours avant d\'en accepter de nouvelles.'
+        );
       }
 
-      final assignedCount = await _firestore
-          .collection(FirebaseCollections.deliveries)
-          .where('livreurId', isEqualTo: livreurId)
-          .where('status', isEqualTo: 'assigned')
-          .count()
-          .get();
-
-      const maxAssignedDeliveries = 5;
-      if (assignedCount.count! + orderIds.length > maxAssignedDeliveries) {
-        throw Exception('Limite dépassée: maximum $maxAssignedDeliveries livraisons simultanées');
-      }
+      // Calculer combien de nouvelles livraisons peuvent être acceptées
+      final availableSlots = trustConfig.getRemainingDeliverySlots(activeCount);
+      debugPrint('📦 Places disponibles: $availableSlots (actuelles: $activeCount, max: $maxActiveDeliveries)');
 
       // Récupérer toutes les commandes pour validation
       final orders = await Future.wait(
@@ -540,7 +587,21 @@ class OrderAssignmentService {
         }
       }
 
-      // Assigner les commandes valides
+      // ✅ Limiter le nombre de commandes à assigner selon les places disponibles
+      if (orderModels.length > availableSlots) {
+        debugPrint('⚠️ Limitation: ${orderModels.length} commandes demandées mais seulement $availableSlots places disponibles');
+        // Marquer les commandes excédentaires comme échouées
+        for (var i = availableSlots; i < orderModels.length; i++) {
+          failedList.add({
+            'orderId': orderModels[i].id,
+            'reason': 'Limite de livraisons atteinte (${trustConfig.displayName}: max $maxActiveDeliveries)'
+          });
+        }
+        // Ne garder que les commandes qu'on peut assigner
+        orderModels.removeRange(availableSlots, orderModels.length);
+      }
+
+      // Assigner les commandes valides (dans la limite des places disponibles)
       for (final order in orderModels) {
         try {
           await assignOrderToLivreur(
@@ -557,6 +618,7 @@ class OrderAssignmentService {
       }
 
       debugPrint('✅ Assignation groupée terminée: ${successList.length} succès, ${failedList.length} échecs');
+      debugPrint('   Niveau: ${trustConfig.displayName}, Places utilisées: ${successList.length}/$availableSlots');
 
       // Retourner les résultats
       return {

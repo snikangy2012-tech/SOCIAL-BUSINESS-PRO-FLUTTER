@@ -1,11 +1,16 @@
-// ===== lib/screens/livreur/livreur_commissions_screen.dart =====
+﻿// ===== lib/screens/livreur/livreur_commissions_screen.dart =====
 // Écran pour que les livreurs voient leurs commissions à payer à la plateforme
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import '../../config/constants.dart';
 import '../../models/platform_transaction_model.dart';
 import '../../services/platform_transaction_service.dart';
+import '../../services/livreur_stats_service.dart';
+import '../../services/subscription_service.dart';
+import '../../utils/number_formatter.dart';
 import '../../widgets/system_ui_scaffold.dart';
 
 class LivreurCommissionsScreen extends StatefulWidget {
@@ -20,6 +25,12 @@ class _LivreurCommissionsScreenState extends State<LivreurCommissionsScreen> {
   List<PlatformTransaction> _pendingCommissions = [];
   double _totalDebt = 0.0;
   final String _livreurId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+  // Statistiques mensuelles
+  double _monthEarnings = 0.0;
+  double _commissionRate = 0.25;
+  double _monthCommission = 0.0;
+  double _monthNetRevenue = 0.0;
 
   @override
   void initState() {
@@ -39,9 +50,29 @@ class _LivreurCommissionsScreenState extends State<LivreurCommissionsScreen> {
       // Calculer le total dû
       final total = await PlatformTransactionService.getTotalLivreurDebt(_livreurId);
 
+      // Charger les statistiques mensuelles
+      final livreurStats = await LivreurStatsService.getLivreurStats(_livreurId);
+
+      // Charger le taux de commission
+      final subscriptionService = SubscriptionService();
+      double commissionRate = 0.25;
+      try {
+        commissionRate = await subscriptionService.getLivreurCommissionRate(_livreurId);
+      } catch (e) {
+        debugPrint('⚠️ Erreur chargement taux commission: $e');
+      }
+
+      // Calculer commission et revenu net
+      final monthCommission = livreurStats.monthEarnings * commissionRate;
+      final monthNetRevenue = livreurStats.monthEarnings - monthCommission;
+
       setState(() {
         _pendingCommissions = pending;
         _totalDebt = total;
+        _monthEarnings = livreurStats.monthEarnings.toDouble();
+        _commissionRate = commissionRate;
+        _monthCommission = monthCommission.toDouble();
+        _monthNetRevenue = monthNetRevenue.toDouble();
         _isLoading = false;
       });
     } catch (e) {
@@ -59,7 +90,20 @@ class _LivreurCommissionsScreenState extends State<LivreurCommissionsScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/livreur');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Mes Commissions'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -80,6 +124,10 @@ class _LivreurCommissionsScreenState extends State<LivreurCommissionsScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // Statistiques mensuelles
+        _buildMonthlyStatsCard(),
+        const SizedBox(height: 24),
+
         // Carte total dû
         _buildTotalDebtCard(),
         const SizedBox(height: 24),
@@ -119,6 +167,97 @@ class _LivreurCommissionsScreenState extends State<LivreurCommissionsScreen> {
           const SizedBox(height: 12),
           ..._pendingCommissions.map((transaction) => _buildCommissionCard(transaction)),
         ],
+      ],
+    );
+  }
+
+  Widget _buildMonthlyStatsCard() {
+    return Card(
+      elevation: 4,
+      color: AppColors.primary.withValues(alpha: 0.05),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.insights, color: AppColors.primary, size: 28),
+                SizedBox(width: 12),
+                Text(
+                  'Statistiques du mois',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Revenu brut
+            _buildStatRow(
+              'Revenu brut',
+              formatPriceWithCurrency(_monthEarnings, currency: 'FCFA'),
+              AppColors.primary,
+              Icons.account_balance_wallet,
+            ),
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 12),
+            // Commission
+            _buildStatRow(
+              'Commission (${(_commissionRate * 100).toStringAsFixed(0)}%)',
+              '- ${formatPriceWithCurrency(_monthCommission, currency: 'FCFA')}',
+              AppColors.error,
+              Icons.percent,
+            ),
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 12),
+            // Revenu net
+            _buildStatRow(
+              'Revenu net',
+              formatPriceWithCurrency(_monthNetRevenue, currency: 'FCFA'),
+              AppColors.success,
+              Icons.account_balance,
+              isBold: true,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatRow(String label, String value, Color color, IconData icon, {bool isBold = false}) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[700],
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: isBold ? 18 : 16,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+            color: color,
+          ),
+        ),
       ],
     );
   }
@@ -361,3 +500,4 @@ class _LivreurCommissionsScreenState extends State<LivreurCommissionsScreen> {
     );
   }
 }
+

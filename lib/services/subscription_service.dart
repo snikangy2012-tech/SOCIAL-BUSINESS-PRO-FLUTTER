@@ -9,7 +9,7 @@ class SubscriptionService {
   static final _firestore = FirebaseFirestore.instance;
 
   // Collections Firestore
-  static const String _subscriptionsCollection = 'subscriptions'; // Abonnements VENDEURS
+  static const String _subscriptionsCollection = 'vendeur_subscriptions'; // Abonnements VENDEURS
   static const String _livreurSubscriptionsCollection =
       'livreur_subscriptions'; // Abonnements LIVREURS (hybride)
   static const String _livreurTiersCollection =
@@ -55,7 +55,7 @@ class SubscriptionService {
       // ✅ ACTIVER L'ÉCRITURE FIRESTORE pour que l'admin puisse voir les abonnements
       try {
         final docRef = await _firestore
-            .collection('vendeur_subscriptions')
+            .collection(_subscriptionsCollection)
             .add(subscription.toMap())
             .timeout(
               const Duration(seconds: 10),
@@ -937,7 +937,7 @@ class SubscriptionService {
 
         // Vérifier si l'abonnement existe déjà
         final existingSub = await _firestore
-            .collection('vendeur_subscriptions')
+            .collection(_subscriptionsCollection)
             .where('vendeurId', isEqualTo: vendeurId)
             .limit(1)
             .get();
@@ -946,7 +946,7 @@ class SubscriptionService {
           // Créer abonnement BASIQUE
           final subscription = VendeurSubscription.createBasique(vendeurId);
           await _firestore
-              .collection('vendeur_subscriptions')
+              .collection(_subscriptionsCollection)
               .add(subscription.toMap());
           created++;
           debugPrint('✅ Abonnement créé pour vendeur: $vendeurId');

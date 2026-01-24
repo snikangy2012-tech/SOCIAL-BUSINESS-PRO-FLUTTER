@@ -1,11 +1,13 @@
-// ===== lib/screens/acheteur/payment_methods_screen.dart =====
+﻿// ===== lib/screens/acheteur/payment_methods_screen.dart =====
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/payment_method_model.dart';
 import '../../services/payment_service.dart';
 import '../../providers/auth_provider_firebase.dart';
 import 'package:social_business_pro/config/constants.dart';
+import '../../config/payment_methods_config.dart';
 import '../../widgets/system_ui_scaffold.dart';
 
 class PaymentMethodsScreen extends StatefulWidget {
@@ -146,6 +148,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     Color color;
     String title;
     String subtitle;
+    String? logoPath;
 
     switch (method.type) {
       case 'card':
@@ -159,6 +162,8 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
         color = Colors.orange;
         title = method.provider ?? 'Mobile Money';
         subtitle = method.phoneNumber ?? '';
+        // ✅ Obtenir le logo Mobile Money
+        logoPath = PaymentMethodsConfig.getLogo(method.provider ?? '');
         break;
       case 'bank_transfer':
         icon = Icons.account_balance;
@@ -176,15 +181,36 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: color.withValues(alpha: 0.1),
-          child: Icon(icon, color: color),
-        ),
+        leading: logoPath != null
+            ? Container(
+                width: 56,
+                height: 56,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.grey.shade300, width: 1),
+                ),
+                child: Image.asset(
+                  logoPath,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(icon, color: color);
+                  },
+                ),
+              )
+            : CircleAvatar(
+                backgroundColor: color.withValues(alpha: 0.1),
+                child: Icon(icon, color: color),
+              ),
         title: Row(
           children: [
-            Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            Flexible(
+              child: Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
             if (method.isDefault) ...[
               const SizedBox(width: 8),
@@ -258,7 +284,20 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/acheteur');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Moyens de paiement'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -837,3 +876,4 @@ class _AddPaymentMethodSheetState extends State<_AddPaymentMethodSheet>
     );
   }
 }
+

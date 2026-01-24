@@ -1,5 +1,6 @@
-// ===== lib/screens/admin/global_statistics_screen.dart =====
+﻿// ===== lib/screens/admin/global_statistics_screen.dart =====
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -397,7 +398,20 @@ class _GlobalStatisticsScreenState extends State<GlobalStatisticsScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Statistiques Globales'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         actions: [
           PopupMenuButton<String>(
             initialValue: _selectedPeriod,
@@ -621,3 +635,4 @@ class _GlobalStatisticsScreenState extends State<GlobalStatisticsScreen> {
     );
   }
 }
+

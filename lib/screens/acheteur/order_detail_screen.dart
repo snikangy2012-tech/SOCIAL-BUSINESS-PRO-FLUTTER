@@ -1,4 +1,4 @@
-// ===== lib/screens/acheteur/order_detail_screen.dart =====
+﻿// ===== lib/screens/acheteur/order_detail_screen.dart =====
 // Détail d'une commande pour l'acheteur - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
@@ -232,7 +232,18 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
     if (_isLoading) {
       return SystemUIScaffold(
         appBar: AppBar(
-          title: const Text('Détail de la commande'),
+          leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/acheteur-home');
+            }
+          },
+          tooltip: 'Retour',
+        ),
+        title: const Text('Détail de la commande'),
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
         ),
@@ -243,7 +254,18 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
     if (_order == null) {
       return SystemUIScaffold(
         appBar: AppBar(
-          title: const Text('Détail de la commande'),
+          leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/acheteur-home');
+            }
+          },
+          tooltip: 'Retour',
+        ),
+        title: const Text('Détail de la commande'),
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
         ),
@@ -255,6 +277,17 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
 
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/acheteur-home');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Détail de la commande'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -838,6 +871,29 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
                 ),
               ],
 
+              // Bouton QR Code si Click & Collect et commande prête
+              if (_order!.deliveryMethod == 'store_pickup' &&
+                  (_order!.status.toLowerCase() == 'ready' ||
+                   _order!.status.toLowerCase() == 'confirmed' ||
+                   _order!.status.toLowerCase() == 'preparing')) ...[
+                const SizedBox(height: AppSpacing.md),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      context.push('/acheteur/order/${_order!.id}/pickup-qr');
+                    },
+                    icon: const Icon(Icons.qr_code_2),
+                    label: const Text('Mon QR Code'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+                ),
+              ],
+
               // Bouton de suivi si en livraison
               if (_order!.status.toLowerCase() == 'in_delivery') ...[
                 const SizedBox(height: AppSpacing.md),
@@ -865,7 +921,9 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
                 // Noter les produits
                 ..._order!.items.map((item) => Padding(
                       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                      child: OutlinedButton.icon(
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
                         onPressed: () async {
                           final reviewService = ReviewService();
 
@@ -930,6 +988,7 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
                           side: const BorderSide(color: AppColors.warning),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
+                      ),
                       ),
                     )),
 
@@ -1079,3 +1138,4 @@ class _AcheteurOrderDetailScreenState extends State<AcheteurOrderDetailScreen> {
     );
   }
 }
+

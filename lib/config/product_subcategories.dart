@@ -5,21 +5,21 @@ class ProductSubcategories {
   // Sous-catégories par catégorie principale
   static const Map<String, List<String>> subcategories = {
     'mode': [
-      'Robes',
-      'Chemises',
-      'Pantalons',
+      'Vêtements Homme',
+      'Vêtements Femme',
+      'Vêtements Enfant',
       'Chaussures',
-      'Accessoires',
-      'Sacs',
+      'Sacs & Accessoires',
+      'Montres & Bijoux',
       'Autre (à préciser)',
     ],
     'electronique': [
-      'Smartphones',
-      'Tablettes',
+      'Smartphones & Tablettes',
       'Ordinateurs',
-      'Accessoires',
-      'Télévisions',
-      'Audio & Son',
+      'TV & Audio',
+      'Accessoires High-Tech',
+      'Appareils Photo',
+      'Consoles & Jeux Vidéo',
       'Autre (à préciser)',
     ],
     'electromenager': [

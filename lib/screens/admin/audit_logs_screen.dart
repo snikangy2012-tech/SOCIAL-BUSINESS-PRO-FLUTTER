@@ -1,7 +1,8 @@
-// ===== lib/screens/admin/audit_logs_screen.dart =====
+﻿// ===== lib/screens/admin/audit_logs_screen.dart =====
 // Écran de consultation des logs d'audit (Admin)
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../config/constants.dart';
 import '../../models/audit_log_model.dart';
@@ -322,6 +323,17 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Logs d\'Audit'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -822,3 +834,4 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
     }
   }
 }
+

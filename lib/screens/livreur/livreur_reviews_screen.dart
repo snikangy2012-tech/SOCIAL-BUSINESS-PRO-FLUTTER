@@ -1,7 +1,8 @@
-// ===== lib/screens/livreur/livreur_reviews_screen.dart =====
+﻿// ===== lib/screens/livreur/livreur_reviews_screen.dart =====
 // Écran de visualisation des avis pour les livreurs
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../config/constants.dart';
@@ -86,6 +87,17 @@ class _LivreurReviewsScreenState extends State<LivreurReviewsScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/livreur');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Mes avis clients'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -247,3 +259,4 @@ class _LivreurReviewsScreenState extends State<LivreurReviewsScreen> {
     );
   }
 }
+

@@ -1,4 +1,4 @@
-// ===== lib/screens/admin/admin_livreur_management_screen.dart =====
+﻿// ===== lib/screens/admin/admin_livreur_management_screen.dart =====
 // Gestion des livreurs avec documents - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
@@ -187,8 +187,20 @@ class _AdminLivreurManagementScreenState extends State<AdminLivreurManagementScr
 
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Gestion Livreurs'),
         backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.sort),
@@ -577,3 +589,4 @@ class _AdminLivreurManagementScreenState extends State<AdminLivreurManagementScr
     );
   }
 }
+

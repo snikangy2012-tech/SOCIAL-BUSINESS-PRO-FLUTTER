@@ -1,5 +1,6 @@
-// ===== lib/screens/admin/settings_screen.dart =====
+﻿// ===== lib/screens/admin/settings_screen.dart =====
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:social_business_pro/config/constants.dart';
 import '../../widgets/system_ui_scaffold.dart';
@@ -92,6 +93,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Paramètres de la plateforme'),
         backgroundColor: AppColors.warning,
         foregroundColor: Colors.white,
@@ -150,6 +162,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // Section Gestion des données
+                  _buildSection(
+                    'Gestion des données',
+                    [
+                      ListTile(
+                        leading: const Icon(Icons.category, color: AppColors.secondary),
+                        title: const Text('Gestion des catégories'),
+                        subtitle: const Text('Gérer les catégories et sous-catégories de produits'),
+                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                        onTap: () => context.go('/admin/categories-management'),
+                      ),
+                    ],
+                  ),
+
                   const SizedBox(height: AppSpacing.xl),
                   SizedBox(
                     width: double.infinity,
@@ -234,3 +262,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
+

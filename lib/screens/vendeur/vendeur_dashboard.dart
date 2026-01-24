@@ -11,10 +11,12 @@ import '../../providers/vendeur_navigation_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../services/review_service.dart';
 import '../../services/vendor_stats_service.dart';
+import '../../services/subscription_service.dart';
 import '../../utils/order_status_helper.dart';
 import '../../utils/number_formatter.dart';
 import '../../widgets/system_ui_scaffold.dart';
 import '../../widgets/kyc_tier_banner.dart';
+import '../../widgets/vendeur_drawer.dart';
 
 class VendeurDashboard extends StatefulWidget {
   const VendeurDashboard({super.key});
@@ -31,6 +33,11 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
   // Données du dashboard
   DashboardStats _stats = DashboardStats();
   List<RecentOrderData> _recentOrders = []; // ✅ Utilise RecentOrderData du service
+
+  // Commission et revenu net
+  double _commissionRate = 0.0; // Taux de commission
+  double _monthCommission = 0.0; // Commission mensuelle
+  double _monthNetRevenue = 0.0; // Revenu net mensuel
 
   @override
   void initState() {
@@ -114,6 +121,25 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
         debugPrint('⚠️ Erreur chargement note: $e');
       }
 
+      // ✅ Charger le taux de commission
+      final subscriptionService = SubscriptionService();
+      double commissionRate = 0.0;
+      try {
+        commissionRate = await subscriptionService.getVendeurCommissionRate(user.id);
+        debugPrint('💰 Taux de commission: ${(commissionRate * 100).toStringAsFixed(1)}%');
+      } catch (e) {
+        debugPrint('⚠️ Erreur chargement commission: $e');
+        commissionRate = 0.15; // Valeur par défaut 15%
+      }
+
+      // ✅ Calculer la commission et le revenu net mensuel
+      final monthCommission = vendorStats.monthlyRevenue * commissionRate;
+      final monthNetRevenue = vendorStats.monthlyRevenue - monthCommission;
+
+      debugPrint('💵 Revenu brut mensuel: ${vendorStats.monthlyRevenue} FCFA');
+      debugPrint('💸 Commission mensuelle: $monthCommission FCFA');
+      debugPrint('✅ Revenu net mensuel: $monthNetRevenue FCFA');
+
       if (!mounted) {
         debugPrint('❌ Widget démonté pendant le chargement');
         return;
@@ -127,6 +153,7 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
           totalOrders: vendorStats.totalOrders,
           pendingOrders: vendorStats.pendingOrders,
           completedOrders: vendorStats.completedOrders,
+          returnedOrders: vendorStats.returnedOrders,
           totalProducts: vendorStats.totalProducts,
           activeProducts: vendorStats.activeProducts,
           viewsThisMonth: vendorStats.viewsThisMonth,
@@ -135,6 +162,9 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
         );
 
         _recentOrders = recentOrders;
+        _commissionRate = commissionRate;
+        _monthCommission = monthCommission.toDouble();
+        _monthNetRevenue = monthNetRevenue.toDouble();
       });
 
       debugPrint('✅ Données chargées avec succès');
@@ -219,6 +249,7 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
 
     // Dashboard
     return SystemUIScaffold(
+      drawer: const VendeurDrawer(),
       body: RefreshIndicator(
         onRefresh: _handleRefresh,
         color: AppColors.primary,
@@ -232,6 +263,16 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
               pinned: true,
               elevation: 0,
               backgroundColor: AppColors.primary,
+              leading: Builder(
+                builder: (BuildContext scaffoldContext) {
+                  return IconButton(
+                    icon: const Icon(Icons.dehaze_rounded, color: Colors.white, size: 28),
+                    onPressed: () => Scaffold.of(scaffoldContext).openDrawer(),
+                    tooltip: 'Menu',
+                    splashRadius: 24,
+                  );
+                },
+              ),
               actions: [
                 // Bouton notifications avec badge
                 Consumer<NotificationProvider>(
@@ -274,6 +315,37 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
                     );
                   },
                 ),
+                // Badge photo de profil
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Consumer<auth.AuthProvider>(
+                    builder: (context, authProvider, child) {
+                      final user = authProvider.user;
+                      return GestureDetector(
+                        onTap: () => context.push('/vendeur/profile'),
+                        child: CircleAvatar(
+                          radius: 18,
+                          backgroundColor: Colors.white,
+                          backgroundImage: user?.profile['photoURL'] != null
+                              ? NetworkImage(user!.profile['photoURL'])
+                              : null,
+                          child: user?.profile['photoURL'] == null
+                              ? Text(
+                                  user?.displayName.isNotEmpty == true
+                                      ? user!.displayName[0].toUpperCase()
+                                      : 'V',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primary,
+                                  ),
+                                )
+                              : null,
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ],
               flexibleSpace: FlexibleSpaceBar(
                 background: Container(
@@ -288,26 +360,31 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
                     ),
                   ),
                   child: SafeArea(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Ma Boutique',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Bienvenue ! 👋',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
+                    child: Consumer<auth.AuthProvider>(
+                      builder: (context, authProvider, _) {
+                        final userName = authProvider.user?.displayName ?? 'Vendeur';
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              'Tableau de bord',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Bienvenue, $userName ! 👋',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -350,50 +427,174 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
                           ),
                         ],
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Revenus du mois',
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.9),
-                                    fontSize: 14,
-                                  ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Revenus du mois',
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.9),
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      formatPriceWithCurrency(_stats.monthlyRevenue,
+                                          currency: 'FCFA'),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  formatPriceWithCurrency(_stats.monthlyRevenue, currency: 'FCFA'),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                              ),
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
-                              ],
-                            ),
+                                child: const Icon(
+                                  Icons.trending_up,
+                                  color: Colors.white,
+                                  size: 32,
+                                ),
+                              ),
+                            ],
                           ),
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Icon(
-                              Icons.trending_up,
-                              color: Colors.white,
-                              size: 32,
-                            ),
+                          const SizedBox(height: 16),
+                          // Séparateur
+                          Divider(color: Colors.white.withValues(alpha: 0.3), thickness: 1),
+                          const SizedBox(height: 12),
+                          // Détails commission et revenu net
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Commission (${(_commissionRate * 100).toStringAsFixed(0)}%)',
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.8),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '- ${formatPriceWithCurrency(_monthCommission, currency: 'FCFA')}',
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.95),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Revenu net',
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.8),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      formatPriceWithCurrency(_monthNetRevenue, currency: 'FCFA'),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
 
                     const SizedBox(height: 24),
+
+                    // 📱 Bouton Scanner QR Code
+                    Card(
+                      elevation: 2,
+                      child: InkWell(
+                        onTap: () => context.push('/vendeur/qr-scanner'),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.success.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.qr_code_scanner,
+                                  color: AppColors.success,
+                                  size: 28,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Scanner QR Code',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      'Valider le retrait Click & Collect',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.arrow_forward_ios,
+                                color: Colors.grey,
+                                size: 16,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
 
                     // 💳 Bouton Paiement Commissions
                     Card(
@@ -453,7 +654,93 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
 
                     const SizedBox(height: 24),
 
-                    // Statistiques
+                    // Statistiques des Commandes
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.shopping_cart_outlined,
+                                color: AppColors.primary,
+                                size: 24,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Statistiques des Commandes',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const Spacer(),
+                              TextButton.icon(
+                                onPressed: () => context.push('/vendeur/vendeur-statistics'),
+                                icon: const Icon(Icons.bar_chart, size: 18),
+                                label: const Text('Voir plus'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.primary,
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          GridView.count(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            childAspectRatio: 1.5,
+                            children: [
+                              _buildOrderStatCard(
+                                'Totales',
+                                '${_stats.totalOrders}',
+                                Icons.receipt_long,
+                                const Color.fromARGB(255, 6, 15, 188),
+                              ),
+                              _buildOrderStatCard(
+                                'Livrées',
+                                '${_stats.completedOrders}',
+                                Icons.check_circle_outline,
+                                AppColors.success,
+                              ),
+                              _buildOrderStatCard(
+                                'En cours',
+                                '${_stats.pendingOrders}',
+                                Icons.pending_outlined,
+                                AppColors.warning,
+                              ),
+                              _buildOrderStatCard(
+                                'Retournées',
+                                '${_stats.returnedOrders}',
+                                Icons.undo_outlined,
+                                AppColors.error,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Statistiques générales (produits, notes, vues)
                     GridView.count(
                       crossAxisCount: 2,
                       crossAxisSpacing: 12,
@@ -462,12 +749,6 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
                       physics: const NeverScrollableScrollPhysics(),
                       childAspectRatio: 1.5,
                       children: [
-                        _buildStatCard(
-                          'Commandes',
-                          '${_stats.totalOrders}',
-                          Icons.shopping_cart_outlined,
-                          AppColors.primary,
-                        ),
                         _buildStatCard(
                           'Produits actifs',
                           '${_stats.activeProducts}/${_stats.totalProducts}',
@@ -689,6 +970,52 @@ class _VendeurDashboardState extends State<VendeurDashboard> {
     );
   }
 
+  // Carte de statistique pour les commandes
+  Widget _buildOrderStatCard(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 18),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Helpers
   Color _getStatusColor(String status) {
     return OrderStatusHelper.getStatusColor(status);
@@ -706,6 +1033,7 @@ class DashboardStats {
   final int totalOrders;
   final int pendingOrders;
   final int completedOrders;
+  final int returnedOrders;
   final int totalProducts;
   final int activeProducts;
   final int viewsThisMonth;
@@ -718,6 +1046,7 @@ class DashboardStats {
     this.totalOrders = 0,
     this.pendingOrders = 0,
     this.completedOrders = 0,
+    this.returnedOrders = 0,
     this.totalProducts = 0,
     this.activeProducts = 0,
     this.viewsThisMonth = 0,

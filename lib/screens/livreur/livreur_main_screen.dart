@@ -1,4 +1,4 @@
-// lib/screens/livreur/livreur_main_screen.dart
+﻿// lib/screens/livreur/livreur_main_screen.dart
 // Écran principal pour les livreurs avec Bottom Navigation Bar
 
 import 'package:flutter/material.dart';
@@ -36,7 +36,7 @@ class _LivreurMainScreenState extends State<LivreurMainScreen> {
 
     if (user == null || user.userType != UserType.livreur) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) context.go('/');
+        if (mounted) context.go('/livreur');
       });
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }

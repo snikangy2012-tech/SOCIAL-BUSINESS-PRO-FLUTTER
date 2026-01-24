@@ -1,7 +1,8 @@
-// ===== lib/screens/admin/suspended_users_screen.dart =====
+﻿// ===== lib/screens/admin/suspended_users_screen.dart =====
 // Écran de gestion des utilisateurs suspendus
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
@@ -45,6 +46,17 @@ class _SuspendedUsersScreenState extends State<SuspendedUsersScreen> {
     return SystemUIScaffold(
       backgroundColor: AppColors.backgroundSecondary,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('Utilisateurs Suspendus'),
         backgroundColor: AppColors.error,
         foregroundColor: Colors.white,
@@ -860,3 +872,4 @@ class _SuspendedUsersScreenState extends State<SuspendedUsersScreen> {
     }
   }
 }
+

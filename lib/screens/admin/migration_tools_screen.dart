@@ -1,7 +1,8 @@
-// ===== lib/screens/admin/migration_tools_screen.dart =====
+﻿// ===== lib/screens/admin/migration_tools_screen.dart =====
 // Outils de migration et maintenance pour l'admin
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:social_business_pro/config/constants.dart';
 import 'package:social_business_pro/services/subscription_service.dart';
 import '../../widgets/system_ui_scaffold.dart';
@@ -88,6 +89,17 @@ class _MigrationToolsScreenState extends State<MigrationToolsScreen> {
   Widget build(BuildContext context) {
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin-dashboard');
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: const Text('🛠️ Outils de Migration'),
         backgroundColor: AppColors.warning,
         foregroundColor: Colors.white,
@@ -295,3 +307,4 @@ class _MigrationToolsScreenState extends State<MigrationToolsScreen> {
     );
   }
 }
+

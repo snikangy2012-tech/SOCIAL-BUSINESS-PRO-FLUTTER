@@ -1,4 +1,4 @@
-// ===== lib/screens/vendeur/shop_setup_screen.dart =====
+﻿// ===== lib/screens/vendeur/shop_setup_screen.dart =====
 // Configuration de la boutique vendeur - SOCIAL BUSINESS Pro
 
 import 'package:flutter/material.dart';
@@ -10,8 +10,11 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../config/constants.dart';
 import '../../providers/auth_provider_firebase.dart';
 import '../../models/user_model.dart';
+import '../../models/category_model.dart';
 import '../../services/geolocation_service.dart';
+import '../../services/category_service.dart';
 import '../../widgets/system_ui_scaffold.dart';
+import '../../config/product_categories.dart';
 
 class ShopSetupScreen extends StatefulWidget {
   const ShopSetupScreen({super.key});
@@ -36,10 +39,14 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
 
   // Valeurs du formulaire
   String _businessType = 'individual';
-  String _businessCategory = 'Alimentation';
+  List<String> _businessCategories = []; // Support multi-sélection (IDs)
   List<String> _selectedZones = [];
   bool _acceptsCashOnDelivery = true;
   bool _acceptsOnlinePayment = false;
+
+  // Catégories disponibles depuis Firestore
+  List<CategoryModel> _availableCategories = [];
+  bool _isLoadingCategories = false;
 
   // Coordonnées GPS de la boutique
   LocationCoords? _shopLocation;
@@ -53,7 +60,30 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
   @override
   void initState() {
     super.initState();
+    _loadAvailableCategories();
     _loadExistingProfile();
+  }
+
+  // Charger les catégories disponibles depuis Firestore
+  Future<void> _loadAvailableCategories() async {
+    setState(() => _isLoadingCategories = true);
+
+    try {
+      final categories = await CategoryService.getActiveCategories();
+      debugPrint('✅ ${categories.length} catégories chargées pour le setup');
+
+      if (mounted) {
+        setState(() {
+          _availableCategories = categories;
+          _isLoadingCategories = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur chargement catégories: $e');
+      if (mounted) {
+        setState(() => _isLoadingCategories = false);
+      }
+    }
   }
 
   @override
@@ -101,19 +131,8 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
             _businessPhoneController.text = _existingProfile!.businessPhone ?? '';
             _businessType = _existingProfile!.businessType;
 
-            // ✅ Valider que la catégorie existe dans le dropdown
-            final validCategories = [
-              'Alimentation',
-              'Mode & Vêtements',
-              'Électronique',
-              'Maison & Décoration',
-              'Beauté & Cosmétiques',
-              'Services',
-              'Autre',
-            ];
-            _businessCategory = validCategories.contains(_existingProfile!.businessCategory)
-                ? _existingProfile!.businessCategory
-                : 'Alimentation'; // Valeur par défaut si invalide
+            // ✅ Charger les catégories existantes (déjà migrées par VendeurProfile.fromMap)
+            _businessCategories = List.from(_existingProfile!.businessCategories);
             _selectedZones = List.from(_existingProfile!.deliveryZones);
             _freeDeliveryThresholdController.text =
                 _existingProfile!.freeDeliveryThreshold?.toString() ?? '';
@@ -217,12 +236,12 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
 
     if (_shopLocation == null) {
       _showError('Veuillez définir la position GPS de votre boutique');
+      setState(() => _currentStep = 1);
       _pageController.animateToPage(
         1,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
-      setState(() => _currentStep = 1);
       return;
     }
 
@@ -246,7 +265,9 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
         businessPhone: _businessPhoneController.text.trim().isEmpty
             ? null
             : _businessPhoneController.text.trim(),
-        businessCategory: _businessCategory,
+        businessCategories: _businessCategories.isNotEmpty
+            ? _businessCategories
+            : ['Alimentation'], // Save all selected categories
         businessAddress: _businessAddressController.text.trim().isEmpty
             ? null
             : _businessAddressController.text.trim(),
@@ -320,6 +341,25 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
 
   // Avancer d'une étape
   void _nextStep() {
+    // Validation de l'étape actuelle avant de passer à la suivante
+    if (_currentStep == 0) {
+      // Étape 1: Vérifier que le formulaire est valide
+      if (!_formKey.currentState!.validate()) {
+        return;
+      }
+
+      // ✅ Validation: Au moins une catégorie doit être sélectionnée
+      if (_businessCategories.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Veuillez sélectionner au moins une catégorie d\'activité'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
+
     if (_currentStep < 4) {
       setState(() => _currentStep++);
       _pageController.animateToPage(
@@ -347,8 +387,27 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
     if (_isLoading) {
       return SystemUIScaffold(
         appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () {
+              debugPrint('🔙 Bouton retour cliqué - shop setup étape $_currentStep');
+              if (_currentStep > 0) {
+                debugPrint('🔙 Retour à l\'étape précédente');
+                _previousStep();
+              } else {
+                debugPrint('🔙 Quitter l\'écran');
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                } else {
+                  context.go('/vendeur-dashboard');
+                }
+              }
+            },
+            tooltip: 'Retour',
+          ),
           title: const Text('Configuration Boutique'),
           backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
         ),
         body: const Center(
           child: CircularProgressIndicator(),
@@ -358,6 +417,24 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
 
     return SystemUIScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            debugPrint('🔙 Bouton retour cliqué - shop setup étape $_currentStep');
+            if (_currentStep > 0) {
+              debugPrint('🔙 Retour à l\'étape précédente');
+              _previousStep();
+            } else {
+              debugPrint('🔙 Quitter l\'écran');
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              } else {
+                context.go('/vendeur-dashboard');
+              }
+            }
+          },
+          tooltip: 'Retour',
+        ),
         title: Text(_existingProfile != null ? 'Modifier ma Boutique' : 'Créer ma Boutique'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -374,9 +451,7 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
               child: PageView(
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
-                onPageChanged: (index) {
-                  setState(() => _currentStep = index);
-                },
+                // Remove onPageChanged to avoid double update with _nextStep/_previousStep
                 children: [
                   _buildStep1BasicInfo(),
                   _buildStep2GPS(),
@@ -580,47 +655,82 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Catégorie
-          DropdownButtonFormField<String>(
-            value: _businessCategory,
-            decoration: const InputDecoration(
-              labelText: 'Catégorie d\'activité *',
-              prefixIcon: Icon(Icons.category),
-              border: OutlineInputBorder(),
-            ),
-            items: const [
-              DropdownMenuItem(
-                value: 'Alimentation',
-                child: Text('Alimentation'),
+          // Catégories (sélection multiple)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Catégories d\'activité *',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
-              DropdownMenuItem(
-                value: 'Mode & Vêtements',
-                child: Text('Mode & Vêtements'),
+              const SizedBox(height: 8),
+              const Text(
+                'Sélectionnez les catégories de produits que vous vendrez',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
-              DropdownMenuItem(
-                value: 'Électronique',
-                child: Text('Électronique'),
-              ),
-              DropdownMenuItem(
-                value: 'Maison & Décoration',
-                child: Text('Maison & Décoration'),
-              ),
-              DropdownMenuItem(
-                value: 'Beauté & Cosmétiques',
-                child: Text('Beauté & Cosmétiques'),
-              ),
-              DropdownMenuItem(
-                value: 'Services',
-                child: Text('Services'),
-              ),
-              DropdownMenuItem(
-                value: 'Autre',
-                child: Text('Autre'),
-              ),
+              const SizedBox(height: 12),
+              if (_isLoadingCategories)
+                const Center(child: CircularProgressIndicator())
+              else if (_availableCategories.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.shade300),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.warning, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Aucune catégorie disponible. Contactez l\'administrateur.',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _availableCategories.map((category) {
+                    final isSelected = _businessCategories.contains(category.id);
+                    return FilterChip(
+                      selected: isSelected,
+                      label: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(category.icon, size: 16),
+                          const SizedBox(width: 4),
+                          Text(category.name),
+                        ],
+                      ),
+                      selectedColor: AppColors.primary.withValues(alpha: 0.2),
+                      checkmarkColor: AppColors.primary,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _businessCategories.add(category.id);
+                          } else {
+                            _businessCategories.remove(category.id);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              if (_businessCategories.isEmpty && !_isLoadingCategories)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Veuillez sélectionner au moins une catégorie',
+                    style: TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                ),
             ],
-            onChanged: (value) {
-              setState(() => _businessCategory = value!);
-            },
           ),
         ],
       ),
@@ -1054,7 +1164,20 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
                 const SizedBox(height: 12),
                 _buildSummaryRow('Nom', _businessNameController.text),
                 _buildSummaryRow('Type', _businessType == 'individual' ? 'Individuel' : 'Société'),
-                _buildSummaryRow('Catégorie', _businessCategory),
+                _buildSummaryRow(
+                  'Catégories',
+                  _businessCategories
+                      .map((id) => _availableCategories
+                          .firstWhere((cat) => cat.id == id, orElse: () => CategoryModel(
+                                id: id,
+                                name: id,
+                                iconCodePoint: 'e88a',
+                                subCategories: [],
+                                createdAt: DateTime.now(),
+                              ))
+                          .name)
+                      .join(', '),
+                ),
                 _buildSummaryRow(
                     'Position GPS',
                     _shopLocation != null
