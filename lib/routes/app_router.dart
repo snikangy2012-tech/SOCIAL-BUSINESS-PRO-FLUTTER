@@ -63,6 +63,7 @@ import 'package:social_business_pro/screens/subscription/subscription_plans_scre
 import 'package:social_business_pro/screens/auth/change_password_screen.dart';
 import 'package:social_business_pro/screens/common/notifications_screen.dart';
 import 'package:social_business_pro/screens/common/user_settings_screen.dart';
+import 'package:social_business_pro/screens/common/ai_assistant_screen.dart';
 
 import '../screens/main_scaffold.dart';
 import '../screens/auth/login_screen_extended.dart';
@@ -204,6 +205,10 @@ class AppRouter {
             path: '/notifications',
             builder: (context, state) => const NotificationsScreen()
         ),
+        GoRoute(
+            path: '/ai-assistant',
+            builder: (context, state) => const AIAssistantScreen()
+        ),
 
 
 
@@ -292,7 +297,13 @@ class AppRouter {
         GoRoute(path: '/acheteur/addresses', builder: (context, state) => const AddressManagementScreen()),
         GoRoute(path: '/acheteur/payment-methods', builder: (context, state) => const PaymentMethodsScreen()),
         GoRoute(path: '/acheteur/my-reviews', builder: (context, state) => const MyReviewsScreen()),
-        GoRoute(path: '/acheteur/search', builder: (context, state) => const ProductSearchScreen()),
+        GoRoute(
+          path: '/acheteur/search',
+          builder: (context, state) {
+            final query = state.uri.queryParameters['q'];
+            return ProductSearchScreen(initialQuery: query);
+          },
+        ),
         GoRoute(path: '/acheteur/nearby-vendors', builder: (context, state) => const NearbyVendorsScreen()),
         GoRoute(path: '/acheteur/vendor-list', builder: (context, state) => const VendorsListScreen()),
         GoRoute(

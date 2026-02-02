@@ -63,8 +63,10 @@ class AuditService {
       debugPrint('✅ Log d\'audit enregistré: ${log.actionLabel} (ID: ${docRef.id})');
       return docRef.id;
     } catch (e) {
-      debugPrint('❌ Erreur enregistrement log d\'audit: $e');
-      rethrow;
+      // Ne pas faire échouer l'opération principale si le log d'audit échoue
+      // (ex: utilisateur non authentifié lors d'un échec de connexion)
+      debugPrint('⚠️ Erreur enregistrement log d\'audit (ignorée): $e');
+      return ''; // Retourner un ID vide au lieu de propager l'erreur
     }
   }
 
@@ -437,8 +439,8 @@ class AuditService {
 
       debugPrint('✅ Log marqué comme revu: $logId');
     } catch (e) {
-      debugPrint('❌ Erreur marquage log: $e');
-      rethrow;
+      debugPrint('⚠️ Erreur marquage log (ignorée): $e');
+      // Ne pas propager l'erreur pour ne pas bloquer les opérations
     }
   }
 

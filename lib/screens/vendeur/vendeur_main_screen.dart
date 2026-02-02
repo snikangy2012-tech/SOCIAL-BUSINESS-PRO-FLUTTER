@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:social_business_pro/screens/vendeur/order_management.dart';
 import 'package:social_business_pro/screens/vendeur/product_management.dart';
@@ -90,6 +91,12 @@ class _VendeurMainScreenState extends State<VendeurMainScreen> {
               index: navProvider.currentIndex,
               children: _screens,
             ),
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () => context.push('/ai-assistant'),
+            backgroundColor: AppColors.primary,
+            tooltip: 'Assistant IA',
+            child: const Icon(Icons.smart_toy, color: Colors.white),
           ),
           bottomNavigationBar: BottomNavigationBar(
             currentIndex: navProvider.currentIndex,

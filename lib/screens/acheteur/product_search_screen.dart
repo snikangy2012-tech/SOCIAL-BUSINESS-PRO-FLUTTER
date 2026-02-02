@@ -7,10 +7,13 @@ import '../../services/product_service.dart';
 import 'package:social_business_pro/config/constants.dart';
 import '../../config/product_categories.dart';
 import '../../utils/number_formatter.dart';
+import '../../utils/search_helper.dart';
 import '../../widgets/system_ui_scaffold.dart';
 
 class ProductSearchScreen extends StatefulWidget {
-  const ProductSearchScreen({super.key});
+  final String? initialQuery;
+
+  const ProductSearchScreen({super.key, this.initialQuery});
 
   @override
   State<ProductSearchScreen> createState() => _ProductSearchScreenState();
@@ -29,10 +32,15 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
   double _minPrice = 0;
   double _maxPrice = 1000000;
   String _sortBy = 'recent'; // recent, price_low, price_high, popular
+  List<String> _suggestions = [];
+  bool _showSuggestions = false;
 
   @override
   void initState() {
     super.initState();
+    if (widget.initialQuery != null) {
+      _searchController.text = widget.initialQuery!;
+    }
     _loadAllProducts();
   }
 
@@ -51,6 +59,10 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
         _allProducts = products;
         _isLoading = false;
       });
+      // Effectuer la recherche si query initiale
+      if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
+        _performSearch();
+      }
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
@@ -61,28 +73,60 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
     }
   }
 
+  void _updateSuggestions(String query) {
+    if (query.length < 2) {
+      setState(() {
+        _suggestions = [];
+        _showSuggestions = false;
+      });
+      return;
+    }
+
+    final suggestions = SearchHelper.getSuggestions(
+      _allProducts,
+      query,
+      maxSuggestions: 5,
+    );
+
+    setState(() {
+      _suggestions = suggestions;
+      _showSuggestions = suggestions.isNotEmpty;
+    });
+  }
+
   void _performSearch() {
-    final query = _searchController.text.toLowerCase();
+    final query = _searchController.text.trim();
 
     setState(() {
       _hasSearched = true;
-      _filteredProducts = _allProducts.where((product) {
-        // Filtre par texte de recherche
-        final matchesQuery = query.isEmpty ||
-            product.name.toLowerCase().contains(query) ||
-            product.description.toLowerCase().contains(query) ||
-            product.category.toLowerCase().contains(query);
 
+      // Pré-filtrer par catégorie et prix avant la recherche textuelle
+      List<ProductModel> preFiltered = _allProducts.where((product) {
         // Filtre par catégorie
-        final matchesCategory = _selectedCategory == null || product.category == _selectedCategory;
+        final matchesCategory =
+            _selectedCategory == null || product.category == _selectedCategory;
 
         // Filtre par prix
-        final matchesPrice = product.price >= _minPrice && product.price <= _maxPrice;
+        final matchesPrice =
+            product.price >= _minPrice && product.price <= _maxPrice;
 
-        return matchesQuery && matchesCategory && matchesPrice;
+        return matchesCategory && matchesPrice;
       }).toList();
 
-      // Tri
+      // Recherche intelligente avec synonymes et tolérance aux fautes
+      if (query.isEmpty) {
+        _filteredProducts = preFiltered;
+      } else {
+        final searchResults = SearchHelper.searchProductsAdvanced(
+          preFiltered,
+          query,
+          minScore: 0.2, // Seuil bas pour plus de résultats
+          useSynonyms: true,
+        );
+        _filteredProducts = searchResults.map((r) => r.product).toList();
+      }
+
+      // Tri (après la recherche)
       switch (_sortBy) {
         case 'price_low':
           _filteredProducts.sort((a, b) => a.price.compareTo(b.price));
@@ -91,7 +135,10 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
           _filteredProducts.sort((a, b) => b.price.compareTo(a.price));
           break;
         case 'recent':
-          _filteredProducts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          // Si recherche active, garder le tri par pertinence
+          if (query.isEmpty) {
+            _filteredProducts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          }
           break;
         default:
           break;
@@ -491,35 +538,98 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
       ),
       body: Column(
         children: [
-          // Barre de recherche
+          // Barre de recherche avec suggestions
           Container(
-            padding: const EdgeInsets.all(16),
             color: Colors.white,
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Rechercher un produit...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          _performSearch();
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: TextField(
+                    controller: _searchController,
+                    autofocus: widget.initialQuery == null,
+                    decoration: InputDecoration(
+                      hintText: 'Rechercher un produit...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {
+                                  _suggestions = [];
+                                  _showSuggestions = false;
+                                });
+                                _performSearch();
+                              },
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor: AppColors.background,
+                    ),
+                    onChanged: (value) {
+                      _updateSuggestions(value);
+                      // Recherche en temps réel avec délai
+                      _performSearch();
+                    },
+                    onSubmitted: (value) {
+                      setState(() => _showSuggestions = false);
+                      _performSearch();
+                    },
+                  ),
                 ),
-                filled: true,
-                fillColor: AppColors.background,
-              ),
-              onChanged: (value) {
-                setState(() {});
-                _performSearch();
-              },
-              onSubmitted: (value) => _performSearch(),
+                // Liste des suggestions
+                if (_showSuggestions && _suggestions.isNotEmpty)
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      itemCount: _suggestions.length,
+                      itemBuilder: (context, index) {
+                        final suggestion = _suggestions[index];
+                        return ListTile(
+                          dense: true,
+                          leading: const Icon(
+                            Icons.search,
+                            size: 20,
+                            color: AppColors.textSecondary,
+                          ),
+                          title: Text(
+                            suggestion,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          trailing: const Icon(
+                            Icons.north_west,
+                            size: 16,
+                            color: AppColors.textSecondary,
+                          ),
+                          onTap: () {
+                            _searchController.text = suggestion;
+                            _searchController.selection = TextSelection.fromPosition(
+                              TextPosition(offset: suggestion.length),
+                            );
+                            setState(() => _showSuggestions = false);
+                            _performSearch();
+                          },
+                        );
+                      },
+                    ),
+                  ),
+              ],
             ),
           ),
 

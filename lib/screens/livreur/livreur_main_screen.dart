@@ -97,6 +97,12 @@ class _LivreurMainScreenState extends State<LivreurMainScreen> {
               children: _screens,
             ),
           ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () => context.push('/ai-assistant'),
+            backgroundColor: AppColors.primary,
+            tooltip: 'Assistant IA',
+            child: const Icon(Icons.smart_toy, color: Colors.white),
+          ),
           bottomNavigationBar: BottomNavigationBar(
             currentIndex: _currentIndex,
             onTap: (index) => setState(() => _currentIndex = index),

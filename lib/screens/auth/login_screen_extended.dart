@@ -1,17 +1,15 @@
 // ===== lib/screens/auth/login_screen_extended.dart =====
-// Page de connexion avec Google Sign-In et options OTP
+// Page de connexion avec design moderne utilisant les couleurs de l'app
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 
-// Import constants AVANT les autres fichiers locaux pour éviter les conflits
 import 'package:social_business_pro/config/constants.dart';
 import 'package:social_business_pro/providers/auth_provider_firebase.dart';
 import '../../services/auth_service_web.dart';
 import '../../services/auth_service_extended.dart';
-import '../../widgets/custom_widgets.dart';
 import '../../widgets/system_ui_scaffold.dart';
 
 class LoginScreenExtended extends StatefulWidget {
@@ -27,8 +25,9 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
   final _passwordController = TextEditingController();
 
   bool _isLoading = false;
+  bool _obscurePassword = true;
   String? _errorMessage;
-  String _authMethod = 'email'; // 'email' ou 'google'
+  String _authMethod = 'email';
 
   @override
   void dispose() {
@@ -37,37 +36,25 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
     super.dispose();
   }
 
-  // Méthode commune de navigation selon le type d'utilisateur
   void _navigateByUserType(UserType userType) {
     switch (userType) {
       case UserType.admin:
-        debugPrint('🔀 Navigation → /admin');
         context.go('/admin');
       case UserType.acheteur:
-        debugPrint('🔀 Navigation → /acheteur-home');
         context.go('/acheteur-home');
       case UserType.vendeur:
-        debugPrint('🔀 Navigation → /vendeur-dashboard');
         context.go('/vendeur-dashboard');
       case UserType.livreur:
-        debugPrint('🔀 Navigation → /livreur-dashboard');
         context.go('/livreur-dashboard');
     }
   }
 
-  // Méthode commune pour gérer la séquence post-connexion
   Future<void> _handlePostLoginSequence(String successMessage) async {
     if (!mounted) return;
 
-    // Masquer le clavier immédiatement
     FocusScope.of(context).unfocus();
 
-    // Charger l'utilisateur depuis Firestore
     final authProvider = context.read<AuthProvider>();
-
-    debugPrint('🔄 Chargement de l\'utilisateur depuis Firestore...');
-
-    // Forcer le rechargement de l'utilisateur depuis Firestore
     await authProvider.loadUserFromFirebase();
 
     if (!mounted) return;
@@ -75,23 +62,17 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
     final user = authProvider.user;
 
     if (user == null) {
-      debugPrint('❌ Utilisateur non chargé après connexion');
       throw Exception('Erreur chargement utilisateur. Veuillez réessayer.');
     }
 
-    debugPrint('✅ Utilisateur chargé: ${user.displayName} (${user.userType.value})');
-
     if (!mounted) return;
 
-    // Arrêter le loading avant la navigation
     setState(() => _isLoading = false);
 
-    // Petit délai pour que l'UI se mette à jour
     await Future.delayed(const Duration(milliseconds: 100));
 
     if (!mounted) return;
 
-    // Afficher le message de succès
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(successMessage),
@@ -100,24 +81,18 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
       ),
     );
 
-    // Attendre que le SnackBar soit visible
     await Future.delayed(const Duration(milliseconds: 500));
 
     if (!mounted) return;
 
-    // Navigation selon le type d'utilisateur
     _navigateByUserType(user.userType);
   }
 
-  // Méthode commune pour gérer les erreurs
   void _handleError(dynamic error, String defaultMessage) {
-    debugPrint('❌ Erreur: $error');
-
     if (!mounted) return;
 
     String errorMessage = defaultMessage;
 
-    // Extraire le message d'erreur proprement
     if (error is Exception) {
       errorMessage = error.toString().replaceFirst('Exception: ', '');
     } else {
@@ -138,7 +113,6 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
     );
   }
 
-  // Connexion avec email/mot de passe
   Future<void> _handleEmailLogin() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -151,18 +125,14 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
     });
 
     try {
-      debugPrint('🔐 Tentative de connexion: ${_emailController.text.trim()}');
-
       Map<String, dynamic> result;
 
-      // Sur Web : Connexion via auth_service_web
       if (kIsWeb) {
         result = await AuthServiceWeb.loginWeb(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
       } else {
-        // Sur Mobile : Connexion complète
         result = await AuthServiceExtended.signInWithIdentifier(
           identifier: _emailController.text.trim(),
           password: _passwordController.text,
@@ -170,8 +140,7 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
       }
 
       if (result['success']) {
-        debugPrint('✅ Connexion réussie');
-        await _handlePostLoginSequence('✅ Connexion réussie !');
+        await _handlePostLoginSequence('Connexion réussie !');
       } else {
         throw Exception(result['message'] ?? 'Erreur de connexion');
       }
@@ -180,7 +149,6 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
     }
   }
 
-  // Connexion avec Google
   Future<void> _handleGoogleLogin() async {
     setState(() {
       _isLoading = true;
@@ -189,13 +157,10 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
     });
 
     try {
-      debugPrint('🔐 Connexion Google...');
-
       final result = await AuthServiceExtended.signInWithGoogle();
 
       if (result['success']) {
-        debugPrint('✅ Connexion Google réussie');
-        await _handlePostLoginSequence('✅ Connexion Google réussie !');
+        await _handlePostLoginSequence('Connexion Google réussie !');
       } else {
         throw Exception(result['message'] ?? 'Erreur connexion Google');
       }
@@ -204,199 +169,52 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
     }
   }
 
-  // Widget personnalisé pour le bouton Google Sign-In
-  Widget _buildGoogleSignInButton() {
-    final bool isLoadingGoogle = _isLoading && _authMethod == 'google';
-
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: ElevatedButton(
-        onPressed: _isLoading ? null : _handleGoogleLogin,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
-          elevation: 2,
-          shadowColor: Colors.black26,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            side: BorderSide(color: Colors.grey.shade300, width: 1),
-          ),
-        ),
-        child: isLoadingGoogle
-            ? const SizedBox(
-                height: 24,
-                width: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Logo Google (utilisant un Container avec des couleurs pour simuler le logo)
-                  Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Stack(
-                      children: [
-                        // Fond blanc
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                        // Logo Google stylisé avec icon
-                        Center(
-                          child: ShaderMask(
-                            shaderCallback: (bounds) => const LinearGradient(
-                              colors: [
-                                Color(0xFF4285F4), // Bleu Google
-                                Color(0xFFEA4335), // Rouge Google
-                                Color(0xFFFBBC05), // Jaune Google
-                                Color(0xFF34A853), // Vert Google
-                              ],
-                              stops: [0.25, 0.5, 0.75, 1.0],
-                            ).createShader(bounds),
-                            child: const Text(
-                              'G',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Continuer avec Google',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return SystemUIScaffold(
-      backgroundColor: AppColors.backgroundSecondary,
+      backgroundColor: AppColors.primary,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: AppSpacing.xl),
+        child: Column(
+          children: [
+            // Espace en haut avec fond vert
+            const SizedBox(height: 40),
 
-              // Logo de l'application
-              const AppLogo(size: 120),
-
-              const SizedBox(height: AppSpacing.xl),
-
-              // Titre de connexion
-              const Text(
-                'Connexion',
-                style: TextStyle(
-                  fontSize: AppFontSizes.xxxl,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.sm),
-
-              const Text(
-                'Connectez-vous pour accéder à votre compte',
-                style: TextStyle(
-                  fontSize: AppFontSizes.md,
-                  color: AppColors.textSecondary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: AppSpacing.xl),
-
-              // Connexion rapide Google
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Connexion rapide',
-                        style: TextStyle(
-                          fontSize: AppFontSizes.lg,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      _buildGoogleSignInButton(),
-                    ],
+            // Carte blanche principale
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(30),
+                    topRight: Radius.circular(30),
                   ),
                 ),
-              ),
-
-              const SizedBox(height: AppSpacing.lg),
-
-              // Séparateur
-              const Row(
-                children: [
-                  Expanded(child: Divider()),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                    child: Text(
-                      'OU',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  Expanded(child: Divider()),
-                ],
-              ),
-
-              const SizedBox(height: AppSpacing.lg),
-
-              // Formulaire de connexion classique
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
                   child: Form(
                     key: _formKey,
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Champ email
-                        CustomTextField(
-                          label: 'Email',
-                          hint: 'Votre adresse email',
-                          icon: Icons.email,
-                          keyboardType: TextInputType.emailAddress,
+                        // Titre Connexion
+                        Text(
+                          'Connexion',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+
+                        const SizedBox(height: 40),
+
+                        // Champ Email
+                        _buildTextField(
                           controller: _emailController,
-                          isRequired: true,
+                          hintText: 'Adresse email',
+                          icon: Icons.mail_outline,
+                          keyboardType: TextInputType.emailAddress,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Email requis';
@@ -408,16 +226,20 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
                           },
                         ),
 
-                        const SizedBox(height: AppSpacing.lg),
+                        const SizedBox(height: 20),
 
-                        // Champ mot de passe
-                        CustomTextField(
-                          label: 'Mot de passe',
-                          hint: 'Votre mot de passe',
-                          icon: Icons.lock,
-                          isPassword: true,
+                        // Champ Password
+                        _buildTextField(
                           controller: _passwordController,
-                          isRequired: true,
+                          hintText: 'Mot de passe',
+                          icon: Icons.lock_outline,
+                          isPassword: true,
+                          obscureText: _obscurePassword,
+                          onToggleVisibility: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Mot de passe requis';
@@ -426,54 +248,128 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
                           },
                         ),
 
-                        const SizedBox(height: AppSpacing.md),
+                        const SizedBox(height: 15),
 
-                        // Lien mot de passe oublié
+                        // Mot de passe oublié
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
                             onPressed: () => context.go('/forgot-password'),
-                            child: const Text(
+                            child: Text(
                               'Mot de passe oublié ?',
                               style: TextStyle(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w500,
+                                color: AppColors.textSecondary,
+                                fontSize: 14,
                               ),
                             ),
                           ),
                         ),
 
-                        const SizedBox(height: AppSpacing.lg),
+                        const SizedBox(height: 25),
 
-                        // Bouton de connexion
-                        CustomButton(
-                          text: 'Se connecter',
-                          icon: Icons.login,
-                          isLoading: _isLoading && _authMethod == 'email',
-                          onPressed: _isLoading ? null : _handleEmailLogin,
+                        // Bouton Connexion
+                        SizedBox(
+                          width: 200,
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _handleEmailLogin,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                              elevation: 2,
+                            ),
+                            child: _isLoading && _authMethod == 'email'
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Se connecter',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 30),
+
+                        // Texte "Ou via réseaux sociaux"
+                        Text(
+                          'Ou via réseaux sociaux',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 14,
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Boutons réseaux sociaux
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildSocialButton(
+                              icon: Icons.facebook,
+                              color: const Color(0xFF3B5998),
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Facebook non disponible'),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(width: 15),
+                            _buildSocialButton(
+                              icon: Icons.g_mobiledata,
+                              color: const Color(0xFFDB4437),
+                              onTap: _isLoading ? null : _handleGoogleLogin,
+                              isLoading: _isLoading && _authMethod == 'google',
+                            ),
+                            const SizedBox(width: 15),
+                            _buildSocialButton(
+                              icon: Icons.apple,
+                              color: Colors.black,
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Apple non disponible'),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
 
                         // Message d'erreur
                         if (_errorMessage != null) ...[
-                          const SizedBox(height: AppSpacing.md),
+                          const SizedBox(height: 20),
                           Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(AppSpacing.md),
+                            padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: AppColors.error.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(AppRadius.md),
-                              border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                              color: AppColors.error.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.error, color: AppColors.error),
-                                const SizedBox(width: AppSpacing.sm),
+                                Icon(Icons.error, color: AppColors.error, size: 20),
+                                const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     _errorMessage!,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: AppColors.error,
-                                      fontWeight: FontWeight.w500,
+                                      fontSize: 13,
                                     ),
                                   ),
                                 ),
@@ -486,81 +382,147 @@ class _LoginScreenExtendedState extends State<LoginScreenExtended> {
                   ),
                 ),
               ),
+            ),
 
-              const SizedBox(height: AppSpacing.xl),
-
-              // Section inscription
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Vous n\'avez pas encore de compte ?',
+            // Footer "Pas encore de compte ? S'inscrire"
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Pas encore de compte ? ",
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 15,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => context.go('/register'),
+                    child: Text(
+                      "S'inscrire",
                       style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: AppFontSizes.md,
+                        color: AppColors.primary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.md),
-                    CustomButton(
-                      text: 'Créer un compte',
-                      icon: Icons.person_add,
-                      isOutlined: true,
-                      backgroundColor: AppColors.secondary,
-                      onPressed: () => context.go('/register'),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-              const SizedBox(height: AppSpacing.lg),
-
-              // Informations de test
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: AppColors.info.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  border: Border.all(color: AppColors.info.withOpacity(0.3)),
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hintText,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+    bool isPassword = false,
+    bool obscureText = false,
+    VoidCallback? onToggleVisibility,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      obscureText: isPassword ? obscureText : false,
+      validator: validator,
+      style: const TextStyle(
+        color: Colors.black,
+        fontSize: 16,
+      ),
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: TextStyle(
+          color: AppColors.textSecondary,
+          fontSize: 16,
+        ),
+        prefixIcon: Icon(
+          icon,
+          color: AppColors.textSecondary,
+          size: 22,
+        ),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  obscureText ? Icons.visibility_off : Icons.visibility,
+                  color: AppColors.textSecondary,
+                  size: 22,
                 ),
-                child: const Column(
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.info, color: AppColors.info),
-                        SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: Text(
-                            'Mode Test - Utilisez ces emails :',
-                            style: TextStyle(
-                              color: AppColors.info,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: AppSpacing.sm),
-                    Text(
-                      '• admin@socialbusiness.ci (Admin)\n'
-                      '• Ou créez un nouveau compte\n'
-                      '• Ou connectez-vous avec Google',
-                      style: TextStyle(
-                        color: AppColors.info,
-                        fontSize: AppFontSizes.sm,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+                onPressed: onToggleVisibility,
+              )
+            : null,
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(
+            color: AppColors.primary.withValues(alpha: 0.3),
           ),
         ),
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(
+            color: AppColors.primary,
+            width: 2,
+          ),
+        ),
+        errorBorder: UnderlineInputBorder(
+          borderSide: BorderSide(
+            color: AppColors.error,
+          ),
+        ),
+        focusedErrorBorder: UnderlineInputBorder(
+          borderSide: BorderSide(
+            color: AppColors.error,
+            width: 2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSocialButton({
+    required IconData icon,
+    required Color color,
+    VoidCallback? onTap,
+    bool isLoading = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: isLoading
+            ? const Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                ),
+              )
+            : Icon(
+                icon,
+                color: Colors.white,
+                size: 26,
+              ),
       ),
     );
   }

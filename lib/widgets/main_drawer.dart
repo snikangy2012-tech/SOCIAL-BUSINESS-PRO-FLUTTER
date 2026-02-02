@@ -181,13 +181,16 @@ class MainDrawer extends StatelessWidget {
                         content: const Text('Voulez-vous vraiment vous déconnecter ?'),
                         actions: [
                           TextButton(
-                            onPressed: () => Navigator.pop(dialogContext, false),
-                            child: const Text('Annuler'),
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Annuler'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.error,
                           ),
-                          TextButton(
-                            onPressed: () => Navigator.pop(dialogContext, true),
-                            child: const Text('Déconnexion', style: TextStyle(color: AppColors.error)),
-                          ),
+                          child: const Text('Déconnexion'),
+                        ),
                         ],
                       ),
                     );

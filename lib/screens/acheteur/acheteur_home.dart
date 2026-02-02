@@ -187,6 +187,12 @@ class _AcheteurHomeState extends State<AcheteurHome> {
     return SystemUIScaffold(
       drawer: const MainDrawer(),
       endDrawer: const FilterDrawer(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => context.push('/ai-assistant'),
+        backgroundColor: AppColors.primary,
+        tooltip: 'Assistant IA',
+        child: const Icon(Icons.smart_toy, color: Colors.white),
+      ),
       body: RefreshIndicator(
         onRefresh: _loadProducts,
         color: AppColors.primary,
