@@ -144,7 +144,13 @@ class _AddProductState extends State<AddProduct> {
             appBar: AppBar(
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => context.go('/vendeur-dashboard'),
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/vendeur-dashboard');
+                  }
+                },
               ),
               title: const Text('Accès bloqué'),
               backgroundColor: AppColors.error,
@@ -201,8 +207,8 @@ class _AddProductState extends State<AddProduct> {
             if (_currentStep > 0) {
               _previousStep();
             } else {
-              if (Navigator.of(context).canPop()) {
-                Navigator.of(context).pop();
+              if (context.canPop()) {
+                context.pop();
               } else {
                 context.go('/vendeur-dashboard');
               }

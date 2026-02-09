@@ -46,6 +46,9 @@ enum AIMessageType {
   quickReplies,
   action,
   tutorial,
+  actionPending,    // Action en attente de confirmation
+  actionExecuting,  // Action en cours d'exécution
+  actionResult,     // Résultat d'une action exécutée
 }
 
 /// Question FAQ prédéfinie

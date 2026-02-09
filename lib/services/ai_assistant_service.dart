@@ -126,7 +126,7 @@ class AIAssistantService {
       answer: "Une fois votre commande confirmée :\n\n1️⃣ Allez dans 'Mes Commandes'\n2️⃣ Cliquez sur la commande\n3️⃣ Suivez le livreur en temps réel sur la carte GPS\n\nVous recevrez des notifications à chaque étape !",
       keywords: ['suivre', 'livraison', 'tracking', 'ou', 'commande', 'livreur'],
       category: 'acheteur',
-      actionRoute: '/acheteur-orders',
+      actionRoute: '/acheteur/orders',
     ),
     FAQItem(
       id: 'ach_4',
@@ -150,7 +150,7 @@ class AIAssistantService {
       answer: "Pour ajouter un produit :\n\n1️⃣ Allez dans 'Mes Produits'\n2️⃣ Appuyez sur '+' ou 'Ajouter'\n3️⃣ Remplissez : nom, description, prix, photos\n4️⃣ Choisissez la catégorie\n5️⃣ Définissez le stock\n6️⃣ Publiez !\n\nConseil : De belles photos = plus de ventes !",
       keywords: ['ajouter', 'produit', 'creer', 'nouveau', 'vendre'],
       category: 'vendeur',
-      actionRoute: '/vendeur-add-product',
+      actionRoute: '/vendeur/add-product',
     ),
     FAQItem(
       id: 'ven_2',
@@ -158,7 +158,7 @@ class AIAssistantService {
       answer: "Dans 'Gestion Commandes' :\n\n📋 'En attente' → Nouvelles commandes à confirmer\n🔄 'En cours' → Commandes en préparation\n✅ 'Livrées' → Commandes terminées\n❌ 'Annulées' → Commandes annulées\n\nConfirmez rapidement pour satisfaire vos clients !",
       keywords: ['commandes', 'gerer', 'gestion', 'confirmer', 'ordre'],
       category: 'vendeur',
-      actionRoute: '/vendeur-orders',
+      actionRoute: '/vendeur/order-management',
     ),
     FAQItem(
       id: 'ven_3',
@@ -166,7 +166,7 @@ class AIAssistantService {
       answer: "3 plans disponibles :\n\n🆓 BASIQUE (Gratuit)\n• 20 produits max\n• Commission 10%\n\n💼 PRO (5,000 FCFA/mois)\n• 100 produits\n• Badge Pro\n• Assistant IA\n\n👑 PREMIUM (10,000 FCFA/mois)\n• Produits illimités\n• Commission 7%\n• IA Expert\n• Support VIP",
       keywords: ['abonnement', 'plan', 'tarif', 'prix', 'pro', 'premium', 'basique'],
       category: 'vendeur',
-      actionRoute: '/vendeur-subscription',
+      actionRoute: '/vendeur/subscription',
     ),
     FAQItem(
       id: 'ven_4',
@@ -197,7 +197,7 @@ class AIAssistantService {
       answer: "Quand une livraison est disponible :\n\n1️⃣ Vous recevez une notification\n2️⃣ Consultez les détails (distance, montant)\n3️⃣ Appuyez sur 'Accepter'\n4️⃣ Rendez-vous chez le vendeur\n5️⃣ Récupérez le colis\n6️⃣ Livrez au client\n7️⃣ Confirmez la livraison",
       keywords: ['accepter', 'livraison', 'course', 'commande', 'prendre'],
       category: 'livreur',
-      actionRoute: '/livreur-available',
+      actionRoute: '/livreur/available-orders',
     ),
     FAQItem(
       id: 'liv_3',
@@ -365,7 +365,7 @@ class AIAssistantService {
         'intent': 'view_cart',
         'keywords': ['panier', 'mon panier', 'voir panier', 'cart'],
         'response': 'Voici votre panier d\'achats.',
-        'route': '/acheteur-cart',
+        'route': '/acheteur/cart',
         'label': 'Voir mon panier',
         'icon': 'shopping_cart',
       },
@@ -373,7 +373,7 @@ class AIAssistantService {
         'intent': 'view_orders',
         'keywords': ['commandes', 'mes commandes', 'historique', 'suivi', 'suivre'],
         'response': 'Consultez vos commandes et leur statut.',
-        'route': '/acheteur-orders',
+        'route': '/acheteur/orders',
         'label': 'Mes commandes',
         'icon': 'receipt_long',
       },
@@ -381,7 +381,7 @@ class AIAssistantService {
         'intent': 'view_favorites',
         'keywords': ['favoris', 'mes favoris', 'coeur', 'aimé', 'sauvegardé'],
         'response': 'Voici vos produits favoris.',
-        'route': '/acheteur-favorites',
+        'route': '/favorites',
         'label': 'Mes favoris',
         'icon': 'favorite',
       },
@@ -415,7 +415,7 @@ class AIAssistantService {
         'intent': 'add_product',
         'keywords': ['ajouter', 'nouveau produit', 'créer produit', 'publier'],
         'response': 'Ajoutez un nouveau produit à votre boutique.',
-        'route': '/vendeur-add-product',
+        'route': '/vendeur/add-product',
         'label': 'Ajouter produit',
         'icon': 'add_box',
       },
@@ -423,7 +423,7 @@ class AIAssistantService {
         'intent': 'view_products',
         'keywords': ['mes produits', 'produits', 'stock', 'inventaire', 'catalogue'],
         'response': 'Gérez vos produits et votre stock.',
-        'route': '/vendeur-products',
+        'route': '/vendeur/products',
         'label': 'Mes produits',
         'icon': 'inventory',
       },
@@ -431,7 +431,7 @@ class AIAssistantService {
         'intent': 'view_orders',
         'keywords': ['commandes', 'commande', 'gestion', 'en attente', 'confirmer'],
         'response': 'Consultez et gérez vos commandes.',
-        'route': '/vendeur-orders',
+        'route': '/vendeur/order-management',
         'label': 'Mes commandes',
         'icon': 'receipt_long',
       },
@@ -439,7 +439,7 @@ class AIAssistantService {
         'intent': 'view_stats',
         'keywords': ['statistiques', 'stats', 'ventes', 'chiffres', 'revenus', 'gains'],
         'response': 'Consultez vos statistiques de vente.',
-        'route': '/vendeur-stats',
+        'route': '/vendeur/vendeur-statistics',
         'label': 'Statistiques',
         'icon': 'bar_chart',
       },
@@ -447,7 +447,7 @@ class AIAssistantService {
         'intent': 'view_wallet',
         'keywords': ['portefeuille', 'argent', 'solde', 'retrait', 'retirer'],
         'response': 'Gérez votre portefeuille et vos retraits.',
-        'route': '/vendeur-wallet',
+        'route': '/vendeur/finance',
         'label': 'Mon portefeuille',
         'icon': 'account_balance_wallet',
       },
@@ -455,7 +455,7 @@ class AIAssistantService {
         'intent': 'view_subscription',
         'keywords': ['abonnement', 'plan', 'upgrade', 'pro', 'premium'],
         'response': 'Gérez votre abonnement vendeur.',
-        'route': '/vendeur-subscription',
+        'route': '/vendeur/subscription',
         'label': 'Mon abonnement',
         'icon': 'card_membership',
       },
@@ -463,7 +463,7 @@ class AIAssistantService {
         'intent': 'view_shop',
         'keywords': ['boutique', 'shop', 'magasin', 'ma boutique'],
         'response': 'Personnalisez votre boutique.',
-        'route': '/vendeur-shop',
+        'route': '/vendeur/my-shop',
         'label': 'Ma boutique',
         'icon': 'storefront',
       },
@@ -473,7 +473,7 @@ class AIAssistantService {
         'intent': 'view_available',
         'keywords': ['disponible', 'livraisons', 'courses', 'accepter', 'nouvelle'],
         'response': 'Consultez les livraisons disponibles.',
-        'route': '/livreur-available',
+        'route': '/livreur/available-orders',
         'label': 'Livraisons dispo',
         'icon': 'local_shipping',
       },
@@ -481,7 +481,7 @@ class AIAssistantService {
         'intent': 'view_active',
         'keywords': ['en cours', 'active', 'actuelle', 'mission'],
         'response': 'Votre livraison en cours.',
-        'route': '/livreur-active',
+        'route': '/livreur/deliveries',
         'label': 'En cours',
         'icon': 'delivery_dining',
       },
@@ -489,7 +489,7 @@ class AIAssistantService {
         'intent': 'view_history',
         'keywords': ['historique', 'terminées', 'passées', 'anciennes'],
         'response': 'Consultez votre historique de livraisons.',
-        'route': '/livreur-history',
+        'route': '/livreur/deliveries',
         'label': 'Historique',
         'icon': 'history',
       },
@@ -497,7 +497,7 @@ class AIAssistantService {
         'intent': 'view_earnings',
         'keywords': ['gains', 'argent', 'revenus', 'salaire', 'combien'],
         'response': 'Consultez vos gains et retraits.',
-        'route': '/livreur-earnings',
+        'route': '/livreur/earnings',
         'label': 'Mes gains',
         'icon': 'payments',
       },
@@ -505,12 +505,73 @@ class AIAssistantService {
         'intent': 'view_documents',
         'keywords': ['documents', 'kyc', 'vérification', 'cni', 'permis'],
         'response': 'Gérez vos documents de vérification.',
-        'route': '/livreur-documents',
+        'route': '/livreur/documents',
         'label': 'Mes documents',
         'icon': 'description',
       },
     ],
   };
+
+  /// Détecte si la requête est une question (pas une commande de navigation)
+  static bool _isQuestionQuery(String query) {
+    final q = query.toLowerCase().trim();
+
+    // Mots interrogatifs et expressions de question
+    final questionKeywords = [
+      // Interrogatifs
+      'combien', 'quel', 'quelle', 'quels', 'quelles', 'comment',
+      'où', 'ou est', 'ou en est', 'pourquoi',
+      // Expressions de quantité/état
+      'nombre', 'total', 'montant', 'solde',
+      'j\'ai quoi', 'ai-je', 'est-ce que', 'y a-t-il', 'y a t il',
+      // Possessifs avec contexte de question
+      'dans mon', 'de mon', 'mon solde', 'mes gains', 'mes commandes',
+      'j\'ai combien', 'ai combien', 'il y a quoi',
+      // Questions informelles
+      'c\'est quoi', 'cest quoi', 'quoi dans', 'quoi de',
+    ];
+
+    // Expressions de DONNÉES (doivent afficher les données, pas naviguer)
+    // Format: "mon/mes + nom" sans verbe d'action
+    final dataExpressions = [
+      // Acheteur
+      'mon panier', 'mes commandes', 'mes favoris',
+      // Vendeur
+      'mes produits', 'mon stock', 'mes ventes', 'mes chiffres', 'mon portefeuille',
+      // Livreur
+      'mes livraisons', 'mes courses', 'mes gains',
+      // Génériques
+      'mon historique', 'mon compte', 'mon profil',
+    ];
+
+    // Verbes d'ACTION (doivent naviguer ou exécuter, pas afficher)
+    // Si le message contient ces verbes, ce n'est PAS une question de données
+    final actionVerbs = [
+      'ouvre', 'ouvrir', 'voir', 'va', 'aller', 'montre', 'affiche',
+      'navigue', 'accède', 'accéder', 'redirige',
+    ];
+
+    // Si c'est une expression de données SANS verbe d'action → question
+    final hasDataExpression = dataExpressions.any((k) => q.contains(k));
+    final hasActionVerb = actionVerbs.any((k) => q.contains(k));
+
+    if (hasDataExpression && !hasActionVerb) {
+      return true;
+    }
+
+    // Verbes d'état en début de phrase (questions implicites)
+    final startsWithQuestion = [
+      'ai-je', 'ai je', 'est-ce', 'y a', 'il y a',
+    ];
+
+    // Vérifier les mots-clés
+    if (questionKeywords.any((k) => q.contains(k))) return true;
+
+    // Vérifier début de phrase
+    if (startsWithQuestion.any((k) => q.startsWith(k))) return true;
+
+    return false;
+  }
 
   /// Détecte une intention basée sur les mots-clés du rôle
   static Map<String, dynamic>? _detectIntent(String query, String userType) {
@@ -562,6 +623,372 @@ class AIAssistantService {
     return null;
   }
 
+  // ========== DONNÉES DÉTAILLÉES ==========
+
+  /// Récupère et formate les données détaillées selon la requête
+  static Future<String?> _getDetailedDataResponse(String query, String userType, String userId) async {
+    final q = query.toLowerCase();
+
+    switch (userType) {
+      case 'vendeur':
+        return await _getVendeurDetailedData(q, userId);
+      case 'livreur':
+        return await _getLivreurDetailedData(q, userId);
+      case 'acheteur':
+        return await _getAcheteurDetailedData(q, userId);
+    }
+    return null;
+  }
+
+  /// Données détaillées pour le vendeur
+  static Future<String?> _getVendeurDetailedData(String q, String userId) async {
+    // Commandes en attente avec détails
+    if (q.contains('commande') || q.contains('attente') || q.contains('confirmer')) {
+      final orders = await _firestore
+          .collection('orders')
+          .where('vendorId', isEqualTo: userId)
+          .where('status', isEqualTo: 'en_attente')
+          .orderBy('createdAt', descending: true)
+          .limit(5)
+          .get()
+          .timeout(const Duration(seconds: 8));
+
+      if (orders.docs.isEmpty) {
+        return "✅ **Aucune commande en attente**\n\nToutes vos commandes sont traitées. Bravo !";
+      }
+
+      final buffer = StringBuffer();
+      buffer.writeln("📋 **${orders.docs.length} commande(s) en attente :**\n");
+
+      for (int i = 0; i < orders.docs.length; i++) {
+        final data = orders.docs[i].data();
+        final total = (data['totalAmount'] as num?)?.toInt() ?? 0;
+        final items = (data['items'] as List?)?.length ?? 0;
+        final buyerName = data['buyerName'] ?? 'Client';
+        final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+        final timeAgo = createdAt != null ? _formatTimeAgo(createdAt) : '';
+
+        buffer.writeln("${i + 1}. **$buyerName** - $total FCFA");
+        buffer.writeln("   📦 $items article(s) • $timeAgo");
+      }
+
+      buffer.writeln("\n💡 Dites \"confirme mes commandes\" pour les traiter.");
+      return buffer.toString();
+    }
+
+    // Produits avec stock faible
+    if (q.contains('stock') || q.contains('produit') || q.contains('rupture') || q.contains('inventaire')) {
+      final products = await _firestore
+          .collection('products')
+          .where('vendorId', isEqualTo: userId)
+          .where('isActive', isEqualTo: true)
+          .get()
+          .timeout(const Duration(seconds: 8));
+
+      if (products.docs.isEmpty) {
+        return "📦 **Aucun produit**\n\nVotre catalogue est vide. Ajoutez des produits pour commencer à vendre !";
+      }
+
+      final lowStock = products.docs.where((doc) {
+        final stock = (doc.data()['stock'] as num?)?.toInt() ?? 0;
+        return stock < 5;
+      }).toList();
+
+      final outOfStock = products.docs.where((doc) {
+        final stock = (doc.data()['stock'] as num?)?.toInt() ?? 0;
+        return stock == 0;
+      }).toList();
+
+      final buffer = StringBuffer();
+      buffer.writeln("📦 **Inventaire : ${products.docs.length} produit(s)**\n");
+
+      if (outOfStock.isNotEmpty) {
+        buffer.writeln("🔴 **${outOfStock.length} en rupture :**");
+        for (final doc in outOfStock.take(3)) {
+          final name = doc.data()['name'] ?? 'Produit';
+          buffer.writeln("   • $name");
+        }
+        buffer.writeln("");
+      }
+
+      if (lowStock.isNotEmpty && lowStock.length > outOfStock.length) {
+        final justLow = lowStock.where((doc) => (doc.data()['stock'] as num?)?.toInt() != 0).toList();
+        if (justLow.isNotEmpty) {
+          buffer.writeln("🟠 **${justLow.length} stock faible (<5) :**");
+          for (final doc in justLow.take(3)) {
+            final name = doc.data()['name'] ?? 'Produit';
+            final stock = (doc.data()['stock'] as num?)?.toInt() ?? 0;
+            buffer.writeln("   • $name ($stock restants)");
+          }
+        }
+      }
+
+      if (outOfStock.isEmpty && lowStock.isEmpty) {
+        buffer.writeln("✅ Tous vos produits ont un stock suffisant !");
+      }
+
+      return buffer.toString();
+    }
+
+    // Ventes récentes
+    if (q.contains('vente') || q.contains('chiffre') || q.contains('revenu') || q.contains('aujourd')) {
+      final today = DateTime.now();
+      final startOfDay = DateTime(today.year, today.month, today.day);
+
+      final todaySales = await _firestore
+          .collection('orders')
+          .where('vendorId', isEqualTo: userId)
+          .where('status', isEqualTo: 'livree')
+          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .get()
+          .timeout(const Duration(seconds: 8));
+
+      final allSales = await _firestore
+          .collection('orders')
+          .where('vendorId', isEqualTo: userId)
+          .where('status', isEqualTo: 'livree')
+          .get()
+          .timeout(const Duration(seconds: 8));
+
+      double todayTotal = 0;
+      for (final doc in todaySales.docs) {
+        todayTotal += (doc.data()['totalAmount'] as num?)?.toDouble() ?? 0;
+      }
+
+      double allTimeTotal = 0;
+      for (final doc in allSales.docs) {
+        allTimeTotal += (doc.data()['totalAmount'] as num?)?.toDouble() ?? 0;
+      }
+
+      final buffer = StringBuffer();
+      buffer.writeln("📊 **Vos ventes :**\n");
+      buffer.writeln("📅 **Aujourd'hui :** ${todaySales.docs.length} vente(s) • ${todayTotal.toStringAsFixed(0)} FCFA");
+      buffer.writeln("📈 **Total :** ${allSales.docs.length} vente(s) • ${allTimeTotal.toStringAsFixed(0)} FCFA");
+
+      return buffer.toString();
+    }
+
+    return null;
+  }
+
+  /// Données détaillées pour le livreur
+  static Future<String?> _getLivreurDetailedData(String q, String userId) async {
+    // Livraisons disponibles avec détails
+    if (q.contains('disponible') || q.contains('course') || q.contains('opportunit') || q.contains('nouvelle')) {
+      final deliveries = await _firestore
+          .collection('deliveries')
+          .where('status', isEqualTo: 'available')
+          .orderBy('createdAt', descending: true)
+          .limit(5)
+          .get()
+          .timeout(const Duration(seconds: 8));
+
+      if (deliveries.docs.isEmpty) {
+        return "📭 **Aucune livraison disponible**\n\nRestez connecté, de nouvelles courses arrivent bientôt !";
+      }
+
+      final buffer = StringBuffer();
+      buffer.writeln("🛵 **${deliveries.docs.length} livraison(s) disponible(s) :**\n");
+
+      for (int i = 0; i < deliveries.docs.length; i++) {
+        final data = deliveries.docs[i].data();
+        final fee = (data['deliveryFee'] as num?)?.toInt() ?? 0;
+        final distance = (data['distance'] as num?)?.toStringAsFixed(1) ?? '?';
+        final pickupAddress = data['pickupAddress'] ?? 'Adresse inconnue';
+
+        buffer.writeln("${i + 1}. **$fee FCFA** - $distance km");
+        buffer.writeln("   📍 $pickupAddress");
+      }
+
+      buffer.writeln("\n💡 Dites \"accepte la livraison\" pour en prendre une.");
+      return buffer.toString();
+    }
+
+    // Livraison en cours
+    if (q.contains('livraison') || q.contains('en cours') || q.contains('active') || q.contains('mission')) {
+      final active = await _firestore
+          .collection('deliveries')
+          .where('livreurId', isEqualTo: userId)
+          .where('status', whereIn: ['assigned', 'picked_up', 'in_transit'])
+          .get()
+          .timeout(const Duration(seconds: 8));
+
+      if (active.docs.isEmpty) {
+        return "📦 **Aucune livraison en cours**\n\nVous êtes disponible pour accepter de nouvelles courses !";
+      }
+
+      final buffer = StringBuffer();
+      buffer.writeln("🚴 **${active.docs.length} livraison(s) en cours :**\n");
+
+      for (final doc in active.docs) {
+        final data = doc.data();
+        final status = data['status'] ?? 'assigned';
+        final fee = (data['deliveryFee'] as num?)?.toInt() ?? 0;
+        final deliveryAddress = data['deliveryAddress'] ?? 'Adresse inconnue';
+
+        String statusIcon = '📋';
+        String statusText = 'Assignée';
+        if (status == 'picked_up') {
+          statusIcon = '📦';
+          statusText = 'Colis récupéré';
+        } else if (status == 'in_transit') {
+          statusIcon = '🚴';
+          statusText = 'En route';
+        }
+
+        buffer.writeln("$statusIcon **$statusText** - $fee FCFA");
+        buffer.writeln("   📍 Livrer à: $deliveryAddress");
+      }
+
+      return buffer.toString();
+    }
+
+    // Gains détaillés
+    if (q.contains('gain') || q.contains('argent') || q.contains('revenu') || q.contains('salaire')) {
+      final today = DateTime.now();
+      final startOfDay = DateTime(today.year, today.month, today.day);
+      final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
+
+      final todayDeliveries = await _firestore
+          .collection('deliveries')
+          .where('livreurId', isEqualTo: userId)
+          .where('status', isEqualTo: 'delivered')
+          .where('deliveredAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .get()
+          .timeout(const Duration(seconds: 8));
+
+      final weekDeliveries = await _firestore
+          .collection('deliveries')
+          .where('livreurId', isEqualTo: userId)
+          .where('status', isEqualTo: 'delivered')
+          .where('deliveredAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfWeek))
+          .get()
+          .timeout(const Duration(seconds: 8));
+
+      double todayEarnings = 0;
+      for (final doc in todayDeliveries.docs) {
+        todayEarnings += (doc.data()['livreurEarnings'] as num?)?.toDouble() ?? 0;
+      }
+
+      double weekEarnings = 0;
+      for (final doc in weekDeliveries.docs) {
+        weekEarnings += (doc.data()['livreurEarnings'] as num?)?.toDouble() ?? 0;
+      }
+
+      final buffer = StringBuffer();
+      buffer.writeln("💰 **Vos gains :**\n");
+      buffer.writeln("📅 **Aujourd'hui :** ${todayDeliveries.docs.length} course(s) • ${todayEarnings.toStringAsFixed(0)} FCFA");
+      buffer.writeln("📆 **Cette semaine :** ${weekDeliveries.docs.length} course(s) • ${weekEarnings.toStringAsFixed(0)} FCFA");
+
+      return buffer.toString();
+    }
+
+    return null;
+  }
+
+  /// Données détaillées pour l'acheteur
+  static Future<String?> _getAcheteurDetailedData(String q, String userId) async {
+    // Commandes en cours avec détails
+    if (q.contains('commande') || q.contains('suivi') || q.contains('livraison')) {
+      final orders = await _firestore
+          .collection('orders')
+          .where('buyerId', isEqualTo: userId)
+          .where('status', whereIn: ['en_attente', 'en_cours', 'ready'])
+          .orderBy('createdAt', descending: true)
+          .limit(5)
+          .get()
+          .timeout(const Duration(seconds: 8));
+
+      if (orders.docs.isEmpty) {
+        return "📦 **Aucune commande en cours**\n\nVous n'avez pas de commande active. Explorez nos produits !";
+      }
+
+      final buffer = StringBuffer();
+      buffer.writeln("📦 **${orders.docs.length} commande(s) en cours :**\n");
+
+      for (int i = 0; i < orders.docs.length; i++) {
+        final data = orders.docs[i].data();
+        final status = data['status'] ?? 'en_attente';
+        final total = (data['totalAmount'] as num?)?.toInt() ?? 0;
+        final vendorName = data['vendorName'] ?? 'Vendeur';
+
+        String statusIcon = '⏳';
+        String statusText = 'En attente';
+        if (status == 'en_cours') {
+          statusIcon = '🔄';
+          statusText = 'En préparation';
+        } else if (status == 'ready') {
+          statusIcon = '✅';
+          statusText = 'Prête';
+        }
+
+        buffer.writeln("${i + 1}. $statusIcon **$statusText** - $total FCFA");
+        buffer.writeln("   🏪 $vendorName");
+      }
+
+      return buffer.toString();
+    }
+
+    // Panier avec détails - Structure: users/{userId}/cart/current -> items[]
+    if (q.contains('panier') || q.contains('cart')) {
+      final cartDoc = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('cart')
+          .doc('current')
+          .get()
+          .timeout(const Duration(seconds: 8));
+
+      if (!cartDoc.exists) {
+        return "🛒 **Votre panier est vide**\n\nExplorez nos produits pour trouver ce qu'il vous faut !";
+      }
+
+      final data = cartDoc.data();
+      final items = (data?['items'] as List<dynamic>?) ?? [];
+
+      if (items.isEmpty) {
+        return "🛒 **Votre panier est vide**\n\nExplorez nos produits pour trouver ce qu'il vous faut !";
+      }
+
+      double total = 0;
+      final buffer = StringBuffer();
+      buffer.writeln("🛒 **Votre panier (${items.length} article(s)) :**\n");
+
+      for (int i = 0; i < items.length && i < 5; i++) {
+        final item = items[i] as Map<String, dynamic>;
+        final name = item['productName'] ?? 'Produit';
+        final price = (item['price'] as num?)?.toInt() ?? 0;
+        final quantity = (item['quantity'] as num?)?.toInt() ?? 1;
+        total += price * quantity;
+
+        buffer.writeln("• $name x$quantity - ${price * quantity} FCFA");
+      }
+
+      if (items.length > 5) {
+        buffer.writeln("• ... et ${items.length - 5} autre(s)");
+      }
+
+      buffer.writeln("\n**Total : ${total.toStringAsFixed(0)} FCFA**");
+      return buffer.toString();
+    }
+
+    return null;
+  }
+
+  /// Formatte le temps écoulé
+  static String _formatTimeAgo(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+
+    if (diff.inMinutes < 60) {
+      return "il y a ${diff.inMinutes} min";
+    } else if (diff.inHours < 24) {
+      return "il y a ${diff.inHours}h";
+    } else {
+      return "il y a ${diff.inDays}j";
+    }
+  }
+
   // ========== RÉPONSE INTELLIGENTE ==========
 
   /// Génère une réponse (offline d'abord, puis online si autorisé)
@@ -571,8 +998,27 @@ class AIAssistantService {
     required AIAccessLevel accessLevel,
     String? userId,
   }) async {
-    // 0. Pour PRO+, charger le contexte et tenter réponse contextuelle
-    if ((accessLevel == AIAccessLevel.pro || accessLevel == AIAccessLevel.premium) && userId != null) {
+    // 0. Essayer d'abord les réponses détaillées (données réelles)
+    if (userId != null) {
+      try {
+        final detailedResponse = await _getDetailedDataResponse(query, userType, userId);
+        if (detailedResponse != null) {
+          return AIMessage(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            content: detailedResponse,
+            isUser: false,
+            timestamp: DateTime.now(),
+            type: AIMessageType.text,
+            metadata: {'source': 'detailed_data'},
+          );
+        }
+      } catch (e) {
+        debugPrint('⚠️ Erreur données détaillées: $e');
+      }
+    }
+
+    // 1. Charger le contexte utilisateur pour TOUS (questions simples gratuites)
+    if (userId != null) {
       try {
         final context = await loadUserContext(userId: userId, userType: userType);
         if (context != null) {
@@ -596,8 +1042,9 @@ class AIAssistantService {
       }
     }
 
-    // 1. Détecter intention par mots-clés du rôle
-    final detectedIntent = _detectIntent(query, userType);
+    // 1. Détecter intention par mots-clés du rôle (seulement si pas une question)
+    final isQuestion = _isQuestionQuery(query);
+    final detectedIntent = isQuestion ? null : _detectIntent(query, userType);
     if (detectedIntent != null) {
       return AIMessage(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -799,13 +1246,18 @@ class AIAssistantService {
   }
 
   static Future<UserContext> _loadAcheteurContext(String userId) async {
-    // Compter articles panier
-    final cartSnapshot = await _firestore
-        .collection('carts')
+    // Compter articles panier - Structure: users/{userId}/cart/current -> items[]
+    final cartDoc = await _firestore
+        .collection('users')
         .doc(userId)
-        .collection('items')
+        .collection('cart')
+        .doc('current')
         .get()
         .timeout(const Duration(seconds: 5), onTimeout: () => throw 'Timeout');
+
+    final cartItems = cartDoc.exists
+        ? ((cartDoc.data()?['items'] as List<dynamic>?) ?? [])
+        : [];
 
     // Commandes en cours
     final pendingOrders = await _firestore
@@ -826,7 +1278,7 @@ class AIAssistantService {
     return UserContext(
       userType: 'acheteur',
       userId: userId,
-      cartItemsCount: cartSnapshot.docs.length,
+      cartItemsCount: cartItems.length,
       pendingOrdersCount: pendingOrders.docs.length,
       deliveredOrdersCount: deliveredOrders.docs.length,
     );
@@ -935,57 +1387,87 @@ class AIAssistantService {
 
     switch (context.userType) {
       case 'acheteur':
+        // Questions sur le panier
         if (q.contains('panier') || q.contains('cart')) {
-          if (context.cartItemsCount == 0) {
-            return "Votre panier est vide. Explorez nos produits pour trouver ce qu'il vous faut !";
+          if (context.cartItemsCount == 0 || context.cartItemsCount == null) {
+            return "🛒 Votre panier est vide. Explorez nos produits pour trouver ce qu'il vous faut !";
           }
-          return "Vous avez ${context.cartItemsCount} article(s) dans votre panier.";
+          return "🛒 Vous avez ${context.cartItemsCount} article(s) dans votre panier.";
         }
-        if (q.contains('commande') && (q.contains('où') || q.contains('suivi') || q.contains('en cours'))) {
-          if (context.pendingOrdersCount == 0) {
-            return "Vous n'avez aucune commande en cours. Vos ${context.deliveredOrdersCount} commandes ont été livrées.";
+        // Questions sur les commandes
+        if (q.contains('commande')) {
+          if (context.pendingOrdersCount == 0 || context.pendingOrdersCount == null) {
+            final delivered = context.deliveredOrdersCount ?? 0;
+            if (delivered == 0) {
+              return "📦 Vous n'avez aucune commande pour le moment.";
+            }
+            return "📦 Vous n'avez aucune commande en cours. $delivered commande(s) livrée(s) au total.";
           }
-          return "Vous avez ${context.pendingOrdersCount} commande(s) en cours de traitement.";
+          return "📦 Vous avez ${context.pendingOrdersCount} commande(s) en cours de traitement.";
         }
         break;
 
       case 'vendeur':
-        if (q.contains('commande') && (q.contains('attente') || q.contains('confirmer') || q.contains('nouvelle'))) {
-          if (context.pendingOrdersToConfirm == 0) {
-            return "Aucune commande en attente. Tout est à jour !";
+        // Questions sur les commandes
+        if (q.contains('commande')) {
+          final pending = context.pendingOrdersToConfirm ?? 0;
+          if (pending == 0) {
+            return "✅ Aucune commande en attente. Tout est à jour !";
           }
-          return "⚠️ Vous avez ${context.pendingOrdersToConfirm} commande(s) à confirmer.";
+          return "📋 Vous avez $pending commande(s) à confirmer.";
         }
-        if (q.contains('stock') || q.contains('rupture') || q.contains('produit')) {
-          String response = "Vous avez ${context.productsCount} produit(s) en ligne.";
-          if (context.lowStockProductsCount! > 0) {
-            response += "\n⚠️ ${context.lowStockProductsCount} produit(s) ont un stock faible (<5).";
+        // Questions sur les produits/stock
+        if (q.contains('produit') || q.contains('stock') || q.contains('article') || q.contains('catalogue')) {
+          final products = context.productsCount ?? 0;
+          final lowStock = context.lowStockProductsCount ?? 0;
+          String response = "📦 Vous avez $products produit(s) en ligne.";
+          if (lowStock > 0) {
+            response += "\n⚠️ $lowStock produit(s) ont un stock faible (<5).";
           }
           return response;
         }
-        if (q.contains('solde') || q.contains('argent') || q.contains('gains') || q.contains('portefeuille')) {
-          return "💰 Votre solde : ${context.walletBalance?.toStringAsFixed(0)} FCFA\n📦 Ventes totales : ${context.totalSales}";
+        // Questions sur l'argent/solde/gains
+        if (q.contains('solde') || q.contains('argent') || q.contains('gain') || q.contains('portefeuille') || q.contains('revenu')) {
+          final balance = context.walletBalance?.toStringAsFixed(0) ?? '0';
+          final sales = context.totalSales ?? 0;
+          return "💰 Votre solde : $balance FCFA\n📊 Ventes totales : $sales";
         }
-        if (q.contains('vente') || q.contains('stats') || q.contains('chiffre')) {
-          return "📊 Vous avez réalisé ${context.totalSales} vente(s).\n💰 Solde disponible : ${context.walletBalance?.toStringAsFixed(0)} FCFA";
+        // Questions sur les ventes/stats
+        if (q.contains('vente') || q.contains('stat') || q.contains('chiffre') || q.contains('performance')) {
+          final sales = context.totalSales ?? 0;
+          final balance = context.walletBalance?.toStringAsFixed(0) ?? '0';
+          return "📊 Vous avez réalisé $sales vente(s).\n💰 Solde disponible : $balance FCFA";
         }
         break;
 
       case 'livreur':
-        if (q.contains('disponible') || q.contains('course') || q.contains('nouvelle')) {
-          if (context.availableDeliveriesCount == 0) {
-            return "Aucune livraison disponible pour le moment. Restez connecté !";
+        // Questions sur les livraisons disponibles
+        if (q.contains('disponible') || q.contains('course') || q.contains('nouvelle') || q.contains('opportunit')) {
+          final available = context.availableDeliveriesCount ?? 0;
+          if (available == 0) {
+            return "📭 Aucune livraison disponible pour le moment. Restez connecté !";
           }
-          return "🛵 ${context.availableDeliveriesCount} livraison(s) disponible(s) près de vous.";
+          return "🛵 $available livraison(s) disponible(s) près de vous !";
         }
-        if (q.contains('en cours') || q.contains('active') || q.contains('mission')) {
-          if (context.activeDeliveryCount == 0) {
-            return "Vous n'avez pas de livraison en cours.";
+        // Questions sur les livraisons en cours
+        if (q.contains('livraison') || q.contains('en cours') || q.contains('active') || q.contains('mission')) {
+          final active = context.activeDeliveryCount ?? 0;
+          if (active == 0) {
+            return "📦 Vous n'avez pas de livraison en cours.";
           }
-          return "Vous avez ${context.activeDeliveryCount} livraison(s) en cours.";
+          return "🚴 Vous avez $active livraison(s) en cours.";
         }
-        if (q.contains('gains') || q.contains('argent') || q.contains('combien')) {
-          return "💰 Vos gains : ${context.earningsBalance?.toStringAsFixed(0)} FCFA\n✅ Livraisons effectuées : ${context.completedDeliveriesCount}";
+        // Questions sur les gains/argent
+        if (q.contains('gain') || q.contains('argent') || q.contains('solde') || q.contains('revenu') || q.contains('salaire')) {
+          final earnings = context.earningsBalance?.toStringAsFixed(0) ?? '0';
+          final completed = context.completedDeliveriesCount ?? 0;
+          return "💰 Vos gains : $earnings FCFA\n✅ Livraisons effectuées : $completed";
+        }
+        // Questions sur l'historique/stats
+        if (q.contains('historique') || q.contains('stat') || q.contains('effectu') || q.contains('termin')) {
+          final completed = context.completedDeliveriesCount ?? 0;
+          final earnings = context.earningsBalance?.toStringAsFixed(0) ?? '0';
+          return "📊 Livraisons terminées : $completed\n💰 Gains totaux : $earnings FCFA";
         }
         break;
     }
@@ -1007,7 +1489,7 @@ class AIAssistantService {
             title: 'Panier en attente',
             message: 'Vous avez ${context.cartItemsCount} article(s) dans votre panier.',
             actionLabel: 'Voir le panier',
-            actionRoute: '/acheteur-cart',
+            actionRoute: '/acheteur/cart',
           ));
         }
         break;
@@ -1020,7 +1502,7 @@ class AIAssistantService {
             title: 'Commandes en attente',
             message: '${context.pendingOrdersToConfirm} commande(s) à confirmer rapidement !',
             actionLabel: 'Gérer',
-            actionRoute: '/vendeur-orders',
+            actionRoute: '/vendeur/order-management',
           ));
         }
         // Stock faible
@@ -1030,7 +1512,7 @@ class AIAssistantService {
             title: 'Stock faible',
             message: '${context.lowStockProductsCount} produit(s) ont moins de 5 unités.',
             actionLabel: 'Voir produits',
-            actionRoute: '/vendeur-products',
+            actionRoute: '/vendeur/products',
           ));
         }
         // Pas de produits
@@ -1040,7 +1522,7 @@ class AIAssistantService {
             title: 'Boutique vide',
             message: 'Ajoutez des produits pour commencer à vendre.',
             actionLabel: 'Ajouter',
-            actionRoute: '/vendeur-add-product',
+            actionRoute: '/vendeur/add-product',
           ));
         }
         break;
@@ -1053,7 +1535,7 @@ class AIAssistantService {
             title: 'Livraison active',
             message: 'Vous avez ${context.activeDeliveryCount} livraison(s) en cours.',
             actionLabel: 'Voir',
-            actionRoute: '/livreur-active',
+            actionRoute: '/livreur/deliveries',
           ));
         }
         // Livraisons disponibles
@@ -1063,7 +1545,7 @@ class AIAssistantService {
             title: 'Opportunités',
             message: '${context.availableDeliveriesCount} livraison(s) disponible(s) !',
             actionLabel: 'Accepter',
-            actionRoute: '/livreur-available',
+            actionRoute: '/livreur/available-orders',
           ));
         }
         break;

@@ -396,8 +396,8 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
                 _previousStep();
               } else {
                 debugPrint('🔙 Quitter l\'écran');
-                if (Navigator.of(context).canPop()) {
-                  Navigator.of(context).pop();
+                if (context.canPop()) {
+              context.pop();
                 } else {
                   context.go('/vendeur-dashboard');
                 }
@@ -426,8 +426,8 @@ class _ShopSetupScreenState extends State<ShopSetupScreen> {
               _previousStep();
             } else {
               debugPrint('🔙 Quitter l\'écran');
-              if (Navigator.of(context).canPop()) {
-                Navigator.of(context).pop();
+              if (context.canPop()) {
+              context.pop();
               } else {
                 context.go('/vendeur-dashboard');
               }

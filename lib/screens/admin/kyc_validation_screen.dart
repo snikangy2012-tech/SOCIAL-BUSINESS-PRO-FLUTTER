@@ -66,8 +66,8 @@ class _KYCValidationScreenState extends State<KYCValidationScreen> {
           leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
+            if (context.canPop()) {
+              context.pop();
             } else {
               context.go('/admin-dashboard');
             }
@@ -90,8 +90,8 @@ class _KYCValidationScreenState extends State<KYCValidationScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
+            if (context.canPop()) {
+              context.pop();
             } else {
               context.go('/admin-dashboard');
             }

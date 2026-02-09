@@ -1067,7 +1067,7 @@ Adresse: ${_addressController.text}
     if (cartProvider.items.isEmpty && !_isProcessing && !_orderCompleted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          context.go('/cart');
+          context.go('/acheteur/cart');
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Votre panier est vide'),
@@ -1083,8 +1083,8 @@ Adresse: ${_addressController.text}
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
+            if (context.canPop()) {
+              context.pop();
             } else {
               context.go('/acheteur-home');
             }
@@ -1598,7 +1598,7 @@ Adresse: ${_addressController.text}
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () => context.go('/cart'),
+              onPressed: () => context.go('/acheteur/cart'),
               child: const Text('Retour au panier'),
             ),
           ],

@@ -65,8 +65,8 @@ class _RefundManagementScreenState extends State<RefundManagementScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
+            if (context.canPop()) {
+              context.pop();
             } else {
               context.go('/vendeur-dashboard');
             }

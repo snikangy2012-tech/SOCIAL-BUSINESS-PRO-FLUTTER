@@ -1,5 +1,5 @@
 // ===== lib/screens/common/ai_assistant_screen.dart =====
-// Écran de chat avec l'assistant IA
+// Écran de chat avec l'assistant IA avec capacités d'exécution d'actions
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -7,9 +7,13 @@ import 'package:provider/provider.dart';
 
 import '../../config/constants.dart';
 import '../../models/ai_assistant_models.dart';
+import '../../models/ai_action_models.dart';
 import '../../services/ai_assistant_service.dart';
+import '../../services/ai_action_executor_service.dart';
 import '../../services/subscription_service.dart';
 import '../../providers/auth_provider_firebase.dart';
+import '../../widgets/ai_action_confirmation_dialog.dart';
+import '../../widgets/ai_action_result_widget.dart';
 
 class AIAssistantScreen extends StatefulWidget {
   const AIAssistantScreen({super.key});
@@ -25,9 +29,11 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   final List<AIMessage> _messages = [];
   bool _isTyping = false;
   bool _isLoadingSubscription = true;
-
   String _userType = 'acheteur';
   String? _userId;
+  String? _userEmail;
+  String? _userName;
+  String? _vendorId;
   String _subscriptionTier = 'BASIQUE';
   AIAccessLevel _accessLevel = AIAccessLevel.basic;
 
@@ -44,6 +50,12 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     if (user != null) {
       _userType = user.userType.value;
       _userId = user.id;
+      _userEmail = user.email;
+      _userName = user.displayName;
+      // Pour les vendeurs, le vendorId est le même que le userId
+      if (_userType == 'vendeur') {
+        _vendorId = user.id;
+      }
 
       // Récupérer l'abonnement réel
       await _loadSubscription();
@@ -229,8 +241,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
 
   void _showUpgradeDialog() {
     final route = _userType == 'vendeur'
-        ? '/vendeur-subscription'
-        : '/livreur-subscription';
+        ? '/vendeur/subscription'
+        : '/livreur/subscription';
 
     final isPro = _accessLevel == AIAccessLevel.pro;
     final targetPlan = isPro ? 'PREMIUM' : 'PRO';
@@ -339,6 +351,227 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     _messageController.clear();
     _scrollToBottom();
 
+    // Vérifier si le message contient une intention d'action
+    final actionIntent = AIActionExecutorService.detectActionIntent(text, _userType);
+
+    if (actionIntent != null && actionIntent.isHighConfidence) {
+      // Action détectée avec haute confiance
+      await _processActionIntent(actionIntent, text);
+    } else {
+      // Comportement normal: obtenir une réponse de l'assistant
+      await _processNormalMessage(text);
+    }
+  }
+
+  /// Traite une intention d'action détectée
+  Future<void> _processActionIntent(DetectedActionIntent intent, String originalMessage) async {
+    try {
+      // Construire le contexte d'action
+      final actionContext = await _buildActionContext(intent, originalMessage);
+
+      // Valider l'action
+      final validation = await AIActionExecutorService.validateAction(
+        intent.action,
+        actionContext,
+      );
+
+      if (!validation.isValid) {
+        // Validation échouée - afficher le message d'erreur
+        if (mounted) {
+          setState(() {
+            _messages.add(AIMessage(
+              id: DateTime.now().millisecondsSinceEpoch.toString(),
+              content: validation.errorMessage ?? 'Cette action ne peut pas être effectuée.',
+              isUser: false,
+              timestamp: DateTime.now(),
+              type: AIMessageType.text,
+            ));
+            _isTyping = false;
+          });
+          _scrollToBottom();
+        }
+        return;
+      }
+
+      // L'action nécessite confirmation
+      if (intent.action.requiresConfirmation) {
+        // Préparer les données de confirmation
+        final confirmationData = await AIActionExecutorService.prepareConfirmation(
+          intent.action,
+          actionContext,
+        );
+
+        if (mounted) {
+          setState(() => _isTyping = false);
+
+          // Afficher le dialogue de confirmation
+          final confirmed = await showAIActionConfirmationDialog(
+            context: context,
+            action: intent.action,
+            actionContext: actionContext,
+            data: confirmationData,
+            onConfirm: () async {
+              await _executeAction(intent.action, actionContext);
+            },
+          );
+
+          if (!confirmed) {
+            // Action annulée par l'utilisateur
+            setState(() {
+              _messages.add(AIMessage(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                content: 'Action annulée.',
+                isUser: false,
+                timestamp: DateTime.now(),
+                type: AIMessageType.text,
+              ));
+            });
+            _scrollToBottom();
+          }
+        }
+      } else {
+        // Exécuter directement sans confirmation
+        await _executeAction(intent.action, actionContext);
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur traitement action: $e');
+      if (mounted) {
+        setState(() {
+          _messages.add(AIMessage(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            content: 'Une erreur est survenue: $e',
+            isUser: false,
+            timestamp: DateTime.now(),
+            type: AIMessageType.text,
+          ));
+          _isTyping = false;
+        });
+        _scrollToBottom();
+      }
+    }
+  }
+
+  /// Construit le contexte d'action à partir de l'intention détectée
+  Future<AIActionContext> _buildActionContext(
+    DetectedActionIntent intent,
+    String originalMessage,
+  ) async {
+    String? targetId;
+    String? targetType;
+    final parameters = <String, dynamic>{};
+
+    // Extraire l'ID depuis les paramètres capturés
+    if (intent.extractedParams.containsKey('capturedId')) {
+      targetId = intent.extractedParams['capturedId'];
+    }
+
+    // Déterminer le type de cible selon l'action
+    switch (intent.action.type) {
+      case AIActionType.confirmOrder:
+      case AIActionType.cancelOrder:
+      case AIActionType.confirmAllPendingOrders:
+      case AIActionType.cancelMyOrder:
+      case AIActionType.reorder:
+        targetType = 'order';
+        break;
+
+      case AIActionType.acceptDelivery:
+      case AIActionType.markPickedUp:
+      case AIActionType.markDelivered:
+        targetType = 'delivery';
+        break;
+
+      case AIActionType.updateStock:
+      case AIActionType.toggleProductStatus:
+        targetType = 'product';
+        break;
+
+      default:
+        break;
+    }
+
+    // Pour les actions en lot (confirmAllPendingOrders), pas besoin d'ID spécifique
+    if (intent.action.type == AIActionType.confirmAllPendingOrders) {
+      targetId = null; // Sera géré par le service
+    }
+
+    return AIActionContext(
+      userId: _userId ?? '',
+      userType: _userType,
+      targetId: targetId,
+      targetType: targetType,
+      parameters: parameters,
+      vendorId: _vendorId,
+    );
+  }
+
+  /// Exécute l'action confirmée
+  Future<void> _executeAction(
+    AIExecutableAction action,
+    AIActionContext actionContext,
+  ) async {
+    if (mounted) {
+      setState(() {
+        _messages.add(AIMessage(
+          id: 'executing_${DateTime.now().millisecondsSinceEpoch}',
+          content: 'Exécution en cours...',
+          isUser: false,
+          timestamp: DateTime.now(),
+          type: AIMessageType.actionExecuting,
+        ));
+      });
+      _scrollToBottom();
+    }
+
+    try {
+      final result = await AIActionExecutorService.executeAction(
+        action,
+        actionContext,
+        userEmail: _userEmail,
+        userName: _userName,
+      );
+
+      if (mounted) {
+        setState(() {
+          // Remplacer le message "en cours" par le résultat
+          _messages.removeWhere((m) => m.type == AIMessageType.actionExecuting);
+          _messages.add(AIMessage(
+            id: 'result_${DateTime.now().millisecondsSinceEpoch}',
+            content: result.message,
+            isUser: false,
+            timestamp: DateTime.now(),
+            type: AIMessageType.actionResult,
+            metadata: {
+              'success': result.success,
+              'data': result.data,
+              'items': result.items?.map((i) => i.toMap()).toList(),
+            },
+          ));
+          _isTyping = false;
+        });
+        _scrollToBottom();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _messages.removeWhere((m) => m.type == AIMessageType.actionExecuting);
+          _messages.add(AIMessage(
+            id: 'error_${DateTime.now().millisecondsSinceEpoch}',
+            content: 'Erreur: $e',
+            isUser: false,
+            timestamp: DateTime.now(),
+            type: AIMessageType.actionResult,
+            metadata: {'success': false},
+          ));
+          _isTyping = false;
+        });
+        _scrollToBottom();
+      }
+    }
+  }
+
+  /// Traite un message normal (sans action)
+  Future<void> _processNormalMessage(String text) async {
     // Simuler un délai de frappe
     await Future.delayed(const Duration(milliseconds: 500));
 
@@ -412,14 +645,17 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                 children: [
                   Row(
                     children: [
-                      const Text(
-                        'SOCIAL Assistant',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                      Flexible(
+                        child: const Text(
+                          'SOCIAL Assistant',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       _buildTierBadge(),
                     ],
                   ),
@@ -479,6 +715,63 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
 
   Widget _buildMessageBubble(AIMessage message) {
     final isUser = message.isUser;
+
+    // Widget spécial pour les résultats d'action
+    if (message.type == AIMessageType.actionResult) {
+      final success = message.metadata?['success'] as bool? ?? false;
+      final items = message.metadata?['items'] as List<dynamic>?;
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: AppColors.primary,
+              child: const Icon(Icons.smart_toy, size: 18, color: Colors.white),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: AIActionResultWidget(
+                result: AIActionResult(
+                  success: success,
+                  message: message.content,
+                  data: message.metadata?['data'] as Map<String, dynamic>?,
+                  items: items?.map((i) => ActionResultItem(
+                    id: i['id'] ?? '',
+                    label: i['label'] ?? '',
+                    success: i['success'] ?? false,
+                    error: i['error'],
+                  )).toList(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Widget spécial pour les actions en cours d'exécution
+    if (message.type == AIMessageType.actionExecuting) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: AppColors.primary,
+              child: const Icon(Icons.smart_toy, size: 18, color: Colors.white),
+            ),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: AIActionExecutingIndicator(),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),

@@ -34,13 +34,17 @@ class KYCPendingScreen extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            // Rediriger vers le dashboard approprié
-            if (user.userType == UserType.vendeur) {
-              context.go('/vendeur/dashboard');
-            } else if (user.userType == UserType.livreur) {
-              context.go('/livreur/dashboard');
+            if (context.canPop()) {
+              context.pop();
             } else {
-              context.go('/');
+              // Fallback vers le dashboard approprié
+              if (user.userType == UserType.vendeur) {
+                context.go('/vendeur-dashboard');
+              } else if (user.userType == UserType.livreur) {
+                context.go('/livreur-dashboard');
+              } else {
+                context.go('/');
+              }
             }
           },
         ),
@@ -306,9 +310,9 @@ class KYCPendingScreen extends StatelessWidget {
                 isOutlined: true,
                 onPressed: () {
                   if (user.userType == UserType.vendeur) {
-                    context.go('/vendeur/dashboard');
+                    context.go('/vendeur-dashboard');
                   } else if (user.userType == UserType.livreur) {
-                    context.go('/livreur/dashboard');
+                    context.go('/livreur-dashboard');
                   } else {
                     context.go('/');
                   }

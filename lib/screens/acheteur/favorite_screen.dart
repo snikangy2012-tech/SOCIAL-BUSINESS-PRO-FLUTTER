@@ -107,8 +107,8 @@ class _FavoriteScreenState extends State<FavoriteScreen> with SingleTickerProvid
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
+            if (context.canPop()) {
+              context.pop();
             } else {
               context.go('/acheteur-home');
             }

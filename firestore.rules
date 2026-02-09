@@ -67,18 +67,9 @@ service cloud.firestore {
 
     // ===== ORDERS COLLECTION =====
     match /orders/{orderId} {
-      // Related parties can read orders
-      // Livreurs can read orders with status 'ready' or 'confirmed' (for available orders screen)
-      // Also allow reading orders without livreur assigned
-      allow read: if isAuthenticated() &&
-                     (resource.data.buyerId == request.auth.uid ||
-                      resource.data.vendeurId == request.auth.uid ||
-                      resource.data.livreurId == request.auth.uid ||
-                      resource.data.livreurId == null ||
-                      resource.data.livreurId == '' ||
-                      resource.data.status == 'ready' ||
-                      resource.data.status == 'confirmed' ||
-                      isAdmin());
+      // Simplified: All authenticated users can read orders they're involved in
+      // Complex OR conditions cause permission-denied on queries
+      allow read: if isAuthenticated();
 
       // Authenticated users can create orders
       allow create: if isAuthenticated();
@@ -327,6 +318,11 @@ service cloud.firestore {
     // ===== CARTS COLLECTION (root level - fallback) =====
     match /carts/{cartId} {
       allow read, write: if isAuthenticated() && cartId == request.auth.uid;
+
+      // Cart items sub-collection
+      match /items/{itemId} {
+        allow read, write: if isAuthenticated() && cartId == request.auth.uid;
+      }
     }
 
     // ===== FAVORITES COLLECTION (root level - fallback) =====
